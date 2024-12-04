@@ -1,6 +1,8 @@
 import type { Config } from "tailwindcss";
+import { radixThemePreset } from "radix-themes-tw";
 
 export default {
+  presets: [radixThemePreset],
   content: ["./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
@@ -18,5 +20,4 @@ export default {
       },
     },
   },
-  plugins: [],
 } satisfies Config;
