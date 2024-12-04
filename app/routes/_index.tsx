@@ -8,22 +8,15 @@ import {
   IconButton,
 } from "@radix-ui/themes";
 import { InfoCircledIcon, ResetIcon } from "@radix-ui/react-icons";
-import { json, type MetaFunction } from "@remix-run/node";
+import { json, LoaderFunctionArgs, type MetaFunction } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
-import { desc, eq, isNotNull, sql } from "drizzle-orm";
-
-import { db } from "~/db.server";
 import {
-  dancers,
-  dancersToCurations,
-  videos,
-  performances,
-  orchestras,
-  curations,
-} from "../../schema";
+  getDancerOptions,
+  getFilteredVideos,
+  getOrchestraOptions,
+} from "~/db.server";
 import { VideoCard, type Video } from "~/components/video-card";
 import { OptionsSelect } from "~/components/options-select";
-import { normalize } from "lib/normailze";
 
 export const meta: MetaFunction = () => {
   return [
@@ -32,70 +25,26 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export async function loader() {
-  // TODO: make dancer options depend on the dancers in the URL
-  // const url = new URL(request.url);
-  //
-  // const dancer1 = url.searchParams.get("dancer1") || "any";
-  // const dancer2 = url.searchParams.get("dancer2") || "any";
-  const dancerOptions = await db
-    .select({
-      id: dancers.id,
-      name: dancers.name,
-      count: sql<number>`count(${dancersToCurations.curationId})`.as(
-        "performanceCount"
-      ),
-    })
-    .from(dancers)
-    .leftJoin(dancersToCurations, eq(dancers.id, dancersToCurations.dancerId))
-    .groupBy(dancers.id, dancers.name)
-    .orderBy(sql`performanceCount DESC`);
+export async function loader({ request }: LoaderFunctionArgs) {
+  const url = new URL(request.url);
+  const dancer1 = url.searchParams.get("dancer1") || "any";
+  const dancer2 = url.searchParams.get("dancer2") || "any";
+  const orchestra = url.searchParams.get("orchestra") || "any";
 
-  const orchestraOptions = await db
-    .select({
-      id: orchestras.id,
-      name: orchestras.name,
-      count: sql<number>`count(${curations.id})`.as("performanceCount"),
-    })
-    .from(orchestras)
-    .leftJoin(curations, eq(orchestras.id, curations.orchestraId))
-    .groupBy(orchestras.id, orchestras.name)
-    .orderBy(sql`performanceCount DESC`);
-
-  // Get initial videos with their related data, ordered by view count
-  // TODO: only fetch recommended videos (via status?)
-  const initialVideos = await db
-    .select({
-      id: videos.id,
-      title: videos.title,
-      channelTitle: videos.channelTitle,
-      performance: performances,
-      curation: curations,
-    })
-    .from(videos)
-    .leftJoin(performances, eq(performances.videoId, videos.id))
-    .leftJoin(curations, eq(curations.performanceId, performances.id))
-    .where(isNotNull(curations.id))
-    .orderBy(desc(videos.viewCount))
-    .limit(12);
-
-  // Transform the data for the frontend
-  const transformedVideos = initialVideos.map((video) => ({
-    id: video.id,
-    title: video.title,
-    channelTitle: video.channelTitle,
-    dancers: video.performance?.dancers?.split(",") || [],
-    songTitle: video.performance?.songTitle || "Unknown",
-    orchestra: video.performance?.orchestra || "Unknown",
-    singers: (video.performance?.singers?.split(",") || []).filter((singer) =>
-      singer.trim()
-    ),
-    status: video.curation?.status,
-  }));
+  // TODO: let orchestra influence dancers
+  // when user is already set show all available options
+  const dancerOneOptions = await getDancerOptions(dancer2);
+  const dancerTwoOptions = await getDancerOptions(dancer1);
+  const orchestraOptions = await getOrchestraOptions(dancer1, dancer2);
+  const transformedVideos = await getFilteredVideos(
+    dancer1,
+    dancer2,
+    orchestra
+  );
 
   return json({
-    dancerOneOptions: dancerOptions,
-    dancerTwoOptions: dancerOptions,
+    dancerOneOptions,
+    dancerTwoOptions,
     orchestraOptions,
     initialVideos: transformedVideos as Video[],
   });
