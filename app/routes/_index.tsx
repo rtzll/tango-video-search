@@ -17,9 +17,10 @@ import { json, type MetaFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
 import { db } from "~/db.server";
-import { eq } from "drizzle-orm";
+import { desc, eq, isNotNull, sql } from "drizzle-orm";
 import {
   dancers,
+  dancersToCurations,
   videos,
   performances,
   orchestras,
@@ -50,22 +51,31 @@ export async function loader() {
   //
   // const dancer1 = url.searchParams.get("dancer1") || "any";
   // const dancer2 = url.searchParams.get("dancer2") || "any";
-  // TODO: sort by number of performances
   const dancerOptions = await db
     .select({
       id: dancers.id,
       name: dancers.name,
+      count: sql<number>`count(${dancersToCurations.curationId})`.as(
+        "performanceCount"
+      ),
     })
-    .from(dancers);
+    .from(dancers)
+    .leftJoin(dancersToCurations, eq(dancers.id, dancersToCurations.dancerId))
+    .groupBy(dancers.id, dancers.name)
+    .orderBy(sql`performanceCount DESC`);
 
   const orchestraOptions = await db
     .select({
       id: orchestras.id,
       name: orchestras.name,
+      count: sql<number>`count(${curations.id})`.as("performanceCount"),
     })
-    .from(orchestras);
+    .from(orchestras)
+    .leftJoin(curations, eq(orchestras.id, curations.orchestraId))
+    .groupBy(orchestras.id, orchestras.name)
+    .orderBy(sql`performanceCount DESC`);
 
-  // Get initial videos with their related data
+  // Get initial videos with their related data, ordered by view count
   // TODO: only fetch recommended videos (via status?)
   const initialVideos = await db
     .select({
@@ -78,6 +88,8 @@ export async function loader() {
     .from(videos)
     .leftJoin(performances, eq(performances.videoId, videos.id))
     .leftJoin(curations, eq(curations.performanceId, performances.id))
+    .where(isNotNull(curations.id))
+    .orderBy(desc(videos.viewCount))
     .limit(12);
 
   // Transform the data for the frontend
@@ -126,7 +138,7 @@ const SearchInterface = () => {
                 <Select.Item value="any">any dancer</Select.Item>
                 {dancerOneOptions.map((dancer) => (
                   <Select.Item key={dancer.id} value={dancer.id.toString()}>
-                    {dancer.name}
+                    {dancer.name} ({dancer.count})
                   </Select.Item>
                 ))}
               </Select.Group>
@@ -142,7 +154,7 @@ const SearchInterface = () => {
                 <Select.Item value="any">any dancer</Select.Item>
                 {dancerTwoOptions.map((dancer) => (
                   <Select.Item key={dancer.id} value={dancer.id.toString()}>
-                    {dancer.name}
+                    {dancer.name} ({dancer.count})
                   </Select.Item>
                 ))}
               </Select.Group>
@@ -166,7 +178,7 @@ const SearchInterface = () => {
                     key={orchestra.id}
                     value={orchestra.id.toString()}
                   >
-                    {orchestra.name}
+                    {orchestra.name} ({orchestra.count})
                   </Select.Item>
                 ))}
               </Select.Group>
