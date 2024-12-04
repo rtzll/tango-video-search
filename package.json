@@ -25,6 +25,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.5.9",
     "@remix-run/dev": "^2.15.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/react": "^18.2.20",

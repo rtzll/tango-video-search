@@ -12,7 +12,10 @@ import {
   performances,
 } from "../schema";
 
-const sqlite = new Database(process.env.DATABASE_PATH || "tango_videos.db", {
+const dbPath = process.env.DATABASE_URL
+  ? new URL(process.env.DATABASE_URL).pathname
+  : "data/sqlite.db";
+const sqlite = new Database(dbPath, {
   readonly: true,
 });
 // configure sqlite

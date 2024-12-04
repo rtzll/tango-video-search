@@ -59,6 +59,7 @@ const SearchInterface = () => {
     orchestraOptions,
     initialVideos,
   } = useLoaderData<typeof loader>();
+
   const [searchParams, setSearchParams] = useSearchParams();
   const dancer1 = searchParams.get("dancer1") || "any";
   const dancer2 = searchParams.get("dancer2") || "any";
@@ -124,7 +125,11 @@ const SearchInterface = () => {
       </Box>
 
       {/* TODO: add number of performances for filter and reset filter button */}
-      <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4">
+      <Grid
+        columns={{ initial: "1", sm: "2", md: "3" }}
+        gap="4"
+        key={searchParams.toString()}
+      >
         {initialVideos.map((video) => (
           <VideoCard video={video} key={video.id} />
         ))}
