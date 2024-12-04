@@ -1,23 +1,19 @@
 import { useState } from "react";
 import {
   Box,
-  Card,
   Flex,
   Text,
   Select,
   Grid,
-  Link,
-  Badge,
   Callout,
   Strong,
-  DataList,
 } from "@radix-ui/themes";
-import { ExternalLinkIcon, InfoCircledIcon } from "@radix-ui/react-icons";
+import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { json, type MetaFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
+import { desc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "~/db.server";
-import { desc, eq, isNotNull, sql } from "drizzle-orm";
 import {
   dancers,
   dancersToCurations,
@@ -26,23 +22,14 @@ import {
   orchestras,
   curations,
 } from "../../schema";
+import { VideoCard, type Video } from "~/components/video-card";
+import { OptionsSelect } from "~/components/options-select";
 
 export const meta: MetaFunction = () => {
   return [
     { title: "Tango Video Search" },
     { name: "description", content: "A different way to find tango videos." },
   ];
-};
-
-type Video = {
-  id: string;
-  title: string;
-  channelTitle: string;
-  dancers: string[];
-  orchestra: string;
-  songTitle: string;
-  singers: string[];
-  status: string;
 };
 
 export async function loader() {
@@ -128,62 +115,34 @@ const SearchInterface = () => {
   return (
     <Flex direction="column" gap="6" className="p-6">
       <Box>
-        <Flex align="center" gap="2" className="flex-wrap">
+        <Flex align="baseline" gap="2" className="flex-wrap">
           <Text>I want to see</Text>
 
-          <Select.Root value={dancer1} onValueChange={setDancer1}>
-            <Select.Trigger placeholder="any dancer" className="w-32" />
-            <Select.Content>
-              <Select.Group>
-                <Select.Item value="any">any dancer</Select.Item>
-                {dancerOneOptions.map((dancer) => (
-                  <Select.Item key={dancer.id} value={dancer.id.toString()}>
-                    {dancer.name} ({dancer.count})
-                  </Select.Item>
-                ))}
-              </Select.Group>
-            </Select.Content>
-          </Select.Root>
+          <OptionsSelect
+            value={dancer1}
+            onValueChange={setDancer1}
+            options={dancerOneOptions}
+            placeholder="any dancer"
+          />
 
           <Text>and</Text>
 
-          <Select.Root value={dancer2} onValueChange={setDancer2}>
-            <Select.Trigger placeholder="any dancer" className="w-32" />
-            <Select.Content>
-              <Select.Group>
-                <Select.Item value="any">any dancer</Select.Item>
-                {dancerTwoOptions.map((dancer) => (
-                  <Select.Item key={dancer.id} value={dancer.id.toString()}>
-                    {dancer.name} ({dancer.count})
-                  </Select.Item>
-                ))}
-              </Select.Group>
-            </Select.Content>
-          </Select.Root>
+          <OptionsSelect
+            value={dancer2}
+            onValueChange={setDancer2}
+            options={dancerTwoOptions}
+            placeholder="any dancer"
+          />
 
           <Text>dance to</Text>
 
           {/* TODO: allow for selecting songs and singers too */}
-          <Select.Root value={orchestra} onValueChange={setOrchestra}>
-            <Select.Trigger
-              placeholder="any orchestra"
-              className="w-40"
-            ></Select.Trigger>
-            <Select.Content>
-              <Select.Group>
-                <Select.Item value="any">any orchestra</Select.Item>
-                {/* TODO: fix for very long names */}
-                {orchestraOptions.map((orchestra) => (
-                  <Select.Item
-                    key={orchestra.id}
-                    value={orchestra.id.toString()}
-                  >
-                    {orchestra.name} ({orchestra.count})
-                  </Select.Item>
-                ))}
-              </Select.Group>
-            </Select.Content>
-          </Select.Root>
+          <OptionsSelect
+            value={orchestra}
+            onValueChange={setOrchestra}
+            options={orchestraOptions}
+            placeholder="any orchestra"
+          />
         </Flex>
       </Box>
 
@@ -199,71 +158,14 @@ const SearchInterface = () => {
         </Callout.Root>
       </Box>
 
+      {/* TODO: add number of performances for filter and reset filter button */}
+
       <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4">
         {initialVideos.map((video) => (
           <VideoCard video={video} key={video.id} />
         ))}
       </Grid>
     </Flex>
-  );
-};
-
-// TODO: clicking on dancer or orchestra should send the user to the correct url
-const VideoCard = ({ video }: { video: Video }) => {
-  return (
-    <Card key={video.id}>
-      <Flex direction="column" gap="2">
-        <Link
-          href={`https://youtube.com/watch?v=${video.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium hover:underline flex items-center"
-        >
-          <Flex gap="1" align="baseline">
-            <Text>{video.title}</Text>
-            <Box>
-              <ExternalLinkIcon />
-            </Box>
-          </Flex>
-        </Link>
-      </Flex>
-
-      <DataList.Root size="1" mt="3">
-        <DataList.Item>
-          <DataList.Label minWidth="44px">Status</DataList.Label>
-          <DataList.Value>
-            <Badge color="blue">{video.status}</Badge>
-          </DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label minWidth="44px">Dancers</DataList.Label>
-          <DataList.Value>{video.dancers.join(", ")}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label minWidth="44px">Orchestra</DataList.Label>
-          <DataList.Value>{video.orchestra}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label minWidth="44px">Song</DataList.Label>
-          <DataList.Value>{video.songTitle}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label minWidth="44px">
-            Singer{video.singers.length > 1 ? "s" : ""}
-          </DataList.Label>
-          <DataList.Value>{video.singers.join(", ")}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label minWidth="44px">Channel</DataList.Label>
-          <DataList.Value>{video.channelTitle}</DataList.Value>
-        </DataList.Item>
-      </DataList.Root>
-    </Card>
   );
 };
 
