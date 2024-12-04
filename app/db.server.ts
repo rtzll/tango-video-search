@@ -76,6 +76,15 @@ export async function getOrchestraOptions(dancer1?: string, dancer2?: string) {
       .orderBy(sql`performanceCount DESC`);
   }
 
+  const whereClause =
+    dancer1 && dancer2 && dancer1 !== "any" && dancer2 !== "any"
+      ? sql`d.name = ${dancer1} AND EXISTS (
+       SELECT 1 FROM ${dancersToCurations} dc2
+       INNER JOIN ${dancers} d2 ON dc2.dancer_id = d2.id
+       WHERE dc2.curation_id = c.id AND d2.name = ${dancer2}
+     )`
+      : sql`d.name = ${dancer1 !== "any" ? dancer1 : dancer2}`;
+
   return await db
     .select({
       id: orchestras.id,
@@ -86,12 +95,7 @@ export async function getOrchestraOptions(dancer1?: string, dancer2?: string) {
     .innerJoin(sql`${curations} c`, sql`orchestras.id = c.orchestra_id`)
     .innerJoin(sql`${dancersToCurations} dc`, sql`c.id = dc.curation_id`)
     .innerJoin(sql`${dancers} d`, sql`dc.dancer_id = d.id`)
-    // FIXME: when both dancers are set it only checks for the first one
-    .where(
-      dancer1 && dancer2 && dancer1 !== "any" && dancer2 !== "any"
-        ? sql`d.name IN (${dancer1}, ${dancer2})`
-        : sql`d.name = ${dancer1 !== "any" ? dancer1 : dancer2}`
-    )
+    .where(whereClause)
     .groupBy(orchestras.id, orchestras.name)
     .orderBy(sql`performanceCount DESC`);
 }
