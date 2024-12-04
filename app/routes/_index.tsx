@@ -18,7 +18,13 @@ import { useLoaderData } from "@remix-run/react";
 
 import { db } from "~/db.server";
 import { eq } from "drizzle-orm";
-import { dancers, videos, performances, curations } from "../../schema";
+import {
+  dancers,
+  videos,
+  performances,
+  orchestras,
+  curations,
+} from "../../schema";
 
 export const meta: MetaFunction = () => {
   return [
@@ -31,7 +37,6 @@ type Video = {
   id: string;
   title: string;
   channelTitle: string;
-  thumbnail: string;
   dancers: string[];
   orchestra: string;
   songTitle: string;
@@ -39,20 +44,29 @@ type Video = {
   status: string;
 };
 
-type LoaderData = {
-  dancers: { id: number; name: string }[];
-  initialVideos: Video[];
-};
-
 export async function loader() {
-  const dancersList = await db
+  // TODO: make dancer options depend on the dancers in the URL
+  // const url = new URL(request.url);
+  //
+  // const dancer1 = url.searchParams.get("dancer1") || "any";
+  // const dancer2 = url.searchParams.get("dancer2") || "any";
+  // TODO: sort by number of performances
+  const dancerOptions = await db
     .select({
       id: dancers.id,
       name: dancers.name,
     })
     .from(dancers);
 
+  const orchestraOptions = await db
+    .select({
+      id: orchestras.id,
+      name: orchestras.name,
+    })
+    .from(orchestras);
+
   // Get initial videos with their related data
+  // TODO: only fetch recommended videos (via status?)
   const initialVideos = await db
     .select({
       id: videos.id,
@@ -74,27 +88,30 @@ export async function loader() {
     dancers: video.performance?.dancers?.split(",") || [],
     songTitle: video.performance?.songTitle || "Unknown",
     orchestra: video.performance?.orchestra || "Unknown",
-    singers: video.performance?.singers?.split(",") || [],
+    singers: (video.performance?.singers?.split(",") || []).filter((singer) =>
+      singer.trim()
+    ),
     status: video.curation?.status,
   }));
 
   return json({
-    dancers: dancersList,
-    initialVideos: transformedVideos,
+    dancerOneOptions: dancerOptions,
+    dancerTwoOptions: dancerOptions,
+    orchestraOptions,
+    initialVideos: transformedVideos as Video[],
   });
 }
 
 const SearchInterface = () => {
-  const { dancers: allDancers, initialVideos } = useLoaderData<LoaderData>();
+  const {
+    dancerOneOptions,
+    dancerTwoOptions,
+    orchestraOptions,
+    initialVideos,
+  } = useLoaderData<typeof loader>();
   const [dancer1, setDancer1] = useState<string>("any");
   const [dancer2, setDancer2] = useState<string>("any");
-  const [music, setMusic] = useState<string>("any");
-
-  // Filter available partners based on dancer1 selection
-  const availablePartners =
-    dancer1 === "any"
-      ? allDancers
-      : allDancers.filter((d) => d.id !== parseInt(dancer1));
+  const [orchestra, setOrchestra] = useState<string>("any");
 
   return (
     <Flex direction="column" gap="6" className="p-6">
@@ -107,7 +124,7 @@ const SearchInterface = () => {
             <Select.Content>
               <Select.Group>
                 <Select.Item value="any">any dancer</Select.Item>
-                {allDancers.map((dancer) => (
+                {dancerOneOptions.map((dancer) => (
                   <Select.Item key={dancer.id} value={dancer.id.toString()}>
                     {dancer.name}
                   </Select.Item>
@@ -123,7 +140,7 @@ const SearchInterface = () => {
             <Select.Content>
               <Select.Group>
                 <Select.Item value="any">any dancer</Select.Item>
-                {availablePartners.map((dancer) => (
+                {dancerTwoOptions.map((dancer) => (
                   <Select.Item key={dancer.id} value={dancer.id.toString()}>
                     {dancer.name}
                   </Select.Item>
@@ -134,15 +151,24 @@ const SearchInterface = () => {
 
           <Text>dance to</Text>
 
-          <Select.Root value={music} onValueChange={setMusic}>
+          {/* TODO: allow for selecting songs and singers too */}
+          <Select.Root value={orchestra} onValueChange={setOrchestra}>
             <Select.Trigger
-              placeholder="any music"
+              placeholder="any orchestra"
               className="w-40"
             ></Select.Trigger>
             <Select.Content>
               <Select.Group>
-                <Select.Item value="any">any music</Select.Item>
-                {/* We'll add orchestra/song/singer options here */}
+                <Select.Item value="any">any orchestra</Select.Item>
+                {/* TODO: fix for very long names */}
+                {orchestraOptions.map((orchestra) => (
+                  <Select.Item
+                    key={orchestra.id}
+                    value={orchestra.id.toString()}
+                  >
+                    {orchestra.name}
+                  </Select.Item>
+                ))}
               </Select.Group>
             </Select.Content>
           </Select.Root>
@@ -170,6 +196,7 @@ const SearchInterface = () => {
   );
 };
 
+// TODO: clicking on dancer or orchestra should send the user to the correct url
 const VideoCard = ({ video }: { video: Video }) => {
   return (
     <Card key={video.id}>
@@ -178,7 +205,7 @@ const VideoCard = ({ video }: { video: Video }) => {
           href={`https://youtube.com/watch?v=${video.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium hover:underline flex items-center gap-2"
+          className="font-medium hover:underline flex items-center"
         >
           <Flex gap="1" align="baseline">
             <Text>{video.title}</Text>
@@ -210,6 +237,13 @@ const VideoCard = ({ video }: { video: Video }) => {
         <DataList.Item>
           <DataList.Label minWidth="44px">Song</DataList.Label>
           <DataList.Value>{video.songTitle}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label minWidth="44px">
+            Singer{video.singers.length > 1 ? "s" : ""}
+          </DataList.Label>
+          <DataList.Value>{video.singers.join(", ")}</DataList.Value>
         </DataList.Item>
 
         <DataList.Item>
