@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { sql, eq, isNotNull, desc } from "drizzle-orm";
+import { sql, eq, desc } from "drizzle-orm";
 
 import * as schema from "../schema";
 import {
@@ -12,8 +12,9 @@ import {
   performances,
 } from "../schema";
 
-// TODO: make readonly in production
-const sqlite = new Database(process.env.DATABASE_PATH || "tango_videos.db");
+const sqlite = new Database(process.env.DATABASE_PATH || "tango_videos.db", {
+  readonly: true,
+});
 // configure sqlite
 sqlite.exec("pragma journal_mode = wal;");
 sqlite.exec("pragma synchronous = normal;");
