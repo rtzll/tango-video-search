@@ -1,16 +1,15 @@
-import { useState } from "react";
 import {
   Box,
   Flex,
   Text,
-  Select,
   Grid,
   Callout,
   Strong,
+  IconButton,
 } from "@radix-ui/themes";
-import { InfoCircledIcon } from "@radix-ui/react-icons";
+import { InfoCircledIcon, ResetIcon } from "@radix-ui/react-icons";
 import { json, type MetaFunction } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { desc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "~/db.server";
@@ -24,6 +23,7 @@ import {
 } from "../../schema";
 import { VideoCard, type Video } from "~/components/video-card";
 import { OptionsSelect } from "~/components/options-select";
+import { normalize } from "lib/normailze";
 
 export const meta: MetaFunction = () => {
   return [
@@ -108,41 +108,55 @@ const SearchInterface = () => {
     orchestraOptions,
     initialVideos,
   } = useLoaderData<typeof loader>();
-  const [dancer1, setDancer1] = useState<string>("any");
-  const [dancer2, setDancer2] = useState<string>("any");
-  const [orchestra, setOrchestra] = useState<string>("any");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const dancer1 = searchParams.get("dancer1") || "any";
+  const dancer2 = searchParams.get("dancer2") || "any";
+  const orchestra = searchParams.get("orchestra") || "any";
+
+  const updateSearchParam = (param: string, value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value === "any") {
+      newParams.delete(param);
+    } else {
+      newParams.set(param, value);
+    }
+    setSearchParams(newParams);
+  };
+
+  const resetSearchParams = () => setSearchParams(new URLSearchParams());
 
   return (
     <Flex direction="column" gap="6" className="p-6">
       <Box>
         <Flex align="baseline" gap="2" className="flex-wrap">
           <Text>I want to see</Text>
-
           <OptionsSelect
             value={dancer1}
-            onValueChange={setDancer1}
+            onValueChange={(value) => updateSearchParam("dancer1", value)}
             options={dancerOneOptions}
             placeholder="any dancer"
           />
-
           <Text>and</Text>
-
           <OptionsSelect
             value={dancer2}
-            onValueChange={setDancer2}
+            onValueChange={(value) => updateSearchParam("dancer2", value)}
             options={dancerTwoOptions}
             placeholder="any dancer"
           />
-
           <Text>dance to</Text>
-
           {/* TODO: allow for selecting songs and singers too */}
           <OptionsSelect
             value={orchestra}
-            onValueChange={setOrchestra}
+            onValueChange={(value) => updateSearchParam("orchestra", value)}
             options={orchestraOptions}
             placeholder="any orchestra"
           />
+          <Text>.</Text>
+          {(dancer1 !== "any" || dancer2 !== "any" || orchestra !== "any") && (
+            <IconButton size="1" variant="soft" onClick={resetSearchParams}>
+              <ResetIcon width={12} height={12} />
+            </IconButton>
+          )}
         </Flex>
       </Box>
 
@@ -159,7 +173,6 @@ const SearchInterface = () => {
       </Box>
 
       {/* TODO: add number of performances for filter and reset filter button */}
-
       <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4">
         {initialVideos.map((video) => (
           <VideoCard video={video} key={video.id} />
