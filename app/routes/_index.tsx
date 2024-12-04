@@ -33,6 +33,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   // TODO: let orchestra influence dancers
   // when user is already set show all available options
+  console.time("db");
   const dancerOneOptions = await getDancerOptions(dancer2);
   const dancerTwoOptions = await getDancerOptions(dancer1);
   const orchestraOptions = await getOrchestraOptions(dancer1, dancer2);
@@ -41,6 +42,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     dancer2,
     orchestra
   );
+  console.timeEnd("db");
 
   return json({
     dancerOneOptions,
