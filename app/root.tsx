@@ -6,7 +6,7 @@ import {
   ScrollRestoration,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
-import { Theme, ThemePanel } from "@radix-ui/themes";
+import { Theme } from "@radix-ui/themes";
 
 import "./tailwind.css";
 
@@ -33,9 +33,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <Theme>
+        <Theme
+          accentColor="crimson"
+          grayColor="sand"
+          appearance="dark"
+          radius="small"
+        >
           {children}
-          <ThemePanel />
           <ScrollRestoration />
           <Scripts />
         </Theme>
