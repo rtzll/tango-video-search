@@ -114,7 +114,7 @@ const SearchInterface = () => {
       </Box>
 
       <Box>
-        <Callout.Root color="blue" variant="surface">
+        <Callout.Root color="crimson" variant="surface">
           <Callout.Icon>
             <InfoCircledIcon />
           </Callout.Icon>
