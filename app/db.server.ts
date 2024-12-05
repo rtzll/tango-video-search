@@ -145,7 +145,7 @@ export async function getFilteredVideos(
     .innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
     .innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
     .where(whereClause)
-    .orderBy(desc(videos.viewCount))
+    .orderBy(desc(videos.publishedAt))
     .limit(12);
 
   return results.map((video) => ({
@@ -156,6 +156,7 @@ export async function getFilteredVideos(
     songTitle: video.performance?.songTitle || "Unknown",
     orchestra: video.performance?.orchestra || "Unknown",
     singers: (video.performance?.singers?.split(",") || []).filter(Boolean),
+    year: video.performance?.performanceYear,
     status: video.curation?.status,
   }));
 }
