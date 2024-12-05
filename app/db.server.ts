@@ -145,7 +145,7 @@ export async function getFilteredVideos(
     .innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
     .where(whereClause)
     .orderBy(desc(videos.publishedAt))
-    .limit(12);
+    .limit(42);
 
   return results.map((video) => ({
     id: video.id,
