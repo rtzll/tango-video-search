@@ -84,7 +84,9 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
     .select({
       id: orchestras.id,
       name: orchestras.name,
-      count: sql<number>`count(DISTINCT c.id)`.as("performanceCount"),
+      count: sql<number>`count(DISTINCT ${curations.id})`.as(
+        "performanceCount"
+      ),
     })
     .from(orchestras)
     .innerJoin(curations, eq(orchestras.id, curations.orchestraId))
