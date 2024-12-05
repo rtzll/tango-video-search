@@ -1,4 +1,4 @@
-import { Box, Card, Flex, Text, Link, Badge, DataList } from "@radix-ui/themes";
+import { Box, Card, Flex, Text, Link, DataList } from "@radix-ui/themes";
 import { ExternalLinkIcon } from "@radix-ui/react-icons";
 
 export type Video = {
@@ -10,6 +10,7 @@ export type Video = {
   songTitle: string;
   singers: string[];
   status: string;
+  year: number;
 };
 
 // TODO: clicking on dancer or orchestra should send the user to the correct url
@@ -34,13 +35,6 @@ const VideoCard = ({ video }: { video: Video }) => {
 
       <DataList.Root size="1" mt="3">
         <DataList.Item>
-          <DataList.Label minWidth="44px">Status</DataList.Label>
-          <DataList.Value>
-            <Badge color="blue">{video.status}</Badge>
-          </DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
           <DataList.Label minWidth="44px">Dancers</DataList.Label>
           <DataList.Value>{video.dancers.join(", ")}</DataList.Value>
         </DataList.Item>
@@ -55,16 +49,23 @@ const VideoCard = ({ video }: { video: Video }) => {
           <DataList.Value>{video.songTitle}</DataList.Value>
         </DataList.Item>
 
-        <DataList.Item>
-          <DataList.Label minWidth="44px">
-            Singer{video.singers.length > 1 ? "s" : ""}
-          </DataList.Label>
-          <DataList.Value>{video.singers.join(", ")}</DataList.Value>
-        </DataList.Item>
+        {video.singers.length > 1 && (
+          <DataList.Item>
+            <DataList.Label minWidth="44px">
+              Singer{video.singers.length > 1 ? "s" : ""}
+            </DataList.Label>
+            <DataList.Value>{video.singers.join(", ")}</DataList.Value>
+          </DataList.Item>
+        )}
 
         <DataList.Item>
           <DataList.Label minWidth="44px">Channel</DataList.Label>
           <DataList.Value>{video.channelTitle}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label minWidth="44px">Year</DataList.Label>
+          <DataList.Value>{video.year}</DataList.Value>
         </DataList.Item>
       </DataList.Root>
     </Card>
