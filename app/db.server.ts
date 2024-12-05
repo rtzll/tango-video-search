@@ -102,12 +102,11 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
 
 // made me chuckle
 function dancerClause(dancer1: string, dancer2: string) {
-  if (dancer1 !== "any" || dancer2 !== "any") {
+  if (dancer1 !== "any" && dancer2 !== "any") {
     return sql`${dancers.name} = ${dancer1} AND EXISTS (
     SELECT 1 FROM ${dancersToCurations} dc2
     INNER JOIN ${dancers} d2 ON dc2.dancer_id = d2.id
-    WHERE dc2.curation_id = ${curations.id} AND d2.name = ${dancer2}
-  )`;
+    WHERE dc2.curation_id = ${curations.id} AND d2.name = ${dancer2})`;
   }
 
   return sql`${dancers.name} = ${dancer1 !== "any" ? dancer1 : dancer2}`;
@@ -156,7 +155,7 @@ export async function getFilteredVideos(
     songTitle: video.performance?.songTitle || "Unknown",
     orchestra: video.performance?.orchestra || "Unknown",
     singers: (video.performance?.singers?.split(",") || []).filter(Boolean),
-    year: video.performance?.performanceYear,
+    year: video.performance?.performanceYear || 0,
     status: video.curation?.status,
   }));
 }
