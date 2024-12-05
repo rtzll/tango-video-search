@@ -110,6 +110,7 @@ export async function getFilteredVideos(
   orchestra?: string
 ) {
   let whereClause = sql`${curations.id} IS NOT NULL`;
+
   if (dancer1 !== "any" || dancer2 !== "any") {
     whereClause =
       dancer1 !== "any" && dancer2 !== "any"
@@ -128,7 +129,7 @@ export async function getFilteredVideos(
   }
 
   const results = await db
-    .select({
+    .selectDistinct({
       id: videos.id,
       title: videos.title,
       channelTitle: videos.channelTitle,
