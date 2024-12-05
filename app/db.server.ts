@@ -66,7 +66,7 @@ export async function getDancerOptions(otherDancer?: string) {
     .orderBy(sql`performanceCount DESC`);
 }
 
-export async function getOrchestraOptions(dancer1?: string, dancer2?: string) {
+export async function getOrchestraOptions(dancer1: string, dancer2: string) {
   if (dancer1 === "any" && dancer2 === "any") {
     return db
       .select({
@@ -80,15 +80,6 @@ export async function getOrchestraOptions(dancer1?: string, dancer2?: string) {
       .orderBy(sql`performanceCount DESC`);
   }
 
-  const whereClause =
-    dancer1 && dancer2 && dancer1 !== "any" && dancer2 !== "any"
-      ? sql`d.name = ${dancer1} AND EXISTS (
-       SELECT 1 FROM ${dancersToCurations} dc2
-       INNER JOIN ${dancers} d2 ON dc2.dancer_id = d2.id
-       WHERE dc2.curation_id = c.id AND d2.name = ${dancer2}
-     )`
-      : sql`d.name = ${dancer1 !== "any" ? dancer1 : dancer2}`;
-
   return await db
     .select({
       id: orchestras.id,
@@ -96,34 +87,40 @@ export async function getOrchestraOptions(dancer1?: string, dancer2?: string) {
       count: sql<number>`count(DISTINCT c.id)`.as("performanceCount"),
     })
     .from(orchestras)
-    .innerJoin(sql`${curations} c`, sql`orchestras.id = c.orchestra_id`)
-    .innerJoin(sql`${dancersToCurations} dc`, sql`c.id = dc.curation_id`)
-    .innerJoin(sql`${dancers} d`, sql`dc.dancer_id = d.id`)
-    .where(whereClause)
+    .innerJoin(curations, eq(orchestras.id, curations.orchestraId))
+    .innerJoin(
+      dancersToCurations,
+      eq(curations.id, dancersToCurations.curationId)
+    )
+    .innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
+    .where(dancerClause(dancer1, dancer2))
     .groupBy(orchestras.id, orchestras.name)
     .orderBy(sql`performanceCount DESC`);
 }
 
+// made me chuckle
+function dancerClause(dancer1: string, dancer2: string) {
+  if (dancer1 !== "any" || dancer2 !== "any") {
+    return sql`${dancers.name} = ${dancer1} AND EXISTS (
+    SELECT 1 FROM ${dancersToCurations} dc2
+    INNER JOIN ${dancers} d2 ON dc2.dancer_id = d2.id
+    WHERE dc2.curation_id = ${curations.id} AND d2.name = ${dancer2}
+  )`;
+  }
+
+  return sql`${dancers.name} = ${dancer1 !== "any" ? dancer1 : dancer2}`;
+}
+
 export async function getFilteredVideos(
-  dancer1?: string,
-  dancer2?: string,
-  orchestra?: string
+  dancer1: string,
+  dancer2: string,
+  orchestra: string
 ) {
   let whereClause = sql`${curations.id} IS NOT NULL`;
 
   if (dancer1 !== "any" || dancer2 !== "any") {
-    whereClause =
-      dancer1 !== "any" && dancer2 !== "any"
-        ? sql`${whereClause} AND d.name = ${dancer1} AND EXISTS (
-           SELECT 1 FROM ${dancersToCurations} dc2
-           INNER JOIN ${dancers} d2 ON dc2.dancer_id = d2.id
-           WHERE dc2.curation_id = curations.id AND d2.name = ${dancer2}
-         )`
-        : sql`${whereClause} AND d.name = ${
-            dancer1 !== "any" ? dancer1 : dancer2
-          }`;
+    whereClause = sql`${whereClause} AND ${dancerClause(dancer1, dancer2)}`;
   }
-
   if (orchestra !== "any") {
     whereClause = sql`${whereClause} AND ${orchestras.name} = ${orchestra}`;
   }
@@ -140,10 +137,10 @@ export async function getFilteredVideos(
     .leftJoin(performances, eq(performances.videoId, videos.id))
     .leftJoin(curations, eq(curations.performanceId, performances.id))
     .innerJoin(
-      sql`${dancersToCurations} dc`,
-      sql`dc.curation_id = curations.id`
+      dancersToCurations,
+      eq(curations.id, dancersToCurations.curationId)
     )
-    .innerJoin(sql`${dancers} d`, sql`dc.dancer_id = d.id`)
+    .innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
     .innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
     .where(whereClause)
     .orderBy(desc(videos.viewCount))
