@@ -126,6 +126,7 @@ const SearchInterface = () => {
       </Box>
 
       {/* TODO: add number of performances for filter and reset filter button */}
+      {/* TODO: add pagination first */}
       <Grid
         columns={{ initial: "1", sm: "2", md: "3" }}
         gap="4"
