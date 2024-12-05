@@ -80,6 +80,7 @@ const SearchInterface = () => {
   return (
     <Flex direction="column" gap="6" className="p-6">
       <Box>
+        {/* TODO: consider using remix Form to get around issue with stale data */}
         <Flex align="baseline" gap="2" className="flex-wrap">
           <Text>I want to see</Text>
           <OptionsSelect
