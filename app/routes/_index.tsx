@@ -119,8 +119,8 @@ const SearchInterface = () => {
             <InfoCircledIcon />
           </Callout.Icon>
           <Callout.Text>
-            <Strong>Note:</Strong> the data may not be accurate or complete. It
-            was extracted using AI.
+            <Strong>Note:</Strong> the data was extracted using AI and may not
+            be accurate or complete.
           </Callout.Text>
         </Callout.Root>
       </Box>
