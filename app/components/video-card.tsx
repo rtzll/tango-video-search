@@ -49,7 +49,7 @@ const VideoCard = ({ video }: { video: Video }) => {
           <DataList.Value>{video.songTitle}</DataList.Value>
         </DataList.Item>
 
-        {video.singers.length > 1 && (
+        {video.singers.length > 0 && (
           <DataList.Item>
             <DataList.Label minWidth="44px">
               Singer{video.singers.length > 1 ? "s" : ""}
