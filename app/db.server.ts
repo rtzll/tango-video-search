@@ -41,6 +41,7 @@ export async function getDancerOptions(otherDancer?: string) {
       .from(dancers)
       .leftJoin(dancersToCurations, eq(dancers.id, dancersToCurations.dancerId))
       .groupBy(dancers.id, dancers.name)
+      .having(sql`performanceCount > 0`)
       .orderBy(sql`performanceCount DESC`);
   }
 
@@ -63,6 +64,7 @@ export async function getDancerOptions(otherDancer?: string) {
       sql`d2.id = dc2.dancer_id AND d2.name = ${otherDancer} AND d2.id != d1.id`
     )
     .groupBy(sql`d1.id`, sql`d1.name`)
+    .having(sql`performanceCount > 0`)
     .orderBy(sql`performanceCount DESC`);
 }
 
@@ -77,6 +79,7 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
       .from(orchestras)
       .leftJoin(curations, eq(orchestras.id, curations.orchestraId))
       .groupBy(orchestras.id, orchestras.name)
+      .having(sql`performanceCount > 0`)
       .orderBy(sql`performanceCount DESC`);
   }
 
@@ -97,6 +100,7 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
     .innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
     .where(dancerClause(dancer1, dancer2))
     .groupBy(orchestras.id, orchestras.name)
+    .having(sql`performanceCount > 0`)
     .orderBy(sql`performanceCount DESC`);
 }
 
