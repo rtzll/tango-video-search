@@ -8,8 +8,8 @@ import {
   IconButton,
 } from "@radix-ui/themes";
 import { InfoCircledIcon, ResetIcon } from "@radix-ui/react-icons";
-import { json, LoaderFunctionArgs, type MetaFunction } from "@remix-run/node";
-import { useLoaderData, useSearchParams } from "@remix-run/react";
+import { LoaderFunctionArgs, type MetaFunction } from "react-router";
+import { useLoaderData, useSearchParams } from "react-router";
 import {
   getDancerOptions,
   getFilteredVideos,
@@ -44,12 +44,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
   );
   console.timeEnd("db");
 
-  return json({
+  return {
     dancerOneOptions,
     dancerTwoOptions,
     orchestraOptions,
     initialVideos: transformedVideos as Video[],
-  });
+  };
 }
 
 const SearchInterface = () => {
