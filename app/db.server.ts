@@ -28,8 +28,8 @@ sqlite.exec("pragma mmap_size = 268435456;");
 sqlite.exec("pragma foreign_keys = on;");
 export const db = drizzle({ client: sqlite, schema });
 
-export async function getDancerOptions(otherDancer?: string) {
-  if (!otherDancer || otherDancer === "any") {
+export async function getDancerOptions(otherDancer: string, orchestra: string) {
+  if (otherDancer === "any") {
     return await db
       .select({
         id: dancers.id,
@@ -40,6 +40,9 @@ export async function getDancerOptions(otherDancer?: string) {
       })
       .from(dancers)
       .leftJoin(dancersToCurations, eq(dancers.id, dancersToCurations.dancerId))
+      .innerJoin(curations, eq(dancersToCurations.curationId, curations.id))
+      .innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
+      .where(orchestra === "any" ? sql`1` : eq(orchestras.name, orchestra))
       .groupBy(dancers.id, dancers.name)
       .having(sql`performanceCount > 0`)
       .orderBy(sql`performanceCount DESC`);
@@ -63,6 +66,9 @@ export async function getDancerOptions(otherDancer?: string) {
       sql`${dancers} d2`,
       sql`d2.id = dc2.dancer_id AND d2.name = ${otherDancer} AND d2.id != d1.id`
     )
+    .innerJoin(curations, sql`dc1.curation_id = ${curations.id}`)
+    .innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
+    .where(orchestra === "any" ? sql`1` : eq(orchestras.name, orchestra))
     .groupBy(sql`d1.id`, sql`d1.name`)
     .having(sql`performanceCount > 0`)
     .orderBy(sql`performanceCount DESC`);

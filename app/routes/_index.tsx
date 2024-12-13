@@ -34,8 +34,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // TODO: let orchestra influence dancers
   // when user is already set show all available options
   console.time("db");
-  const dancerOneOptions = await getDancerOptions(dancer2);
-  const dancerTwoOptions = await getDancerOptions(dancer1);
+  const dancerOneOptions = await getDancerOptions(dancer2, orchestra);
+  const dancerTwoOptions = await getDancerOptions(dancer1, orchestra);
   const orchestraOptions = await getOrchestraOptions(dancer1, dancer2);
   const transformedVideos = await getFilteredVideos(
     dancer1,
