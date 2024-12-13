@@ -31,8 +31,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const dancer2 = url.searchParams.get("dancer2") || "any";
   const orchestra = url.searchParams.get("orchestra") || "any";
 
-  // TODO: let orchestra influence dancers
-  // when user is already set show all available options
   console.time("db");
   const dancerOneOptions = await getDancerOptions(dancer2, orchestra);
   const dancerTwoOptions = await getDancerOptions(dancer1, orchestra);
