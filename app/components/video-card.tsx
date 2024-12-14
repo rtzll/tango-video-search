@@ -58,25 +58,27 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
         <DataList.Item>
           <DataList.Label minWidth="44px">Dancers</DataList.Label>
           <DataList.Value>
-            {video.dancers.map((dancer, index) => (
-              <span key={`${video.id}-${dancer}`}>
-                <Button
-                  variant="ghost"
-                  size="1"
-                  onClick={() => onFilterClick("dancer", dancer)}
-                  className={`hover:underline cursor-pointer ${
-                    isActive("dancer", dancer) ? "font-bold" : ""
-                  }`}
-                >
-                  {dancer}
-                </Button>
-                {index < video.dancers.length - 1 ? (
-                  <span className="mr-1">{" and "}</span>
-                ) : (
-                  ""
-                )}
-              </span>
-            ))}
+            <Flex wrap="wrap">
+              {video.dancers.map((dancer, index) => (
+                <span key={`${video.id}-${dancer}`}>
+                  <Button
+                    variant="ghost"
+                    size="1"
+                    onClick={() => onFilterClick("dancer", dancer)}
+                    className={`hover:underline cursor-pointer ${
+                      isActive("dancer", dancer) ? "font-bold" : ""
+                    }`}
+                  >
+                    {dancer}
+                  </Button>
+                  {index < video.dancers.length - 1 ? (
+                    <span className="mr-1">{" and "}</span>
+                  ) : (
+                    ""
+                  )}
+                </span>
+              ))}
+            </Flex>
           </DataList.Value>
         </DataList.Item>
 
