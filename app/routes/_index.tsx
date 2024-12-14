@@ -78,7 +78,11 @@ const SearchInterface = () => {
     const newParams = new URLSearchParams(searchParams);
 
     if (type === "dancer") {
-      if (dancer1 === "any" && dancer2 === "any") {
+      if (dancer1 === value) {
+        newParams.delete("dancer1");
+      } else if (dancer2 === value) {
+        newParams.delete("dancer2");
+      } else if (dancer1 === "any" && dancer2 === "any") {
         newParams.set("dancer1", value);
       } else if (dancer1 !== "any" && dancer2 === "any" && dancer1 !== value) {
         newParams.set("dancer2", value);
@@ -86,7 +90,9 @@ const SearchInterface = () => {
         newParams.set("dancer1", value);
       }
     } else if (type === "orchestra") {
-      newParams.set("orchestra", value);
+      orchestra === value
+        ? newParams.delete("orchestra")
+        : newParams.set("orchestra", value);
     }
 
     setSearchParams(newParams);
