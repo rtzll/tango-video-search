@@ -112,6 +112,7 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
 
 // made me chuckle
 function dancerClause(dancer1: string, dancer2: string) {
+  // TODO: probably should check the normalized names
   if (dancer1 !== "any" && dancer2 !== "any") {
     return sql`${dancers.name} = ${dancer1} AND EXISTS (
     SELECT 1 FROM ${dancersToCurations} dc2
@@ -161,7 +162,7 @@ export async function getFilteredVideos(
     id: video.id,
     title: video.title,
     channelTitle: video.channelTitle,
-    dancers: video.performance?.dancers?.split(",") || [],
+    dancers: video.performance?.dancers?.split(",").map((d) => d.trim()) || [],
     songTitle: video.performance?.songTitle || "Unknown",
     orchestra: video.performance?.orchestra || "Unknown",
     singers: (video.performance?.singers?.split(",") || []).filter(Boolean),

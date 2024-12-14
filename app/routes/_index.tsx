@@ -72,8 +72,25 @@ const SearchInterface = () => {
     }
     setSearchParams(newParams);
   };
-
   const resetSearchParams = () => setSearchParams(new URLSearchParams());
+
+  const handleFilterClick = (type: "dancer" | "orchestra", value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+
+    if (type === "dancer") {
+      if (dancer1 === "any" && dancer2 === "any") {
+        newParams.set("dancer1", value);
+      } else if (dancer1 !== "any" && dancer2 === "any" && dancer1 !== value) {
+        newParams.set("dancer2", value);
+      } else if (dancer1 === "any" && dancer2 !== "any" && dancer2 !== value) {
+        newParams.set("dancer1", value);
+      }
+    } else if (type === "orchestra") {
+      newParams.set("orchestra", value);
+    }
+
+    setSearchParams(newParams);
+  };
 
   return (
     <Flex direction="column" gap="6" className="p-6">
@@ -131,7 +148,15 @@ const SearchInterface = () => {
         key={searchParams.toString()}
       >
         {initialVideos.map((video) => (
-          <VideoCard video={video} key={video.id} />
+          <VideoCard
+            video={video}
+            key={video.id}
+            onFilterClick={handleFilterClick}
+            activeFilters={{
+              dancers: [dancer1, dancer2],
+              orchestra,
+            }}
+          />
         ))}
       </Grid>
     </Flex>

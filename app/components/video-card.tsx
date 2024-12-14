@@ -1,4 +1,12 @@
-import { Box, Card, Flex, Text, Link, DataList } from "@radix-ui/themes";
+import {
+  Box,
+  Button,
+  Card,
+  Flex,
+  Text,
+  Link,
+  DataList,
+} from "@radix-ui/themes";
 import { ExternalLinkIcon } from "@radix-ui/react-icons";
 
 export type Video = {
@@ -13,8 +21,21 @@ export type Video = {
   year: number;
 };
 
-// TODO: clicking on dancer or orchestra should send the user to the correct url
-const VideoCard = ({ video }: { video: Video }) => {
+type VideoCardProps = {
+  video: Video;
+  onFilterClick: (type: "dancer" | "orchestra", value: string) => void;
+  activeFilters: {
+    dancers: string[];
+    orchestra: string;
+  };
+};
+function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
+  const isActive = (type: "dancer" | "orchestra", value: string) => {
+    if (type === "dancer") {
+      return activeFilters.dancers.includes(value);
+    }
+    return activeFilters.orchestra === value;
+  };
   return (
     <Card key={video.id}>
       <Flex direction="column" gap="2">
@@ -36,12 +57,44 @@ const VideoCard = ({ video }: { video: Video }) => {
       <DataList.Root size="1" mt="3">
         <DataList.Item>
           <DataList.Label minWidth="44px">Dancers</DataList.Label>
-          <DataList.Value>{video.dancers.join(", ")}</DataList.Value>
+          <DataList.Value>
+            {video.dancers.map((dancer, index) => (
+              <>
+                <Button
+                  variant="ghost"
+                  size="1"
+                  key={dancer}
+                  onClick={() => onFilterClick("dancer", dancer)}
+                  className={`hover:underline cursor-pointer ${
+                    isActive("dancer", dancer) ? "font-bold" : ""
+                  }`}
+                >
+                  {dancer}
+                </Button>
+                {index < video.dancers.length - 1 ? (
+                  <span className="mx-1">{" and "}</span>
+                ) : (
+                  ""
+                )}
+              </>
+            ))}
+          </DataList.Value>
         </DataList.Item>
 
         <DataList.Item>
           <DataList.Label minWidth="44px">Orchestra</DataList.Label>
-          <DataList.Value>{video.orchestra}</DataList.Value>
+          <DataList.Value>
+            <Button
+              variant="ghost"
+              size="1"
+              onClick={() => onFilterClick("orchestra", video.orchestra)}
+              className={`hover:underline cursor-pointer ${
+                isActive("orchestra", video.orchestra) ? "font-bold" : ""
+              }`}
+            >
+              {video.orchestra}
+            </Button>
+          </DataList.Value>
         </DataList.Item>
 
         <DataList.Item>
@@ -70,6 +123,6 @@ const VideoCard = ({ video }: { video: Video }) => {
       </DataList.Root>
     </Card>
   );
-};
+}
 
 export { VideoCard };
