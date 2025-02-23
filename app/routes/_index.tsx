@@ -31,16 +31,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const dancer2 = url.searchParams.get("dancer2") || "any";
   const orchestra = url.searchParams.get("orchestra") || "any";
 
-  console.time("db");
-  const dancerOneOptions = await getDancerOptions(dancer2, orchestra);
-  const dancerTwoOptions = await getDancerOptions(dancer1, orchestra);
-  const orchestraOptions = await getOrchestraOptions(dancer1, dancer2);
-  const transformedVideos = await getFilteredVideos(
-    dancer1,
-    dancer2,
-    orchestra
-  );
-  console.timeEnd("db");
+  const [dancerOneOptions, dancerTwoOptions, orchestraOptions, transformedVideos] =
+    await Promise.all([
+      getDancerOptions(dancer2, orchestra),
+      getDancerOptions(dancer1, orchestra),
+      getOrchestraOptions(dancer1, dancer2),
+      getFilteredVideos(dancer1, dancer2, orchestra),
+    ]);
 
   return {
     dancerOneOptions,
