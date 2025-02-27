@@ -131,18 +131,6 @@ const SearchInterface = () => {
         </Flex>
       </Box>
 
-      <Box>
-        <Callout.Root color="crimson" variant="surface">
-          <Callout.Icon>
-            <InfoCircledIcon />
-          </Callout.Icon>
-          <Callout.Text>
-            <Strong>Note:</Strong> the data was extracted using AI and may not
-            be accurate or complete.
-          </Callout.Text>
-        </Callout.Root>
-      </Box>
-
       {/* TODO: add number of performances for filter and reset filter button */}
       {/* TODO: add pagination first */}
       <Grid
