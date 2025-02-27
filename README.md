@@ -38,3 +38,13 @@ Make sure to deploy the output of `npm run build`
 ## Styling
 
 This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever css framework you prefer. See the [Vite docs on css](https://vitejs.dev/guide/features.html#css) for more information.
+
+## Notes
+
+### Update data on production
+
+after copying the `.db` file into `/data` and updating the `sqlite.db` symlink (using `ln -s sqlite-2025-MM-DD.db sqlite.db`):
+
+1. `fly ssh console` into the machine and `rm /data/sqlite.db*`
+2. `fly sftp shell` and `put data/sqlite.db /data/sqlite.db`
+3. `fly apps restart`
