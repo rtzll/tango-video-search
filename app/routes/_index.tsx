@@ -1,13 +1,5 @@
-import {
-  Box,
-  Flex,
-  Text,
-  Grid,
-  Callout,
-  Strong,
-  IconButton,
-} from "@radix-ui/themes";
-import { InfoCircledIcon, ResetIcon } from "@radix-ui/react-icons";
+import { Box, Flex, Text, Grid, IconButton } from "@radix-ui/themes";
+import { ResetIcon } from "@radix-ui/react-icons";
 import { LoaderFunctionArgs, type MetaFunction } from "react-router";
 import { useLoaderData, useSearchParams } from "react-router";
 import {
@@ -31,13 +23,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const dancer2 = url.searchParams.get("dancer2") || "any";
   const orchestra = url.searchParams.get("orchestra") || "any";
 
-  const [dancerOneOptions, dancerTwoOptions, orchestraOptions, transformedVideos] =
-    await Promise.all([
-      getDancerOptions(dancer2, orchestra),
-      getDancerOptions(dancer1, orchestra),
-      getOrchestraOptions(dancer1, dancer2),
-      getFilteredVideos(dancer1, dancer2, orchestra),
-    ]);
+  const [
+    dancerOneOptions,
+    dancerTwoOptions,
+    orchestraOptions,
+    transformedVideos,
+  ] = await Promise.all([
+    getDancerOptions(dancer2, orchestra),
+    getDancerOptions(dancer1, orchestra),
+    getOrchestraOptions(dancer1, dancer2),
+    getFilteredVideos(dancer1, dancer2, orchestra),
+  ]);
 
   return {
     dancerOneOptions,
