@@ -1,7 +1,7 @@
 import { Box, Flex, Text, Grid, IconButton } from "@radix-ui/themes";
 import { ResetIcon } from "@radix-ui/react-icons";
-import { LoaderFunctionArgs, type MetaFunction } from "react-router";
 import { useLoaderData, useSearchParams } from "react-router";
+import type { Route } from "./+types/_index";
 import {
   getDancerOptions,
   getFilteredVideos,
@@ -10,14 +10,14 @@ import {
 import { VideoCard, type Video } from "~/components/video-card";
 import { OptionsSelect } from "~/components/options-select";
 
-export const meta: MetaFunction = () => {
+export function meta() {
   return [
     { title: "Tango Video Search" },
     { name: "description", content: "A different way to find tango videos." },
   ];
-};
+}
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const dancer1 = url.searchParams.get("dancer1") || "any";
   const dancer2 = url.searchParams.get("dancer2") || "any";
@@ -43,13 +43,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
   };
 }
 
-const SearchInterface = () => {
+export default function SearchInterface({ loaderData }: Route.ComponentProps) {
   const {
     dancerOneOptions,
     dancerTwoOptions,
     orchestraOptions,
     initialVideos,
-  } = useLoaderData<typeof loader>();
+  } = loaderData;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const dancer1 = searchParams.get("dancer1") || "any";
@@ -148,6 +148,4 @@ const SearchInterface = () => {
       </Grid>
     </Flex>
   );
-};
-
-export default SearchInterface;
+}
