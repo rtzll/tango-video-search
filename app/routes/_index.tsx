@@ -1,6 +1,6 @@
 import { Box, Flex, Text, Grid, IconButton } from "@radix-ui/themes";
 import { ResetIcon } from "@radix-ui/react-icons";
-import { useLoaderData, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import type { Route } from "./+types/_index";
 import {
   getDancerOptions,
