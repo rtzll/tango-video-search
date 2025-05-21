@@ -90,7 +90,6 @@ const curationStatusValues = Object.values(CurationStatus) as [
   ...CurationStatusType[]
 ];
 
-// TODO: add indexes
 export const curations = sqliteTable("curations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   performanceId: text("performance_id")
