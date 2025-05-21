@@ -1,50 +1,93 @@
-# Welcome to Remix!
+# Tango Video Search
 
-- 📖 [Remix docs](https://remix.run/docs)
+A web application for searching and discovering Argentine tango dance videos based on dancers, orchestras, and more.
+
+## Overview
+
+Tango Video Search allows users to find tango dance videos by filtering through combinations of:
+- Dancers (pairs or individuals)
+- Orchestras
+- Songs (coming soon)
+- Singers (coming soon)
+
+The application provides an intuitive interface to discover tango performances with a responsive grid layout of video cards.
+
+## Tech Stack
+
+- **Framework**: [React Router](https://reactrouter.com/) v7
+- **UI**: [Radix UI](https://www.radix-ui.com/) + [Tailwind CSS](https://tailwindcss.com/)
+- **Database**: SQLite with [Drizzle ORM](https://orm.drizzle.team/)
+- **Deployment**: [Fly.io](https://fly.io)
 
 ## Development
 
-Run the dev server:
+To run the development server:
 
-```shellscript
+```sh
 npm run dev
 ```
 
+### Database
+
+The application uses SQLite with a database file located at `data/sqlite.db`. The schema includes:
+- Videos (YouTube metadata)
+- Performances (tango-specific metadata)
+- Dancers, Orchestras, Songs, and Singers
+- Curations (verified performance metadata)
+
 ## Deployment
 
-First, build your app for production:
+First, build the application for production:
 
 ```sh
 npm run build
 ```
 
-Then run the app in production mode:
+Then run in production mode:
 
 ```sh
 npm start
 ```
 
-Now you'll need to pick a host to deploy it to.
+### Deploying to Fly.io
 
-### DIY
+The application is configured for deployment on Fly.io.
 
-If you're familiar with deploying Node applications, the built-in Remix app server is production-ready.
+### Updating Data on Production
 
-Make sure to deploy the output of `npm run build`
+After preparing a new database file:
 
-- `build/server`
-- `build/client`
+1. Copy the `.db` file into `/data` and update the `sqlite.db` symlink:
+   ```sh
+   ln -s sqlite-2025-MM-DD.db sqlite.db
+   ```
 
-## Styling
+2. Connect to the Fly.io instance and remove the old database:
+   ```sh
+   fly ssh console
+   rm /data/sqlite.db*
+   ```
 
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever css framework you prefer. See the [Vite docs on css](https://vitejs.dev/guide/features.html#css) for more information.
+3. Upload the new database file:
+   ```sh
+   fly sftp shell
+   put data/sqlite.db /data/sqlite.db
+   ```
 
-## Notes
+4. Restart the application:
+   ```sh
+   fly apps restart
+   ```
 
-### Update data on production
+## Features
 
-after copying the `.db` file into `/data` and updating the `sqlite.db` symlink (using `ln -s sqlite-2025-MM-DD.db sqlite.db`):
+- Filter videos by dancer combinations
+- Filter videos by orchestras
+- Responsive video grid layout
+- Quick filtering through video cards
+- Video metadata display
 
-1. `fly ssh console` into the machine and `rm /data/sqlite.db*`
-2. `fly sftp shell` and `put data/sqlite.db /data/sqlite.db`
-3. `fly apps restart`
+## Future Enhancements
+
+- Add pagination for video results
+- Enable filtering by songs and singers
