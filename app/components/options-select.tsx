@@ -27,10 +27,12 @@ const OptionsSelect = ({
       <Select.Content>
         <Select.Group>
           <Select.Item value="any">{placeholder}</Select.Item>
-          {/* TODO: fix for very long names */}
           {options.map((option) => (
             <Select.Item key={option.id} value={option.name}>
-              {option.name} ({option.count})
+              <div className="flex items-center" title={`${option.name} (${option.count})`}>
+                <span className="truncate max-w-[240px]">{option.name}</span>
+                <span className="ml-1">({option.count})</span>
+              </div>
             </Select.Item>
           ))}
         </Select.Group>
