@@ -6,6 +6,7 @@ import {
   getDancerOptions,
   getFilteredVideos,
   getOrchestraOptions,
+  getLastDatabaseUpdateTime,
 } from "~/db.server";
 import { VideoCard, type Video } from "~/components/video-card";
 import { OptionsSelect } from "~/components/options-select";
@@ -35,11 +36,15 @@ export async function loader({ request }: Route.LoaderArgs) {
     getFilteredVideos(dancer1, dancer2, orchestra),
   ]);
 
+  const lastUpdateTime = getLastDatabaseUpdateTime();
+  const lastUpdateTimeString = lastUpdateTime ? lastUpdateTime.toISOString() : null;
+
   return {
     dancerOneOptions,
     dancerTwoOptions,
     orchestraOptions,
     initialVideos: transformedVideos as Video[],
+    lastUpdateTime: lastUpdateTimeString,
   };
 }
 
@@ -49,6 +54,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
     dancerTwoOptions,
     orchestraOptions,
     initialVideos,
+    lastUpdateTime,
   } = loaderData;
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -91,8 +97,16 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
     setSearchParams(newParams);
   };
 
+  const formattedLastUpdate = lastUpdateTime
+    ? new Date(lastUpdateTime).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    : 'Unknown';
+
   return (
-    <Flex direction="column" gap="6" className="p-6" maxWidth="1400px" mx="auto">
+    <Flex direction="column" gap="6" className="p-6" maxWidth="1400px" mx="auto" style={{ minHeight: '100vh' }}>
       <Box>
         <Flex align="baseline" gap="2" className="flex-wrap">
           <Text>I want to see</Text>
@@ -145,6 +159,12 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
           />
         ))}
       </Grid>
+
+      <Box mt="auto" pt="4">
+        <Flex align="baseline">
+          <Text size="1" color="gray">Last updated: {formattedLastUpdate}</Text>
+        </Flex>
+      </Box>
     </Flex>
   );
 }

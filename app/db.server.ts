@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { sql, eq, desc } from "drizzle-orm";
+import { statSync } from "fs";
 
 import * as schema from "../schema";
 import {
@@ -27,6 +28,16 @@ sqlite.exec("pragma temp_store = memory;");
 sqlite.exec("pragma mmap_size = 268435456;");
 sqlite.exec("pragma foreign_keys = on;");
 export const db = drizzle({ client: sqlite, schema });
+
+export function getLastDatabaseUpdateTime() {
+  try {
+    const stats = statSync(dbPath);
+    return stats.mtime;
+  } catch (error) {
+    console.error("Error getting database file stats:", error);
+    return null;
+  }
+}
 
 export async function getDancerOptions(otherDancer: string, orchestra: string) {
   if (otherDancer === "any") {
