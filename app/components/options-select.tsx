@@ -7,10 +7,27 @@ export type Option = {
 };
 
 export interface OptionsSelectProps {
+  /**
+   * Currently selected value.
+   */
   value: string;
+  /**
+   * Callback when a new value is selected.
+   */
   onValueChange: (value: string) => void;
+  /**
+   * List of selectable options.
+   */
   options: Option[];
+  /**
+   * Placeholder text shown when no value is selected.
+   */
   placeholder: string;
+  /**
+   * Accessible name for the select trigger (aria-label).
+   * Defaults to placeholder or selected value if not provided.
+   */
+  ariaLabel?: string;
 }
 
 const OptionsSelect = ({
@@ -18,10 +35,15 @@ const OptionsSelect = ({
   onValueChange,
   options,
   placeholder,
+  ariaLabel,
 }: OptionsSelectProps) => {
   return (
     <Select.Root value={value} onValueChange={onValueChange} size="2">
-      <Select.Trigger placeholder={placeholder} variant="ghost">
+      <Select.Trigger
+        placeholder={placeholder}
+        variant="ghost"
+        aria-label={ariaLabel ?? (value === "any" ? placeholder : value)}
+      >
         {value === "any" ? placeholder : value}
       </Select.Trigger>
       <Select.Content>

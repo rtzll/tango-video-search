@@ -115,6 +115,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
             onValueChange={(value) => updateSearchParam("dancer1", value)}
             options={dancerOneOptions}
             placeholder="any dancer"
+            ariaLabel="Select first dancer"
           />
           <Text>and</Text>
           <OptionsSelect
@@ -122,6 +123,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
             onValueChange={(value) => updateSearchParam("dancer2", value)}
             options={dancerTwoOptions}
             placeholder="any dancer"
+            ariaLabel="Select second dancer"
           />
           <Text>dance to</Text>
           {/* TODO: allow for selecting songs and singers too */}
@@ -130,6 +132,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
             onValueChange={(value) => updateSearchParam("orchestra", value)}
             options={orchestraOptions}
             placeholder="any orchestra"
+            ariaLabel="Select orchestra"
           />
           <Text>.</Text>
           {(dancer1 !== "any" || dancer2 !== "any" || orchestra !== "any") && (
