@@ -15,9 +15,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <Theme
           accentColor="crimson"
-          grayColor="sand"
+          grayColor="mauve"
           appearance="dark"
-          radius="small"
+          radius="none"
         >
           {children}
           <ScrollRestoration />
