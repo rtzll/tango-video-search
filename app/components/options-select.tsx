@@ -1,4 +1,4 @@
-import { Select } from "@radix-ui/themes";
+import { Select, Text } from "@radix-ui/themes";
 
 export type Option = {
   id: number;
@@ -44,7 +44,7 @@ const OptionsSelect = ({
         variant="ghost"
         aria-label={ariaLabel ?? (value === "any" ? placeholder : value)}
       >
-        {value === "any" ? placeholder : value}
+        <Text size="3">{value === "any" ? placeholder : value}</Text>
       </Select.Trigger>
       <Select.Content>
         <Select.Group>

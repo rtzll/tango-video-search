@@ -134,7 +134,6 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
             placeholder="any orchestra"
             ariaLabel="Select orchestra"
           />
-          <Text>.</Text>
           {(dancer1 !== "any" || dancer2 !== "any" || orchestra !== "any") && (
             <IconButton size="1" variant="soft" onClick={resetSearchParams}>
               <ResetIcon width={12} height={12} />
