@@ -1,20 +1,20 @@
 # Tango Video Search
 
-A web application for searching and discovering Argentine tango dance videos based on dancers, orchestras, and more.
+Finding specific tango videos on YouTube can be tedious due to endless scrolling and inconsistent metadata. Tango Video Search offers a simple, intuitive way to quickly filter by dancers and orchestras. Powered by a curated, LLM-generated index, it ensures you find exactly the performances you want.
 
-## Overview
+## Features
 
-Tango Video Search allows users to find tango dance videos by filtering through combinations of:
-- Dancers (pairs or individuals)
-- Orchestras
-
-The application provides an intuitive interface to discover tango performances with a responsive grid layout of video cards.
+- Filter videos by dancer combinations
+- Filter videos by orchestras
+- Responsive video grid layout
+- Quick filtering through video cards
+- Video metadata display
 
 ## Tech Stack
 
-- **Framework**: [React Router](https://reactrouter.com/) v7
+- **Framework**: [React Router](https://reactrouter.com/) v7 (started as a Remix project)
 - **UI**: [Radix UI](https://www.radix-ui.com/) + [Tailwind CSS](https://tailwindcss.com/)
-- **Database**: SQLite with [Drizzle ORM](https://orm.drizzle.team/)
+- **Database**: [SQLite](https://sqlite.org/) with [Drizzle ORM](https://orm.drizzle.team/)
 - **Deployment**: [Fly.io](https://fly.io)
 
 ## Development
@@ -28,33 +28,18 @@ npm run dev
 ### Database
 
 > [!NOTE]
-> The SQLite database file is not included in this repository. To run the application locally, you must supply your own database file at `data/sqlite.db` or set the `DATABASE_URL` environment variable to point to an existing database.
+> The database is not included in the repository. 
 
-The application uses SQLite with a database file located at `data/sqlite.db`. The schema includes:
+The application uses SQLite via Drizzle ORM with a database file at `data/sqlite.db` by default, or override the path using the `DATABASE_URL` environment variable. The schema includes:
 - Videos (YouTube metadata)
 - Performances (tango-specific metadata)
-- Dancers, Orchestras, Songs, and Singers
-- Curations (verified performance metadata)
+- Dancers, Orchestras, Songs, Singers, and Curations
 
 ## Deployment
 
-First, build the application for production:
+Deploying the application is handled by GitHub Actions, which will automatically deploy to Fly.io when you push to the `main` branch.
 
-```sh
-npm run build
-```
-
-Then run in production mode:
-
-```sh
-npm start
-```
-
-### Deploying to Fly.io
-
-The application is configured for deployment on Fly.io.
-
-### Updating Data on Production
+### Updating Data in Production
 
 After preparing a new database file:
 
@@ -79,12 +64,3 @@ After preparing a new database file:
    ```sh
    fly apps restart
    ```
-
-## Features
-
-- Filter videos by dancer combinations
-- Filter videos by orchestras
-- Responsive video grid layout
-- Quick filtering through video cards
-- Video metadata display
-
