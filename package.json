@@ -46,5 +46,10 @@
   },
   "engines": {
     "node": ">=20.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rtzll/tango-video-search.git"
+  },
+  "license": "BSD-3-Clause"
 }
