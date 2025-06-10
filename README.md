@@ -7,8 +7,6 @@ A web application for searching and discovering Argentine tango dance videos bas
 Tango Video Search allows users to find tango dance videos by filtering through combinations of:
 - Dancers (pairs or individuals)
 - Orchestras
-- Songs (coming soon)
-- Singers (coming soon)
 
 The application provides an intuitive interface to discover tango performances with a responsive grid layout of video cards.
 
@@ -28,6 +26,9 @@ npm run dev
 ```
 
 ### Database
+
+> [!NOTE]
+> The SQLite database file is not included in this repository. To run the application locally, you must supply your own database file at `data/sqlite.db` or set the `DATABASE_URL` environment variable to point to an existing database.
 
 The application uses SQLite with a database file located at `data/sqlite.db`. The schema includes:
 - Videos (YouTube metadata)
@@ -87,7 +88,3 @@ After preparing a new database file:
 - Quick filtering through video cards
 - Video metadata display
 
-## Future Enhancements
-
-- Add pagination for video results
-- Enable filtering by songs and singers
