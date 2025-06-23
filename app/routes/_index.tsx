@@ -1,5 +1,5 @@
-import { ResetIcon } from "@radix-ui/react-icons";
-import { Box, Flex, Grid, IconButton, Text } from "@radix-ui/themes";
+import { GitHubLogoIcon, ResetIcon } from "@radix-ui/react-icons";
+import { Box, Flex, Grid, IconButton, Text, Link } from "@radix-ui/themes";
 import { useSearchParams } from "react-router";
 import { OptionsSelect } from "~/components/options-select";
 import { type Video, VideoCard } from "~/components/video-card";
@@ -172,10 +172,23 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 			</Grid>
 
 			<Box mt="auto" pt="4">
-				<Flex align="baseline">
+				<Flex align="baseline" className="justify-between flex-wrap">
 					<Text size="1" color="gray">
 						Last updated: {formattedLastUpdate}
 					</Text>
+					<Link
+						href="https://github.com/rtzll/tango-video-search"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="hover:underline"
+						size="1"
+						color="gray"
+					>
+						<span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+							Source code
+							<GitHubLogoIcon width={12} height={12} />
+						</span>
+					</Link>
 				</Flex>
 			</Box>
 		</Flex>
