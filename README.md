@@ -1,6 +1,10 @@
 # Tango Video Search
 
-Finding specific tango videos on YouTube can be tedious due to endless scrolling and inconsistent metadata. Tango Video Search offers a simple, intuitive way to quickly filter by dancers and orchestras. Powered by a curated, LLM-generated index, it ensures you find exactly the performances you want.
+**Problem:** YouTube search for tango performances is inefficient. Results are buried due to YouTube's algorithmic sorting and inconsistent metadata.
+
+**Solution:** Tango Video Search provides a streamlined interface to filter by dancer or orchestra with minimal friction.
+
+**How it works:** It’s powered by an LLM-curated index built from YouTube metadata. That means faster, more accurate retrieval of the performances you're looking for.
 
 ## Features
 
