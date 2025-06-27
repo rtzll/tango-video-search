@@ -1,7 +1,7 @@
 import { GitHubLogoIcon, ResetIcon } from "@radix-ui/react-icons";
 import { Box, Flex, Grid, IconButton, Text, Link } from "@radix-ui/themes";
 import { useSearchParams } from "react-router";
-import { OptionsSelect } from "~/components/options-select";
+import { Combobox } from "~/components/combobox";
 import { type Video, VideoCard } from "~/components/video-card";
 import {
 	getDancerOptions,
@@ -119,7 +119,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 			<Box>
 				<Flex align="baseline" gap="2" className="flex-wrap">
 					<Text>I want to see</Text>
-					<OptionsSelect
+					<Combobox
 						value={dancer1}
 						onValueChange={(value) => updateSearchParam("dancer1", value)}
 						options={dancerOneOptions}
@@ -127,7 +127,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						ariaLabel="Select first dancer"
 					/>
 					<Text>and</Text>
-					<OptionsSelect
+					<Combobox
 						value={dancer2}
 						onValueChange={(value) => updateSearchParam("dancer2", value)}
 						options={dancerTwoOptions}
@@ -136,7 +136,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 					/>
 					<Text>dance to</Text>
 					{/* TODO: allow for selecting songs and singers too */}
-					<OptionsSelect
+					<Combobox
 						value={orchestra}
 						onValueChange={(value) => updateSearchParam("orchestra", value)}
 						options={orchestraOptions}
