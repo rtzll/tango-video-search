@@ -174,7 +174,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 			<Box mt="auto" pt="4">
 				<Flex align="baseline" className="justify-between flex-wrap">
 					<Text size="1" color="gray">
-						Last updated: {formattedLastUpdate}
+						Data refreshed: {formattedLastUpdate}
 					</Text>
 					<Link
 						href="https://github.com/rtzll/tango-video-search"
