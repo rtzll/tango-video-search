@@ -13,6 +13,7 @@ export type Video = {
 	id: string;
 	title: string;
 	channelTitle: string;
+	channelId: string;
 	dancers: string[];
 	orchestra: string;
 	songTitle: string;
@@ -114,7 +115,19 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 
 				<DataList.Item>
 					<DataList.Label minWidth="44px">Channel</DataList.Label>
-					<DataList.Value>{video.channelTitle}</DataList.Value>
+					<DataList.Value>
+						<Link
+							href={`https://youtube.com/channel/${video.channelId}`}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="hover:underline flex items-center"
+						>
+							<Flex gap="1" align="end">
+								<Text>{video.channelTitle}</Text>
+								<ExternalLinkIcon />
+							</Flex>
+						</Link>
+					</DataList.Value>
 				</DataList.Item>
 
 				<DataList.Item>

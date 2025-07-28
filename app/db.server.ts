@@ -153,6 +153,7 @@ export async function getFilteredVideos(
 			id: videos.id,
 			title: videos.title,
 			channelTitle: videos.channelTitle,
+			channelId: videos.channelId,
 			performance: performances,
 			curation: curations,
 		})
@@ -173,6 +174,7 @@ export async function getFilteredVideos(
 		id: video.id,
 		title: video.title,
 		channelTitle: video.channelTitle,
+		channelId: video.channelId,
 		dancers: video.performance?.dancers?.split(",").map((d) => d.trim()) || [],
 		songTitle: video.performance?.songTitle || "Unknown",
 		orchestra: video.performance?.orchestra || "Unknown",
