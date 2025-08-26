@@ -27,7 +27,7 @@ sqlite.exec("pragma cache_size = 2000;");
 sqlite.exec("pragma temp_store = memory;");
 sqlite.exec("pragma mmap_size = 268435456;");
 sqlite.exec("pragma foreign_keys = on;");
-export const db = drizzle({ client: sqlite, schema });
+const db = drizzle({ client: sqlite, schema });
 
 export function getLastDatabaseUpdateTime() {
 	try {

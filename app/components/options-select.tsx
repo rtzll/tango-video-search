@@ -1,12 +1,12 @@
 import { Select, Text } from "@radix-ui/themes";
 
-export type Option = {
+type Option = {
 	id: number;
 	name: string;
 	count: number;
 };
 
-export interface OptionsSelectProps {
+interface OptionsSelectProps {
 	/**
 	 * Currently selected value.
 	 */
