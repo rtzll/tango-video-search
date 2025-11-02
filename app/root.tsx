@@ -17,6 +17,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 					accentColor="crimson"
 					grayColor="mauve"
 					appearance="dark"
+					panelBackground="solid"
 					radius="none"
 				>
 					{children}
