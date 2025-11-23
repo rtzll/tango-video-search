@@ -46,11 +46,13 @@ RUN apt-get update -qq && \
 COPY --from=build /app /app
 
 # Setup sqlite3 on a separate volume
-RUN mkdir -p /data
+RUN mkdir -p /data && chown -R node:node /app /data
 VOLUME /data
 
 # add shortcut for connecting to database CLI
 RUN echo "#!/bin/sh\nset -x\nsqlite3 \$DATABASE_URL" > /usr/local/bin/database-cli && chmod +x /usr/local/bin/database-cli
+
+USER node
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
