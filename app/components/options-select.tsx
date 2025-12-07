@@ -55,7 +55,7 @@ const OptionsSelect = ({
 								className="flex items-center"
 								title={`${option.name} (${option.count})`}
 							>
-								<span className="truncate max-w-[240px]">{option.name}</span>
+								<span className="truncate max-w-60">{option.name}</span>
 								<span className="ml-1">({option.count})</span>
 							</div>
 						</Select.Item>
