@@ -19,6 +19,7 @@
 - **Framework**: [React Router](https://reactrouter.com/) v7 (started as a Remix project)
 - **UI**: [Radix UI](https://www.radix-ui.com/) + [Tailwind CSS](https://tailwindcss.com/)
 - **Database**: [SQLite](https://sqlite.org/) with [Drizzle ORM](https://orm.drizzle.team/)
+- **Runtime**: [Bun](https://bun.sh/)
 - **Deployment**: [Fly.io](https://fly.io)
 
 ## Development
@@ -26,7 +27,7 @@
 To run the development server:
 
 ```sh
-npm run dev
+bun run dev
 ```
 
 ### Database

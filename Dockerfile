@@ -1,60 +1,43 @@
 # syntax = docker/dockerfile:1
 
-# Adjust NODE_VERSION as desired
-ARG NODE_VERSION=24
-FROM node:${NODE_VERSION}-slim AS base
+ARG BUN_VERSION=1.3.5
+FROM oven/bun:${BUN_VERSION}-slim AS base
 
-LABEL fly_launch_runtime="Remix"
+LABEL fly_launch_runtime="Bun"
 
-# Remix app lives here
 WORKDIR /app
 
-# Set production environment
 ENV NODE_ENV="production"
 
 
-# Throw-away build stage to reduce size of final image
 FROM base AS build
 
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-# Install node modules
-COPY package-lock.json package.json ./
-RUN npm ci --include=dev
-
-# Copy application code
 COPY . .
-
-# Build application
-RUN npm run build
-
-# Remove development dependencies
-RUN npm prune --omit=dev
+RUN bun run build
 
 
-# Final stage for app image
-FROM base
+FROM base AS final
 
-# Install packages needed for deployment
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y sqlite3 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Copy built application
-COPY --from=build /app /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 
-# Setup sqlite3 on a separate volume
-RUN mkdir -p /data && chown -R node:node /app /data
+COPY --from=build /app/build /app/build
+COPY --from=build /app/public /app/public
+
+RUN mkdir -p /data && chown -R 1000:1000 /app /data
 VOLUME /data
 
-# add shortcut for connecting to database CLI
 RUN echo "#!/bin/sh\nset -x\nsqlite3 \$DATABASE_URL" > /usr/local/bin/database-cli && chmod +x /usr/local/bin/database-cli
 
-USER node
+USER 1000:1000
 
-# Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
 ENV DATABASE_URL="file:///data/sqlite.db"
-CMD [ "npm", "run", "start" ]
+CMD [ "bun", "run", "start" ]
