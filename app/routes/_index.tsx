@@ -9,6 +9,7 @@ import {
 	getLastDatabaseUpdateTime,
 	getOrchestraOptions,
 } from "~/db.server";
+import { normalizeName } from "~/utils/normalize";
 import type { Route } from "./+types/_index";
 
 export function meta() {
@@ -74,24 +75,34 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		setSearchParams(newParams);
 	};
 	const resetSearchParams = () => setSearchParams(new URLSearchParams());
+	const isSameFilterValue = (current: string, candidate: string) =>
+		current !== "any" && normalizeName(current) === normalizeName(candidate);
 
 	const handleFilterClick = (type: "dancer" | "orchestra", value: string) => {
 		const newParams = new URLSearchParams(searchParams);
 
 		if (type === "dancer") {
-			if (dancer1 === value) {
+			if (isSameFilterValue(dancer1, value)) {
 				newParams.delete("dancer1");
-			} else if (dancer2 === value) {
+			} else if (isSameFilterValue(dancer2, value)) {
 				newParams.delete("dancer2");
 			} else if (dancer1 === "any" && dancer2 === "any") {
 				newParams.set("dancer1", value);
-			} else if (dancer1 !== "any" && dancer2 === "any" && dancer1 !== value) {
+			} else if (
+				dancer1 !== "any" &&
+				dancer2 === "any" &&
+				!isSameFilterValue(dancer1, value)
+			) {
 				newParams.set("dancer2", value);
-			} else if (dancer1 === "any" && dancer2 !== "any" && dancer2 !== value) {
+			} else if (
+				dancer1 === "any" &&
+				dancer2 !== "any" &&
+				!isSameFilterValue(dancer2, value)
+			) {
 				newParams.set("dancer1", value);
 			}
 		} else if (type === "orchestra") {
-			orchestra === value
+			isSameFilterValue(orchestra, value)
 				? newParams.delete("orchestra")
 				: newParams.set("orchestra", value);
 		}

@@ -12,6 +12,7 @@ import {
 	TextField,
 } from "@radix-ui/themes";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { normalizeName } from "~/utils/normalize";
 
 type Option = {
 	id: number;
@@ -62,11 +63,11 @@ const Combobox = ({
 	}, [open]);
 
 	const filteredOptions = useMemo(() => {
-		const normalizedQuery = normalizeText(query.trim());
+		const normalizedQuery = normalizeName(query.trim());
 		if (!normalizedQuery) return options;
 
 		return options.filter((option) =>
-			normalizeText(option.name).includes(normalizedQuery),
+			normalizeName(option.name).includes(normalizedQuery),
 		);
 	}, [options, query]);
 
@@ -129,7 +130,9 @@ const Combobox = ({
 										label={option.name}
 										value={option.name}
 										count={option.count}
-										selected={value === option.name}
+										selected={
+											normalizeName(value) === normalizeName(option.name)
+										}
 										onSelect={handleSelect}
 									/>
 								))
@@ -175,11 +178,5 @@ const OptionRow = ({
 		</Flex>
 	</Button>
 );
-
-const normalizeText = (text: string) =>
-	text
-		.toLocaleLowerCase()
-		.normalize("NFD")
-		.replace(/\p{Diacritic}/gu, "");
 
 export { Combobox };

@@ -1,5 +1,5 @@
-import { statSync } from "node:fs";
 import { Database } from "bun:sqlite";
+import { statSync } from "node:fs";
 import { desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 
@@ -12,6 +12,7 @@ import {
 	performances,
 	videos,
 } from "../schema";
+import { normalizeName } from "./utils/normalize";
 
 const dbPath = process.env.DATABASE_URL
 	? new URL(process.env.DATABASE_URL).pathname
@@ -40,6 +41,9 @@ export function getLastDatabaseUpdateTime() {
 }
 
 export async function getDancerOptions(otherDancer: string, orchestra: string) {
+	const normalizedOrchestra =
+		orchestra === "any" ? "any" : normalizeName(orchestra);
+
 	if (otherDancer === "any") {
 		return await db
 			.select({
@@ -53,11 +57,17 @@ export async function getDancerOptions(otherDancer: string, orchestra: string) {
 			.leftJoin(dancersToCurations, eq(dancers.id, dancersToCurations.dancerId))
 			.innerJoin(curations, eq(dancersToCurations.curationId, curations.id))
 			.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
-			.where(orchestra === "any" ? sql`1` : eq(orchestras.name, orchestra))
+			.where(
+				orchestra === "any"
+					? sql`1`
+					: eq(orchestras.normalized, normalizedOrchestra),
+			)
 			.groupBy(dancers.id, dancers.name)
 			.having(sql`performanceCount > 0`)
 			.orderBy(sql`performanceCount DESC`);
 	}
+
+	const normalizedOtherDancer = normalizeName(otherDancer);
 
 	return await db
 		.select({
@@ -75,11 +85,15 @@ export async function getDancerOptions(otherDancer: string, orchestra: string) {
 		)
 		.innerJoin(
 			sql`${dancers} d2`,
-			sql`d2.id = dc2.dancer_id AND d2.name = ${otherDancer} AND d2.id != d1.id`,
+			sql`d2.id = dc2.dancer_id AND d2.normalized = ${normalizedOtherDancer} AND d2.id != d1.id`,
 		)
 		.innerJoin(curations, sql`dc1.curation_id = ${curations.id}`)
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
-		.where(orchestra === "any" ? sql`1` : eq(orchestras.name, orchestra))
+		.where(
+			orchestra === "any"
+				? sql`1`
+				: eq(orchestras.normalized, normalizedOrchestra),
+		)
 		.groupBy(sql`d1.id`, sql`d1.name`)
 		.having(sql`performanceCount > 0`)
 		.orderBy(sql`performanceCount DESC`);
@@ -123,15 +137,19 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
 
 // made me chuckle
 function dancerClause(dancer1: string, dancer2: string) {
-	// TODO: probably should check the normalized names
-	if (dancer1 !== "any" && dancer2 !== "any") {
-		return sql`${dancers.name} = ${dancer1} AND EXISTS (
+	const dancer1Normalized = dancer1 === "any" ? "any" : normalizeName(dancer1);
+	const dancer2Normalized = dancer2 === "any" ? "any" : normalizeName(dancer2);
+
+	if (dancer1Normalized !== "any" && dancer2Normalized !== "any") {
+		return sql`${dancers.normalized} = ${dancer1Normalized} AND EXISTS (
     SELECT 1 FROM ${dancersToCurations} dc2
     INNER JOIN ${dancers} d2 ON dc2.dancer_id = d2.id
-    WHERE dc2.curation_id = ${curations.id} AND d2.name = ${dancer2})`;
+    WHERE dc2.curation_id = ${curations.id} AND d2.normalized = ${dancer2Normalized})`;
 	}
 
-	return sql`${dancers.name} = ${dancer1 !== "any" ? dancer1 : dancer2}`;
+	const active =
+		dancer1Normalized !== "any" ? dancer1Normalized : dancer2Normalized;
+	return sql`${dancers.normalized} = ${active}`;
 }
 
 export async function getFilteredVideos(
@@ -145,7 +163,7 @@ export async function getFilteredVideos(
 		whereClause = sql`${whereClause} AND ${dancerClause(dancer1, dancer2)}`;
 	}
 	if (orchestra !== "any") {
-		whereClause = sql`${whereClause} AND ${orchestras.name} = ${orchestra}`;
+		whereClause = sql`${whereClause} AND ${orchestras.normalized} = ${normalizeName(orchestra)}`;
 	}
 
 	const results = await db

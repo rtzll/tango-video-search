@@ -8,6 +8,7 @@ import {
 	Link,
 	Text,
 } from "@radix-ui/themes";
+import { normalizeName } from "~/utils/normalize";
 
 export type Video = {
 	id: string;
@@ -32,10 +33,17 @@ type VideoCardProps = {
 };
 function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	const isActive = (type: "dancer" | "orchestra", value: string) => {
+		const normalizedValue = normalizeName(value);
 		if (type === "dancer") {
-			return activeFilters.dancers.includes(value);
+			return activeFilters.dancers.some(
+				(dancer) =>
+					dancer !== "any" && normalizeName(dancer) === normalizedValue,
+			);
 		}
-		return activeFilters.orchestra === value;
+		return (
+			activeFilters.orchestra !== "any" &&
+			normalizeName(activeFilters.orchestra) === normalizedValue
+		);
 	};
 	return (
 		<Card key={video.id}>
