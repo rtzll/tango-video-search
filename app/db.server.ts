@@ -21,7 +21,7 @@ const sqlite = new Database(dbPath, {
 	readonly: true,
 });
 // configure sqlite
-// sqlite.query("pragma journal_mode = wal;").run();
+sqlite.query("pragma journal_mode = wal;").run();
 sqlite.query("pragma synchronous = normal;").run();
 sqlite.query("pragma busy_timeout = 5000;").run();
 sqlite.query("pragma cache_size = 2000;").run();
