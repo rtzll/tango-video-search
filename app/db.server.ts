@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { statSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 
@@ -14,10 +15,15 @@ import {
 } from "../schema";
 import { normalizeName } from "./utils/normalize";
 
-const dbPath = process.env.DATABASE_URL
-	? new URL(process.env.DATABASE_URL).pathname
-	: "data/sqlite.db";
-const sqlite = new Database(dbPath, {
+const envDb = process.env.DATABASE_URL;
+const filePath = envDb && !envDb.startsWith("file:") ? envDb : "data/sqlite.db";
+const fileUrl = envDb?.startsWith("file:")
+	? new URL(envDb)
+	: pathToFileURL(filePath);
+fileUrl.searchParams.set("immutable", "1");
+const dbUrl = fileUrl.toString();
+const dbFilePath = fileURLToPath(fileUrl);
+const sqlite = new Database(dbUrl, {
 	readonly: true,
 });
 // configure sqlite
@@ -32,7 +38,7 @@ const db = drizzle({ client: sqlite, schema });
 
 export function getLastDatabaseUpdateTime() {
 	try {
-		const stats = statSync(dbPath);
+		const stats = statSync(dbFilePath);
 		return stats.mtime;
 	} catch (error) {
 		console.error("Error getting database file stats:", error);
