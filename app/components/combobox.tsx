@@ -112,7 +112,13 @@ const Combobox = ({
 						scrollbars="vertical"
 						style={{ maxHeight: 320 }}
 					>
-						<Flex direction="column" gap="1" py="1" role="listbox">
+						<Flex
+							direction="column"
+							gap="1"
+							py="1"
+							role="listbox"
+							className="pr-2"
+						>
 							<OptionRow
 								label={placeholder}
 								value="any"
