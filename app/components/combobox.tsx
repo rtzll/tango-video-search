@@ -7,7 +7,7 @@ import {
 	Text,
 	TextField,
 } from "@radix-ui/themes";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { normalizeName } from "~/utils/normalize";
 
 type Option = {
@@ -49,7 +49,10 @@ const Combobox = ({
 }: ComboboxProps) => {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
+	const [activeIndex, setActiveIndex] = useState(0);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+	const listId = useId();
 
 	useEffect(() => {
 		if (open) {
@@ -67,12 +70,40 @@ const Combobox = ({
 		);
 	}, [options, query]);
 
+	const listOptions = useMemo(
+		() => [
+			{ id: "any", name: placeholder, count: undefined },
+			...filteredOptions,
+		],
+		[filteredOptions, placeholder],
+	);
+
+	useEffect(() => {
+		if (!open) return;
+		const selectedIndex = listOptions.findIndex((option) =>
+			option.id === "any"
+				? value === "any"
+				: normalizeName(option.name) === normalizeName(value),
+		);
+		setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+	}, [open, listOptions, value]);
+
+	useEffect(() => {
+		setActiveIndex(0);
+	}, [query]);
+
+	useEffect(() => {
+		const activeOption = optionRefs.current[activeIndex];
+		activeOption?.scrollIntoView({ block: "nearest" });
+	}, [activeIndex]);
+
 	const handleSelect = (nextValue: string) => {
 		onValueChange(nextValue);
 		setOpen(false);
 	};
 
 	const selectedLabel = value === "any" ? placeholder : value;
+	const activeOptionId = `${listId}-option-${activeIndex}`;
 
 	return (
 		<Popover.Root open={open} onOpenChange={setOpen}>
@@ -97,6 +128,40 @@ const Combobox = ({
 						placeholder={`Search ${placeholder.replace("any ", "")}`}
 						autoComplete="off"
 						aria-label={`Search ${placeholder}`}
+						role="combobox"
+						aria-autocomplete="list"
+						aria-expanded={open}
+						aria-controls={listId}
+						aria-activedescendant={activeOptionId}
+						onKeyDown={(event) => {
+							if (!open) return;
+							if (event.key === "ArrowDown") {
+								event.preventDefault();
+								setActiveIndex((index) =>
+									index + 1 >= listOptions.length ? 0 : index + 1,
+								);
+								return;
+							}
+							if (event.key === "ArrowUp") {
+								event.preventDefault();
+								setActiveIndex((index) =>
+									index - 1 < 0 ? listOptions.length - 1 : index - 1,
+								);
+								return;
+							}
+							if (event.key === "Enter") {
+								event.preventDefault();
+								const option = listOptions[activeIndex];
+								if (option) {
+									handleSelect(option.id === "any" ? "any" : option.name);
+								}
+								return;
+							}
+							if (event.key === "Escape") {
+								event.preventDefault();
+								setOpen(false);
+							}
+						}}
 					>
 						<TextField.Slot>
 							<MagnifyingGlassIcon />
@@ -114,28 +179,39 @@ const Combobox = ({
 							py="1"
 							role="listbox"
 							className="pr-2"
+							id={listId}
 						>
 							<OptionRow
+								id={`${listId}-option-0`}
 								label={placeholder}
 								value="any"
 								selected={value === "any"}
+								active={activeIndex === 0}
 								onSelect={handleSelect}
+								buttonRef={(node) => {
+									optionRefs.current[0] = node;
+								}}
 							/>
 							{filteredOptions.length === 0 ? (
 								<Text size="2" color="gray" align="center" className="py-2">
 									No matches
 								</Text>
 							) : (
-								filteredOptions.map((option) => (
+								filteredOptions.map((option, index) => (
 									<OptionRow
 										key={option.id}
+										id={`${listId}-option-${index + 1}`}
 										label={option.name}
 										value={option.name}
 										count={option.count}
 										selected={
 											normalizeName(value) === normalizeName(option.name)
 										}
+										active={activeIndex === index + 1}
 										onSelect={handleSelect}
+										buttonRef={(node) => {
+											optionRefs.current[index + 1] = node;
+										}}
 									/>
 								))
 							)}
@@ -148,25 +224,37 @@ const Combobox = ({
 };
 
 const OptionRow = ({
+	id,
 	label,
 	value,
 	count,
 	selected,
+	active,
 	onSelect,
+	buttonRef,
 }: {
+	id: string;
 	label: string;
 	value: string;
 	count?: number;
 	selected: boolean;
+	active: boolean;
 	onSelect: (value: string) => void;
+	buttonRef: (node: HTMLButtonElement | null) => void;
 }) => (
 	<Button
+		id={id}
+		ref={buttonRef}
 		onClick={() => onSelect(value)}
 		variant="ghost"
 		size="2"
 		role="option"
 		aria-selected={selected}
-		style={{ justifyContent: "space-between", width: "100%" }}
+		style={{
+			justifyContent: "space-between",
+			width: "100%",
+			backgroundColor: active ? "var(--gray-3)" : undefined,
+		}}
 		className={selected ? "font-bold" : undefined}
 		title={count ? `${label} (${count})` : label}
 	>
