@@ -1,8 +1,4 @@
-import {
-	CheckIcon,
-	ChevronDownIcon,
-	MagnifyingGlassIcon,
-} from "@radix-ui/react-icons";
+import { ChevronDownIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import {
 	Button,
 	Flex,
@@ -166,11 +162,12 @@ const OptionRow = ({
 }) => (
 	<Button
 		onClick={() => onSelect(value)}
-		variant={selected ? "soft" : "ghost"}
+		variant="ghost"
 		size="2"
 		role="option"
 		aria-selected={selected}
 		style={{ justifyContent: "space-between", width: "100%" }}
+		className={selected ? "font-bold" : undefined}
 		title={count ? `${label} (${count})` : label}
 	>
 		<span className="truncate max-w-60 text-left">{label}</span>
@@ -180,7 +177,6 @@ const OptionRow = ({
 					({count})
 				</Text>
 			)}
-			{selected && <CheckIcon />}
 		</Flex>
 	</Button>
 );
