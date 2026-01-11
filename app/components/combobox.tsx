@@ -89,10 +89,6 @@ const Combobox = ({
 	}, [open, listOptions, value]);
 
 	useEffect(() => {
-		setActiveIndex(0);
-	}, [query]);
-
-	useEffect(() => {
 		const activeOption = optionRefs.current[activeIndex];
 		activeOption?.scrollIntoView({ block: "nearest" });
 	}, [activeIndex]);
@@ -124,7 +120,10 @@ const Combobox = ({
 					<TextField.Root
 						ref={inputRef}
 						value={query}
-						onChange={(event) => setQuery(event.target.value)}
+						onChange={(event) => {
+							setQuery(event.target.value);
+							setActiveIndex(0);
+						}}
 						placeholder={`Search ${placeholder.replace("any ", "")}`}
 						autoComplete="off"
 						aria-label={`Search ${placeholder}`}
