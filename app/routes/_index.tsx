@@ -135,6 +135,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						onValueChange={(value) => updateSearchParam("dancer1", value)}
 						options={dancerOneOptions}
 						placeholder="any dancer"
+						searchLabel="dancer"
 						ariaLabel="Select first dancer"
 					/>
 					<Text>and</Text>
@@ -143,6 +144,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						onValueChange={(value) => updateSearchParam("dancer2", value)}
 						options={dancerTwoOptions}
 						placeholder="any dancer"
+						searchLabel="dancer"
 						ariaLabel="Select second dancer"
 					/>
 					<Text>dance to</Text>
@@ -152,6 +154,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						onValueChange={(value) => updateSearchParam("orchestra", value)}
 						options={orchestraOptions}
 						placeholder="any orchestra"
+						searchLabel="orchestra"
 						ariaLabel="Select orchestra"
 					/>
 					{(dancer1 !== "any" || dancer2 !== "any" || orchestra !== "any") && (

@@ -34,6 +34,10 @@ interface ComboboxProps {
 	 */
 	placeholder: string;
 	/**
+	 * Optional label for the search input placeholder/aria label.
+	 */
+	searchLabel: string;
+	/**
 	 * Accessible name for the select trigger (aria-label).
 	 * Defaults to placeholder or selected value if not provided.
 	 */
@@ -45,6 +49,7 @@ const Combobox = ({
 	onValueChange,
 	options,
 	placeholder,
+	searchLabel,
 	ariaLabel,
 }: ComboboxProps) => {
 	const [open, setOpen] = useState(false);
@@ -99,6 +104,7 @@ const Combobox = ({
 	};
 
 	const selectedLabel = value === "any" ? placeholder : value;
+	const searchText = searchLabel ?? placeholder;
 	const activeOptionId = `${listId}-option-${activeIndex}`;
 
 	return (
@@ -124,9 +130,9 @@ const Combobox = ({
 							setQuery(event.target.value);
 							setActiveIndex(0);
 						}}
-						placeholder={`Search ${placeholder.replace("any ", "")}`}
+						placeholder={`Search ${searchText}`}
 						autoComplete="off"
-						aria-label={`Search ${placeholder}`}
+						aria-label={`Search ${searchText}`}
 						role="combobox"
 						aria-autocomplete="list"
 						aria-expanded={open}
