@@ -1,4 +1,9 @@
-import { GitHubLogoIcon, ResetIcon } from "@radix-ui/react-icons";
+import {
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	GitHubLogoIcon,
+	ResetIcon,
+} from "@radix-ui/react-icons";
 import {
 	Box,
 	Button,
@@ -235,7 +240,10 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						disabled={page <= 1}
 						onClick={() => updatePage(page - 1)}
 					>
-						Previous
+						<span className="inline-flex items-center gap-1">
+							<ChevronLeftIcon width={14} height={14} />
+							Previous
+						</span>
 					</Button>
 					<Text size="1" color="gray">
 						Page {page} of {totalPages}
@@ -246,7 +254,10 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						disabled={page >= totalPages}
 						onClick={() => updatePage(page + 1)}
 					>
-						Next
+						<span className="inline-flex items-center gap-1">
+							Next
+							<ChevronRightIcon width={14} height={14} />
+						</span>
 					</Button>
 				</Flex>
 			</Flex>
