@@ -1,16 +1,27 @@
 import { GitHubLogoIcon, ResetIcon } from "@radix-ui/react-icons";
-import { Box, Flex, Grid, IconButton, Link, Text } from "@radix-ui/themes";
+import {
+	Box,
+	Button,
+	Flex,
+	Grid,
+	IconButton,
+	Link,
+	Text,
+} from "@radix-ui/themes";
 import { useSearchParams } from "react-router";
 import { Combobox } from "~/components/combobox";
 import { type Video, VideoCard } from "~/components/video-card";
 import {
 	getDancerOptions,
 	getFilteredVideos,
+	getFilteredVideosCount,
 	getLastDatabaseUpdateTime,
 	getOrchestraOptions,
 } from "~/db.server";
 import { normalizeName } from "~/utils/normalize";
 import type { Route } from "./+types/_index";
+
+const PAGE_SIZE = 42;
 
 export function meta() {
 	return [
@@ -24,18 +35,25 @@ export async function loader({ request }: Route.LoaderArgs) {
 	const dancer1 = url.searchParams.get("dancer1") || "any";
 	const dancer2 = url.searchParams.get("dancer2") || "any";
 	const orchestra = url.searchParams.get("orchestra") || "any";
+	const pageParam = url.searchParams.get("page");
+	const page = Math.max(1, Number.parseInt(pageParam || "1", 10) || 1);
 
-	const [
-		dancerOneOptions,
-		dancerTwoOptions,
-		orchestraOptions,
-		transformedVideos,
-	] = await Promise.all([
-		getDancerOptions(dancer2, orchestra),
-		getDancerOptions(dancer1, orchestra),
-		getOrchestraOptions(dancer1, dancer2),
-		getFilteredVideos(dancer1, dancer2, orchestra),
-	]);
+	const [dancerOneOptions, dancerTwoOptions, orchestraOptions, totalVideos] =
+		await Promise.all([
+			getDancerOptions(dancer2, orchestra),
+			getDancerOptions(dancer1, orchestra),
+			getOrchestraOptions(dancer1, dancer2),
+			getFilteredVideosCount(dancer1, dancer2, orchestra),
+		]);
+	const totalPages = Math.max(1, Math.ceil(totalVideos / PAGE_SIZE));
+	const safePage = Math.min(page, totalPages);
+	const transformedVideos = await getFilteredVideos(
+		dancer1,
+		dancer2,
+		orchestra,
+		safePage,
+		PAGE_SIZE,
+	);
 
 	const lastUpdateTime = getLastDatabaseUpdateTime();
 	const lastUpdateTimeString = lastUpdateTime
@@ -48,6 +66,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 		orchestraOptions,
 		initialVideos: transformedVideos as Video[],
 		lastUpdateTime: lastUpdateTimeString,
+		page: safePage,
+		totalPages,
+		totalVideos,
 	};
 }
 
@@ -58,6 +79,9 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		orchestraOptions,
 		initialVideos,
 		lastUpdateTime,
+		page,
+		totalPages,
+		totalVideos,
 	} = loaderData;
 
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -72,6 +96,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		} else {
 			newParams.set(param, value);
 		}
+		newParams.delete("page");
 		setSearchParams(newParams);
 	};
 	const resetSearchParams = () => setSearchParams(new URLSearchParams());
@@ -107,8 +132,21 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 				: newParams.set("orchestra", value);
 		}
 
+		newParams.delete("page");
 		setSearchParams(newParams);
 	};
+	const updatePage = (nextPage: number) => {
+		const newParams = new URLSearchParams(searchParams);
+		if (nextPage <= 1) {
+			newParams.delete("page");
+		} else {
+			newParams.set("page", String(nextPage));
+		}
+		setSearchParams(newParams);
+	};
+
+	const startIndex = totalVideos === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+	const endIndex = Math.min(page * PAGE_SIZE, totalVideos);
 
 	const formattedLastUpdate = lastUpdateTime
 		? new Date(lastUpdateTime).toLocaleDateString(undefined, {
@@ -166,7 +204,6 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 			</Box>
 
 			{/* TODO: add number of performances for filter and reset filter button */}
-			{/* TODO: add pagination first */}
 			<Grid
 				columns={{ initial: "1", sm: "2", md: "3" }}
 				gap="4"
@@ -184,6 +221,35 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 					/>
 				))}
 			</Grid>
+
+			<Flex align="center" justify="between" gap="3" className="flex-wrap">
+				<Text size="1" color="gray">
+					{totalVideos === 0
+						? "No results"
+						: `Showing ${startIndex}–${endIndex} of ${totalVideos}`}
+				</Text>
+				<Flex align="center" gap="2">
+					<Button
+						size="1"
+						variant="outline"
+						disabled={page <= 1}
+						onClick={() => updatePage(page - 1)}
+					>
+						Previous
+					</Button>
+					<Text size="1" color="gray">
+						Page {page} of {totalPages}
+					</Text>
+					<Button
+						size="1"
+						variant="outline"
+						disabled={page >= totalPages}
+						onClick={() => updatePage(page + 1)}
+					>
+						Next
+					</Button>
+				</Flex>
+			</Flex>
 
 			<Box mt="auto" pt="4">
 				<Flex align="baseline" className="justify-between flex-wrap">

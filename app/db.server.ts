@@ -151,11 +151,7 @@ function dancerClause(dancer1: string, dancer2: string) {
 	return sql`${dancers.normalized} = ${active}`;
 }
 
-export async function getFilteredVideos(
-	dancer1: string,
-	dancer2: string,
-	orchestra: string,
-) {
+function buildWhereClause(dancer1: string, dancer2: string, orchestra: string) {
 	let whereClause = sql`${curations.id} IS NOT NULL`;
 
 	if (dancer1 !== "any" || dancer2 !== "any") {
@@ -164,6 +160,19 @@ export async function getFilteredVideos(
 	if (orchestra !== "any") {
 		whereClause = sql`${whereClause} AND ${orchestras.normalized} = ${normalizeName(orchestra)}`;
 	}
+
+	return whereClause;
+}
+
+export async function getFilteredVideos(
+	dancer1: string,
+	dancer2: string,
+	orchestra: string,
+	page: number,
+	pageSize: number,
+) {
+	const whereClause = buildWhereClause(dancer1, dancer2, orchestra);
+	const offset = (page - 1) * pageSize;
 
 	const results = await db
 		.selectDistinct({
@@ -185,7 +194,8 @@ export async function getFilteredVideos(
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
 		.where(whereClause)
 		.orderBy(desc(videos.publishedAt))
-		.limit(42);
+		.limit(pageSize)
+		.offset(offset);
 
 	return results.map((video) => ({
 		id: video.id,
@@ -199,4 +209,29 @@ export async function getFilteredVideos(
 		year: video.performance?.performanceYear || 0,
 		status: video.curation?.status,
 	}));
+}
+
+export async function getFilteredVideosCount(
+	dancer1: string,
+	dancer2: string,
+	orchestra: string,
+) {
+	const whereClause = buildWhereClause(dancer1, dancer2, orchestra);
+
+	const results = await db
+		.select({
+			count: sql<number>`count(DISTINCT ${videos.id})`.as("count"),
+		})
+		.from(videos)
+		.leftJoin(performances, eq(performances.videoId, videos.id))
+		.leftJoin(curations, eq(curations.performanceId, performances.id))
+		.innerJoin(
+			dancersToCurations,
+			eq(curations.id, dancersToCurations.curationId),
+		)
+		.innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
+		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
+		.where(whereClause);
+
+	return results[0]?.count ?? 0;
 }
