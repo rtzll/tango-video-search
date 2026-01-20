@@ -25,6 +25,12 @@ export default async function handleRequest(
 			{
 				signal: controller.signal,
 				onError(error: unknown) {
+					const isNotFound = error instanceof Response && error.status === 404;
+					const message =
+						error instanceof Error ? error.message : String(error);
+					if (isNotFound || message.includes("No route matches URL")) {
+						return;
+					}
 					statusCode = 500;
 					console.error(error);
 				},
