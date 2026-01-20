@@ -23,9 +23,9 @@ const sqlite = new Database(dbPath, {
 // configure sqlite
 sqlite.query("pragma synchronous = normal;").run();
 sqlite.query("pragma busy_timeout = 5000;").run();
-sqlite.query("pragma cache_size = 2000;").run();
+sqlite.query("pragma cache_size = 500;").run();
 sqlite.query("pragma temp_store = memory;").run();
-sqlite.query("pragma mmap_size = 268435456;").run();
+sqlite.query("pragma mmap_size = 67108864;").run();
 sqlite.query("pragma foreign_keys = on;").run();
 const db = drizzle({ client: sqlite, schema });
 
