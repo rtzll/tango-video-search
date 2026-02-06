@@ -21,10 +21,6 @@ RUN bun run build
 
 FROM base AS final
 
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y sqlite3 && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
@@ -33,8 +29,6 @@ COPY --from=build /app/public /app/public
 
 RUN mkdir -p /data && chown -R 1000:1000 /app /data
 VOLUME /data
-
-RUN echo "#!/bin/sh\nset -x\nsqlite3 \$DATABASE_URL" > /usr/local/bin/database-cli && chmod +x /usr/local/bin/database-cli
 
 USER 1000:1000
 
