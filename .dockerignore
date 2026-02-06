@@ -3,6 +3,7 @@ node_modules
 
 # build outputs
 build
+.react-router
 
 # local data
 /data
