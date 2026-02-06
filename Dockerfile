@@ -34,4 +34,4 @@ USER 1000:1000
 
 EXPOSE 3000
 ENV DATABASE_URL="file:///data/sqlite.db"
-CMD [ "bun", "run", "start" ]
+CMD [ "bun", "--smol", "run", "start" ]
