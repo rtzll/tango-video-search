@@ -29,6 +29,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 	);
 }
 
+export async function action() {
+	return new Response("Method Not Allowed", { status: 405 });
+}
+
 export default function App() {
 	return <Outlet />;
 }
