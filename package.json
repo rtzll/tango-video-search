@@ -7,12 +7,12 @@
 	"scripts": {
 		"build": "bunx --bun --no-install react-router build",
 		"dev": "bunx --bun --no-install react-router dev",
-		"lint": "bunx --bun --no-install biome check",
-		"lint:fix": "bunx --bun --no-install biome check --write",
-		"format": "bunx --bun --no-install biome format --write",
+		"lint": "biome check",
+		"lint:fix": "biome check --write",
+		"format": "biome format --write",
 		"start": "bunx --bun --no-install react-router-serve ./build/server/index.js",
-		"typecheck": "bunx --bun --no-install react-router typegen && bunx --bun --no-install tsc",
-		"knip": "bunx --bun --no-install knip"
+		"typecheck": "bunx --bun --no-install react-router typegen && tsc",
+		"knip": "knip"
 	},
 	"dependencies": {
 		"@radix-ui/react-icons": "^1.3.2",
