@@ -7,6 +7,7 @@
 	"scripts": {
 		"build": "bunx --bun --no-install react-router build",
 		"dev": "bunx --bun --no-install react-router dev",
+		"db:update": "bun scripts/update-production-db.ts",
 		"lint": "biome check",
 		"lint:fix": "biome check --write",
 		"format": "biome format --write",

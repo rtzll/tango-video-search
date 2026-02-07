@@ -46,26 +46,23 @@ Deploying the application is handled by GitHub Actions, which will automatically
 
 ### Updating Data in Production
 
-After preparing a new database file:
+Use the automation script:
 
-1. Copy the `.db` file into `/data` and update the `sqlite.db` symlink:
-   ```sh
-   ln -s sqlite-2025-MM-DD.db sqlite.db
-   ```
+```sh
+bun run db:update
+```
 
-2. Connect to the Fly.io instance and remove the old database:
-   ```sh
-   fly ssh console
-   rm /data/sqlite.db*
-   ```
+What it does:
+- Scans `data/` for files named `sqlite-YYYY-MM-DD.db` and picks the latest date
+- Updates local `data/sqlite.db` symlink
+- Uploads the latest file to Fly volume via `fly ssh sftp put`
+- Repoints `/data/sqlite.db` on the VM to the uploaded file via `fly ssh console -C`
+- Restarts the Fly app
 
-3. Upload the new database file:
-   ```sh
-   fly sftp shell
-   put data/sqlite.db /data/sqlite.db
-   ```
+Useful flags:
 
-4. Restart the application:
-   ```sh
-   fly apps restart
-   ```
+```sh
+bun run db:update --dry-run
+bun run db:update --app tango-video-search
+bun run db:update --no-restart
+```
