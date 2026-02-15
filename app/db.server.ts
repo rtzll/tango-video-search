@@ -14,9 +14,13 @@ import {
 } from "../schema";
 import { normalizeName } from "./utils/normalize";
 
-const dbPath = process.env.DATABASE_URL
-	? new URL(process.env.DATABASE_URL).pathname
-	: "data/sqlite.db";
+const DEFAULT_DB_PATH = "data/sqlite.db";
+const databaseUrl = process.env.DATABASE_URL?.trim();
+const dbPath = databaseUrl
+	? databaseUrl.startsWith("file:")
+		? Bun.fileURLToPath(databaseUrl)
+		: databaseUrl
+	: DEFAULT_DB_PATH;
 const sqlite = new Database(dbPath, {
 	readonly: true,
 });
