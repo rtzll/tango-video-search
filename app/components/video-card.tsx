@@ -19,7 +19,7 @@ export type Video = {
 	orchestra: string;
 	songTitle: string;
 	singers: string[];
-	status: string;
+	status: string | null;
 	year: number;
 };
 

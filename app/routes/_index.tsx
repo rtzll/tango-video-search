@@ -15,7 +15,7 @@ import {
 } from "@radix-ui/themes";
 import { useSearchParams } from "react-router";
 import { Combobox } from "~/components/combobox";
-import { type Video, VideoCard } from "~/components/video-card";
+import { VideoCard } from "~/components/video-card";
 import {
 	getDancerOptions,
 	getFilteredVideos,
@@ -69,7 +69,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 		dancerOneOptions,
 		dancerTwoOptions,
 		orchestraOptions,
-		initialVideos: transformedVideos as Video[],
+		initialVideos: transformedVideos,
 		lastUpdateTime: lastUpdateTimeString,
 		page: safePage,
 		totalPages,
