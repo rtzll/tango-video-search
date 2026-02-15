@@ -13,7 +13,7 @@ import {
 	Link,
 	Text,
 } from "@radix-ui/themes";
-import { useSearchParams } from "react-router";
+import { Link as RouterLink, useSearchParams } from "react-router";
 import { Combobox } from "~/components/combobox";
 import { VideoCard } from "~/components/video-card";
 import {
@@ -145,14 +145,15 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		newParams.delete("page");
 		setSearchParams(newParams);
 	};
-	const updatePage = (nextPage: number) => {
+	const getPageHref = (nextPage: number) => {
 		const newParams = new URLSearchParams(searchParams);
 		if (nextPage <= 1) {
 			newParams.delete("page");
 		} else {
 			newParams.set("page", String(nextPage));
 		}
-		setSearchParams(newParams);
+		const query = newParams.toString();
+		return query ? `?${query}` : ".";
 	};
 
 	const startIndex = totalVideos === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -236,31 +237,43 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						: `Showing ${startIndex}–${endIndex} of ${totalVideos}`}
 				</Text>
 				<Flex align="center" gap="2">
-					<Button
-						size="1"
-						variant="outline"
-						disabled={page <= 1}
-						onClick={() => updatePage(page - 1)}
-					>
-						<span className="inline-flex items-center gap-1">
-							<ChevronLeftIcon width={14} height={14} />
-							Previous
-						</span>
-					</Button>
+					{page <= 1 ? (
+						<Button size="1" variant="outline" disabled>
+							<span className="inline-flex items-center gap-1">
+								<ChevronLeftIcon width={14} height={14} />
+								Previous
+							</span>
+						</Button>
+					) : (
+						<Button size="1" variant="outline" asChild>
+							<RouterLink to={getPageHref(page - 1)}>
+								<span className="inline-flex items-center gap-1">
+									<ChevronLeftIcon width={14} height={14} />
+									Previous
+								</span>
+							</RouterLink>
+						</Button>
+					)}
 					<Text size="1" color="gray">
 						Page {page} of {totalPages}
 					</Text>
-					<Button
-						size="1"
-						variant="outline"
-						disabled={page >= totalPages}
-						onClick={() => updatePage(page + 1)}
-					>
-						<span className="inline-flex items-center gap-1">
-							Next
-							<ChevronRightIcon width={14} height={14} />
-						</span>
-					</Button>
+					{page >= totalPages ? (
+						<Button size="1" variant="outline" disabled>
+							<span className="inline-flex items-center gap-1">
+								Next
+								<ChevronRightIcon width={14} height={14} />
+							</span>
+						</Button>
+					) : (
+						<Button size="1" variant="outline" asChild>
+							<RouterLink to={getPageHref(page + 1)}>
+								<span className="inline-flex items-center gap-1">
+									Next
+									<ChevronRightIcon width={14} height={14} />
+								</span>
+							</RouterLink>
+						</Button>
+					)}
 				</Flex>
 			</Flex>
 
