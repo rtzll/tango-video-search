@@ -61,16 +61,21 @@ export async function loader({ request }: Route.LoaderArgs) {
 	);
 
 	const lastUpdateTime = getLastDatabaseUpdateTime();
-	const lastUpdateTimeString = lastUpdateTime
-		? lastUpdateTime.toISOString()
-		: null;
+	const formattedLastUpdate = lastUpdateTime
+		? new Intl.DateTimeFormat("en-US", {
+				year: "numeric",
+				month: "long",
+				day: "numeric",
+				timeZone: "UTC",
+			}).format(lastUpdateTime)
+		: "Unknown";
 
 	return {
 		dancerOneOptions,
 		dancerTwoOptions,
 		orchestraOptions,
 		initialVideos: transformedVideos,
-		lastUpdateTime: lastUpdateTimeString,
+		formattedLastUpdate,
 		page: safePage,
 		totalPages,
 		totalVideos,
@@ -83,7 +88,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		dancerTwoOptions,
 		orchestraOptions,
 		initialVideos,
-		lastUpdateTime,
+		formattedLastUpdate,
 		page,
 		totalPages,
 		totalVideos,
@@ -152,14 +157,6 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 
 	const startIndex = totalVideos === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
 	const endIndex = Math.min(page * PAGE_SIZE, totalVideos);
-
-	const formattedLastUpdate = lastUpdateTime
-		? new Date(lastUpdateTime).toLocaleDateString(undefined, {
-				year: "numeric",
-				month: "long",
-				day: "numeric",
-			})
-		: "Unknown";
 
 	return (
 		<Flex
