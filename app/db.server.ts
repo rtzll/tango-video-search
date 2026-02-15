@@ -197,7 +197,7 @@ export async function getFilteredVideos(
 		.innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
 		.where(whereClause)
-		.orderBy(desc(videos.publishedAt))
+		.orderBy(desc(performances.performanceYear), desc(videos.publishedAt))
 		.limit(pageSize)
 		.offset(offset);
 
