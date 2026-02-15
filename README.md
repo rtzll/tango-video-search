@@ -55,8 +55,8 @@ bun run db:update
 What it does:
 - Scans `data/` for files named `sqlite-YYYY-MM-DD.db` and picks the latest date
 - Updates local `data/sqlite.db` symlink
-- Uploads the latest file to Fly volume via `fly ssh sftp put`
-- Repoints `/data/sqlite.db` on the VM to the uploaded file via `fly ssh console -C`
+- Uploads the latest file to Fly volume as `/data/sqlite.db.next` via `fly ssh sftp put`
+- Atomically replaces `/data/sqlite.db` with the uploaded file via `fly ssh console -C "mv -f ..."`
 - Restarts the Fly app
 
 Useful flags:

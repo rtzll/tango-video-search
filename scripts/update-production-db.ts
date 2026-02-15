@@ -87,7 +87,7 @@ Options:
   --data-dir <path>        Local data directory to scan (default: data)
   --remote-dir <path>      Remote data directory on Fly volume (default: /data)
   --dry-run                Print commands without executing
-  --force                  Overwrite remote file if it already exists
+  --force                  Overwrite stale remote upload temp file if it exists
   --no-local-symlink       Skip updating local data/sqlite.db symlink
   --no-restart             Skip fly apps restart
   -h, --help               Show help
@@ -178,8 +178,8 @@ async function main() {
 	const options = parseArgs();
 	const latestDb = getLatestDatabaseFile(options.dataDir);
 	const localDbPath = join(options.dataDir, latestDb);
-	const remoteDbPath = `${options.remoteDir}/${latestDb}`;
-	const remoteSymlink = `${options.remoteDir}/sqlite.db`;
+	const remoteDbPath = `${options.remoteDir}/sqlite.db`;
+	const remoteUploadTempPath = `${options.remoteDir}/sqlite.db.next`;
 
 	console.log(`Latest database file: ${localDbPath}`);
 
@@ -197,21 +197,38 @@ async function main() {
 		if (options.force) {
 			await runOrThrow(
 				"fly",
-				["ssh", "console", "-a", options.app, "-C", `rm -f ${remoteDbPath}`],
+				[
+					"ssh",
+					"console",
+					"-a",
+					options.app,
+					"-C",
+					`rm -f ${remoteUploadTempPath}`,
+				],
 				options,
 			);
 		}
 
 		await runOrThrow(
 			"fly",
-			["ssh", "sftp", "put", localDbPath, remoteDbPath, "-a", options.app],
+			[
+				"ssh",
+				"sftp",
+				"put",
+				localDbPath,
+				remoteUploadTempPath,
+				"-a",
+				options.app,
+			],
 			options,
 		);
 	} catch (error) {
 		if (!isRemoteAlreadyExistsError(error)) {
 			throw error;
 		}
-		console.log(`Remote file already exists, skipping upload: ${remoteDbPath}`);
+		throw new Error(
+			`Remote temp file already exists: ${remoteUploadTempPath}. Re-run with --force to overwrite it.`,
+		);
 	}
 
 	await runOrThrow(
@@ -222,14 +239,14 @@ async function main() {
 			"-a",
 			options.app,
 			"-C",
-			`ln -sfn ${remoteDbPath} ${remoteSymlink}`,
+			`mv -f ${remoteUploadTempPath} ${remoteDbPath}`,
 		],
 		options,
 	);
 
 	await runOrThrow(
 		"fly",
-		["ssh", "console", "-a", options.app, "-C", `ls -l ${remoteSymlink}`],
+		["ssh", "console", "-a", options.app, "-C", `ls -l ${remoteDbPath}`],
 		options,
 	);
 
