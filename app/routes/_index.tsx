@@ -198,7 +198,12 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						ariaLabel="Select orchestra"
 					/>
 					{(dancer1 !== "any" || dancer2 !== "any" || orchestra !== "any") && (
-						<IconButton size="1" variant="soft" onClick={resetSearchParams}>
+						<IconButton
+							size="1"
+							variant="soft"
+							onClick={resetSearchParams}
+							aria-label="Reset filters"
+						>
 							<ResetIcon width={12} height={12} />
 						</IconButton>
 					)}
