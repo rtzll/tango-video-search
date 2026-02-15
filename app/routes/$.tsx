@@ -1,12 +1,13 @@
+import { Text } from "@radix-ui/themes";
 import { Link } from "react-router";
 
 export default function NotFound() {
 	return (
 		<div className="p-6">
 			<h1 className="text-2xl font-semibold">Not found</h1>
-			<p className="mt-2 text-sm text-muted-foreground">
+			<Text size="2" color="gray" className="mt-2">
 				The page you requested does not exist.
-			</p>
+			</Text>
 			<Link className="mt-4 inline-block underline" to="/">
 				Go back home
 			</Link>
@@ -22,9 +23,9 @@ export function ErrorBoundary() {
 	return (
 		<div className="p-6">
 			<h1 className="text-2xl font-semibold">Not found</h1>
-			<p className="mt-2 text-sm text-muted-foreground">
+			<Text size="2" color="gray" className="mt-2">
 				The page you requested does not exist.
-			</p>
+			</Text>
 			<Link className="mt-4 inline-block underline" to="/">
 				Go back home
 			</Link>
