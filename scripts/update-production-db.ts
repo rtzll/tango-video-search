@@ -15,6 +15,7 @@ type Options = {
 	app: string;
 	dataDir: string;
 	dryRun: boolean;
+	force: boolean;
 	noRestart: boolean;
 	noLocalSymlink: boolean;
 	remoteDir: string;
@@ -25,6 +26,7 @@ function parseArgs(): Options {
 	let app = process.env.FLY_APP_NAME ?? "tango-video-search";
 	let dataDir = "data";
 	let dryRun = false;
+	let force = false;
 	let noRestart = false;
 	let noLocalSymlink = false;
 	let remoteDir = "/data";
@@ -44,6 +46,9 @@ function parseArgs(): Options {
 			case "--dry-run":
 				dryRun = true;
 				break;
+			case "--force":
+				force = true;
+				break;
 			case "--no-restart":
 				noRestart = true;
 				break;
@@ -60,7 +65,15 @@ function parseArgs(): Options {
 		}
 	}
 
-	return { app, dataDir, dryRun, noRestart, noLocalSymlink, remoteDir };
+	return {
+		app,
+		dataDir,
+		dryRun,
+		force,
+		noRestart,
+		noLocalSymlink,
+		remoteDir,
+	};
 }
 
 function printHelp() {
@@ -74,6 +87,7 @@ Options:
   --data-dir <path>        Local data directory to scan (default: data)
   --remote-dir <path>      Remote data directory on Fly volume (default: /data)
   --dry-run                Print commands without executing
+  --force                  Overwrite remote file if it already exists
   --no-local-symlink       Skip updating local data/sqlite.db symlink
   --no-restart             Skip fly apps restart
   -h, --help               Show help
@@ -180,6 +194,14 @@ async function main() {
 	}
 
 	try {
+		if (options.force) {
+			await runOrThrow(
+				"fly",
+				["ssh", "console", "-a", options.app, "-C", `rm -f ${remoteDbPath}`],
+				options,
+			);
+		}
+
 		await runOrThrow(
 			"fly",
 			["ssh", "sftp", "put", localDbPath, remoteDbPath, "-a", options.app],

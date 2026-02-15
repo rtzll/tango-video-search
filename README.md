@@ -63,6 +63,7 @@ Useful flags:
 
 ```sh
 bun run db:update --dry-run
+bun run db:update --force
 bun run db:update --app tango-video-search
 bun run db:update --no-restart
 ```
