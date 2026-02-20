@@ -10,7 +10,7 @@ import {
 } from "@radix-ui/themes";
 import { normalizeName } from "~/utils/normalize";
 
-export type Video = {
+type Video = {
 	id: string;
 	title: string;
 	channelTitle: string;
