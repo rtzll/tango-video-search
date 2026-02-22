@@ -211,7 +211,6 @@ export async function getFilteredVideos(
 		orchestra: video.performance?.orchestra || "Unknown",
 		singers: (video.performance?.singers?.split(",") || []).filter(Boolean),
 		year: video.performance?.performanceYear || 0,
-		status: video.curation?.status ?? null,
 	}));
 }
 
