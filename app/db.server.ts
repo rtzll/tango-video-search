@@ -185,7 +185,6 @@ export async function getFilteredVideos(
 			channelTitle: videos.channelTitle,
 			channelId: videos.channelId,
 			performance: performances,
-			curation: curations,
 		})
 		.from(videos)
 		.leftJoin(performances, eq(performances.videoId, videos.id))

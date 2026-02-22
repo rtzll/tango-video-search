@@ -45,7 +45,7 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 		);
 	};
 	return (
-		<Card key={video.id}>
+		<Card>
 			<Flex direction="column" gap="2">
 				<Link
 					href={`https://youtube.com/watch?v=${video.id}`}
