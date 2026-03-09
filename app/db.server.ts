@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { statSync } from "node:fs";
-import { desc, eq, sql } from "drizzle-orm";
+import { aliasedTable, and, desc, eq, exists, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 
 import * as schema from "../schema";
@@ -57,7 +57,10 @@ export async function getDancerOptions(otherDancer: string, orchestra: string) {
 				),
 			})
 			.from(dancers)
-			.leftJoin(dancersToCurations, eq(dancers.id, dancersToCurations.dancerId))
+			.innerJoin(
+				dancersToCurations,
+				eq(dancers.id, dancersToCurations.dancerId),
+			)
 			.innerJoin(curations, eq(dancersToCurations.curationId, curations.id))
 			.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
 			.where(
@@ -71,33 +74,41 @@ export async function getDancerOptions(otherDancer: string, orchestra: string) {
 	}
 
 	const normalizedOtherDancer = normalizeName(otherDancer);
+	const dancerOne = aliasedTable(dancers, "d1");
+	const dancerTwo = aliasedTable(dancers, "d2");
+	const dancerOneCurations = aliasedTable(dancersToCurations, "dc1");
+	const dancerTwoCurations = aliasedTable(dancersToCurations, "dc2");
 
 	return await db
 		.select({
-			id: sql<number>`d1.id`,
-			name: sql<string>`d1.name`,
-			count: sql<number>`count(DISTINCT dc1.curation_id)`.as(
+			id: dancerOne.id,
+			name: dancerOne.name,
+			count: sql<number>`count(DISTINCT ${dancerOneCurations.curationId})`.as(
 				"performanceCount",
 			),
 		})
-		.from(sql`${dancers} d1`)
-		.innerJoin(sql`${dancersToCurations} dc1`, sql`d1.id = dc1.dancer_id`)
+		.from(dancerOne)
+		.innerJoin(dancerOneCurations, eq(dancerOne.id, dancerOneCurations.dancerId))
 		.innerJoin(
-			sql`${dancersToCurations} dc2`,
-			sql`dc1.curation_id = dc2.curation_id`,
+			dancerTwoCurations,
+			eq(dancerOneCurations.curationId, dancerTwoCurations.curationId),
 		)
 		.innerJoin(
-			sql`${dancers} d2`,
-			sql`d2.id = dc2.dancer_id AND d2.normalized = ${normalizedOtherDancer} AND d2.id != d1.id`,
+			dancerTwo,
+			and(
+				eq(dancerTwo.id, dancerTwoCurations.dancerId),
+				eq(dancerTwo.normalized, normalizedOtherDancer),
+				ne(dancerTwo.id, dancerOne.id),
+			),
 		)
-		.innerJoin(curations, sql`dc1.curation_id = ${curations.id}`)
+		.innerJoin(curations, eq(dancerOneCurations.curationId, curations.id))
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
 		.where(
 			orchestra === "any"
 				? sql`1`
 				: eq(orchestras.normalized, normalizedOrchestra),
 		)
-		.groupBy(sql`d1.id`, sql`d1.name`)
+		.groupBy(dancerOne.id, dancerOne.name)
 		.having(sql`performanceCount > 0`)
 		.orderBy(sql`performanceCount DESC`);
 }
@@ -132,22 +143,55 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
 			eq(curations.id, dancersToCurations.curationId),
 		)
 		.innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
-		.where(dancerClause(dancer1, dancer2))
+		.where(
+			dancer1 === "any" && dancer2 === "any"
+				? sql`1`
+				: buildJoinBasedDancerFilterClause(dancer1, dancer2),
+		)
 		.groupBy(orchestras.id, orchestras.name)
 		.having(sql`performanceCount > 0`)
 		.orderBy(sql`performanceCount DESC`);
 }
 
-// made me chuckle
-function dancerClause(dancer1: string, dancer2: string) {
+function curationHasDancer(normalizedDancer: string) {
+	return exists(
+		db
+			.select({ curationId: dancersToCurations.curationId })
+			.from(dancersToCurations)
+			.innerJoin(dancers, eq(dancersToCurations.dancerId, dancers.id))
+			.where(
+				and(
+					eq(dancersToCurations.curationId, curations.id),
+					eq(dancers.normalized, normalizedDancer),
+				),
+			),
+	);
+}
+
+function buildDancerFilterClause(dancer1: string, dancer2: string) {
 	const dancer1Normalized = dancer1 === "any" ? "any" : normalizeName(dancer1);
 	const dancer2Normalized = dancer2 === "any" ? "any" : normalizeName(dancer2);
 
 	if (dancer1Normalized !== "any" && dancer2Normalized !== "any") {
-		return sql`${dancers.normalized} = ${dancer1Normalized} AND EXISTS (
-    SELECT 1 FROM ${dancersToCurations} dc2
-    INNER JOIN ${dancers} d2 ON dc2.dancer_id = d2.id
-    WHERE dc2.curation_id = ${curations.id} AND d2.normalized = ${dancer2Normalized})`;
+		return sql`${curationHasDancer(dancer1Normalized)} AND ${curationHasDancer(
+			dancer2Normalized,
+		)}`;
+	}
+
+	const active =
+		dancer1Normalized !== "any" ? dancer1Normalized : dancer2Normalized;
+	return active === "any" ? sql`1` : curationHasDancer(active);
+}
+
+function buildJoinBasedDancerFilterClause(dancer1: string, dancer2: string) {
+	const dancer1Normalized = dancer1 === "any" ? "any" : normalizeName(dancer1);
+	const dancer2Normalized = dancer2 === "any" ? "any" : normalizeName(dancer2);
+
+	if (dancer1Normalized !== "any" && dancer2Normalized !== "any") {
+		return and(
+			eq(dancers.normalized, dancer1Normalized),
+			curationHasDancer(dancer2Normalized),
+		);
 	}
 
 	const active =
@@ -156,16 +200,14 @@ function dancerClause(dancer1: string, dancer2: string) {
 }
 
 function buildWhereClause(dancer1: string, dancer2: string, orchestra: string) {
-	let whereClause = sql`${curations.id} IS NOT NULL`;
-
-	if (dancer1 !== "any" || dancer2 !== "any") {
-		whereClause = sql`${whereClause} AND ${dancerClause(dancer1, dancer2)}`;
-	}
-	if (orchestra !== "any") {
-		whereClause = sql`${whereClause} AND ${orchestras.normalized} = ${normalizeName(orchestra)}`;
-	}
-
-	return whereClause;
+	return (
+		and(
+			buildDancerFilterClause(dancer1, dancer2),
+			orchestra === "any"
+				? undefined
+				: eq(orchestras.normalized, normalizeName(orchestra)),
+		) ?? sql`1`
+	);
 }
 
 export async function getFilteredVideos(
@@ -179,21 +221,16 @@ export async function getFilteredVideos(
 	const offset = (page - 1) * pageSize;
 
 	const results = await db
-		.selectDistinct({
+		.select({
 			id: videos.id,
 			title: videos.title,
 			channelTitle: videos.channelTitle,
 			channelId: videos.channelId,
 			performance: performances,
 		})
-		.from(videos)
-		.leftJoin(performances, eq(performances.videoId, videos.id))
-		.leftJoin(curations, eq(curations.performanceId, performances.id))
-		.innerJoin(
-			dancersToCurations,
-			eq(curations.id, dancersToCurations.curationId),
-		)
-		.innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
+		.from(curations)
+		.innerJoin(performances, eq(curations.performanceId, performances.id))
+		.innerJoin(videos, eq(performances.videoId, videos.id))
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
 		.where(whereClause)
 		.orderBy(desc(performances.performanceYear), desc(videos.publishedAt))
@@ -222,16 +259,9 @@ export async function getFilteredVideosCount(
 
 	const results = await db
 		.select({
-			count: sql<number>`count(DISTINCT ${videos.id})`.as("count"),
+			count: sql<number>`count(*)`.as("count"),
 		})
-		.from(videos)
-		.leftJoin(performances, eq(performances.videoId, videos.id))
-		.leftJoin(curations, eq(curations.performanceId, performances.id))
-		.innerJoin(
-			dancersToCurations,
-			eq(curations.id, dancersToCurations.curationId),
-		)
-		.innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
+		.from(curations)
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
 		.where(whereClause);
 
