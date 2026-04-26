@@ -33,9 +33,10 @@ bun run dev
 ### Database
 
 > [!NOTE]
-> The database is not included in the repository. 
+> The database is not included in the repository.
 
 The application uses SQLite via Drizzle ORM with a database file at `data/sqlite.db` by default, or override the path using the `DATABASE_URL` environment variable. The schema includes:
+
 - Videos (YouTube metadata)
 - Performances (tango-specific metadata)
 - Dancers, Orchestras, Songs, Singers, and Curations
@@ -53,6 +54,7 @@ bun run db:update
 ```
 
 What it does:
+
 - Scans `data/` for files named `sqlite-YYYY-MM-DD.db` and picks the latest date
 - Updates local `data/sqlite.db` symlink
 - Uploads the latest file to Fly volume as `/data/sqlite.db.next` via `fly ssh sftp put`

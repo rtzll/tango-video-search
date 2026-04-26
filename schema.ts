@@ -1,24 +1,19 @@
 import { type InferInsertModel, relations } from "drizzle-orm";
-import {
-	integer,
-	primaryKey,
-	sqliteTable,
-	text,
-} from "drizzle-orm/sqlite-core";
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const videos = sqliteTable("videos", {
-	id: text("id").primaryKey(),
-	title: text("title").notNull(),
-	description: text("description").notNull(),
-	publishedAt: text("published_at").notNull(),
-	tags: text("tags").notNull(),
+	channelId: text("channel_id").notNull(),
 	channelName: text("channel_name").notNull(),
 	channelTitle: text("channel_title").notNull(),
-	channelId: text("channel_id").notNull(),
-	duration: integer("duration").notNull(),
-	viewCount: integer("view_count").notNull(),
-	likeCount: integer("like_count").notNull(),
 	commentCount: integer("comment_count").notNull(),
+	description: text("description").notNull(),
+	duration: integer("duration").notNull(),
+	id: text("id").primaryKey(),
+	likeCount: integer("like_count").notNull(),
+	publishedAt: text("published_at").notNull(),
+	tags: text("tags").notNull(),
+	title: text("title").notNull(),
+	viewCount: integer("view_count").notNull(),
 });
 export type Video = InferInsertModel<typeof videos>;
 
@@ -30,12 +25,12 @@ export const videoRelations = relations(videos, ({ one }) => ({
 }));
 
 export const performances = sqliteTable("performances", {
-	id: text("id").primaryKey(),
 	dancers: text("dancers"),
-	songTitle: text("song_title"),
+	id: text("id").primaryKey(),
 	orchestra: text("orchestra"),
-	singers: text("singers"),
 	performanceYear: integer("performance_year"),
+	singers: text("singers"),
+	songTitle: text("song_title"),
 	videoId: text("video_id")
 		.notNull()
 		.references(() => videos.id, { onDelete: "cascade" }),
@@ -65,8 +60,8 @@ export type Singer = InferInsertModel<typeof singers>;
 
 export const songs = sqliteTable("songs", {
 	id: integer("id").primaryKey({ autoIncrement: true }),
-	title: text("title").notNull(),
 	normalized: text("normalized").notNull().unique(),
+	title: text("title").notNull(),
 });
 
 export const dancers = sqliteTable("dancers", {
@@ -80,8 +75,8 @@ export const CurationStatus = {
 	autoProcessed: "auto_processed",
 	inReview: "in_review",
 	needsCorrection: "needs_correction",
-	verified: "verified",
 	rejected: "rejected",
+	verified: "verified",
 } as const;
 
 type CurationStatusType = (typeof CurationStatus)[keyof typeof CurationStatus];
@@ -92,19 +87,19 @@ const curationStatusValues = Object.values(CurationStatus) as [
 
 export const curations = sqliteTable("curations", {
 	id: integer("id").primaryKey({ autoIncrement: true }),
+	notes: text("notes"),
+	orchestraId: integer("orchestra_id")
+		.notNull()
+		.references(() => orchestras.id),
 	performanceId: text("performance_id")
 		.notNull()
 		.references(() => performances.id, { onDelete: "cascade" }),
 	songId: integer("song_id")
 		.notNull()
 		.references(() => songs.id),
-	orchestraId: integer("orchestra_id")
-		.notNull()
-		.references(() => orchestras.id),
 	status: text("status", { enum: curationStatusValues })
 		.notNull()
 		.default(CurationStatus.autoProcessed),
-	notes: text("notes"),
 });
 export type Curation = InferInsertModel<typeof curations>;
 
@@ -118,11 +113,9 @@ export const dancersToCurations = sqliteTable(
 			.notNull()
 			.references(() => dancers.id, { onDelete: "cascade" }),
 	},
-	(table) => {
-		return {
-			pk: primaryKey({ columns: [table.curationId, table.dancerId] }),
-		};
-	},
+	(table) => ({
+		pk: primaryKey({ columns: [table.curationId, table.dancerId] }),
+	}),
 );
 
 export const singersToCurations = sqliteTable(
@@ -135,16 +128,18 @@ export const singersToCurations = sqliteTable(
 			.notNull()
 			.references(() => singers.id, { onDelete: "cascade" }),
 	},
-	(table) => {
-		return {
-			pk: primaryKey({ columns: [table.curationId, table.singerId] }),
-		};
-	},
+	(table) => ({
+		pk: primaryKey({ columns: [table.curationId, table.singerId] }),
+	}),
 );
 
 export const curationsRelations = relations(curations, ({ many, one }) => ({
 	curationDancers: many(dancersToCurations),
 	curationSingers: many(singersToCurations),
+	orchestra: one(orchestras, {
+		fields: [curations.orchestraId],
+		references: [orchestras.id],
+	}),
 	performance: one(performances, {
 		fields: [curations.performanceId],
 		references: [performances.id],
@@ -153,26 +148,19 @@ export const curationsRelations = relations(curations, ({ many, one }) => ({
 		fields: [curations.songId],
 		references: [songs.id],
 	}),
-	orchestra: one(orchestras, {
-		fields: [curations.orchestraId],
-		references: [orchestras.id],
-	}),
 }));
 
 export const dancersRelations = relations(dancers, ({ many }) => ({
 	curationDancers: many(dancersToCurations),
 }));
 
-export const curationDancersRelations = relations(
-	dancersToCurations,
-	({ one }) => ({
-		curation: one(curations, {
-			fields: [dancersToCurations.curationId],
-			references: [curations.id],
-		}),
-		dancer: one(dancers, {
-			fields: [dancersToCurations.dancerId],
-			references: [dancers.id],
-		}),
+export const curationDancersRelations = relations(dancersToCurations, ({ one }) => ({
+	curation: one(curations, {
+		fields: [dancersToCurations.curationId],
+		references: [curations.id],
 	}),
-);
+	dancer: one(dancers, {
+		fields: [dancersToCurations.dancerId],
+		references: [dancers.id],
+	}),
+}));

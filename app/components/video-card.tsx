@@ -1,16 +1,9 @@
 import { ExternalLinkIcon } from "@radix-ui/react-icons";
-import {
-	Box,
-	Button,
-	Card,
-	DataList,
-	Flex,
-	Link,
-	Text,
-} from "@radix-ui/themes";
+import { Box, Button, Card, DataList, Flex, Link, Text } from "@radix-ui/themes";
+
 import { normalizeName } from "~/utils/normalize";
 
-type Video = {
+interface Video {
 	id: string;
 	title: string;
 	channelTitle: string;
@@ -20,23 +13,22 @@ type Video = {
 	songTitle: string;
 	singers: string[];
 	year: number;
-};
+}
 
-type VideoCardProps = {
+interface VideoCardProps {
 	video: Video;
 	onFilterClick: (type: "dancer" | "orchestra", value: string) => void;
 	activeFilters: {
 		dancers: string[];
 		orchestra: string;
 	};
-};
+}
 function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	const isActive = (type: "dancer" | "orchestra", value: string) => {
 		const normalizedValue = normalizeName(value);
 		if (type === "dancer") {
 			return activeFilters.dancers.some(
-				(dancer) =>
-					dancer !== "any" && normalizeName(dancer) === normalizedValue,
+				(dancer) => dancer !== "any" && normalizeName(dancer) === normalizedValue,
 			);
 		}
 		return (
@@ -79,11 +71,7 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 									>
 										{dancer}
 									</Button>
-									{index < video.dancers.length - 1 ? (
-										<span className="mr-1">{" and "}</span>
-									) : (
-										""
-									)}
+									{index < video.dancers.length - 1 ? <span className="mr-1">{" and "}</span> : ""}
 								</span>
 							))}
 						</Flex>

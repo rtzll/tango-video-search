@@ -1,17 +1,11 @@
 #!/usr/bin/env bun
 
-import {
-	existsSync,
-	lstatSync,
-	readdirSync,
-	readlinkSync,
-	symlinkSync,
-	unlinkSync,
-} from "node:fs";
+import { existsSync, lstatSync, readdirSync, readlinkSync, symlinkSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+
 import { $ } from "bun";
 
-type Options = {
+interface Options {
 	app: string;
 	dataDir: string;
 	dryRun: boolean;
@@ -19,7 +13,7 @@ type Options = {
 	noRestart: boolean;
 	noLocalSymlink: boolean;
 	remoteDir: string;
-};
+}
 
 function parseArgs(): Options {
 	const args = process.argv.slice(2);
@@ -34,34 +28,43 @@ function parseArgs(): Options {
 	for (let i = 0; i < args.length; i++) {
 		const arg = args[i];
 		switch (arg) {
-			case "--app":
+			case "--app": {
 				app = args[++i] ?? app;
 				break;
-			case "--data-dir":
+			}
+			case "--data-dir": {
 				dataDir = args[++i] ?? dataDir;
 				break;
-			case "--remote-dir":
+			}
+			case "--remote-dir": {
 				remoteDir = args[++i] ?? remoteDir;
 				break;
-			case "--dry-run":
+			}
+			case "--dry-run": {
 				dryRun = true;
 				break;
-			case "--force":
+			}
+			case "--force": {
 				force = true;
 				break;
-			case "--no-restart":
+			}
+			case "--no-restart": {
 				noRestart = true;
 				break;
-			case "--no-local-symlink":
+			}
+			case "--no-local-symlink": {
 				noLocalSymlink = true;
 				break;
+			}
 			case "--help":
-			case "-h":
+			case "-h": {
 				printHelp();
 				process.exit(0);
 				break;
-			default:
+			}
+			default: {
 				throw new Error(`Unknown argument: ${arg}`);
+			}
 		}
 	}
 
@@ -70,8 +73,8 @@ function parseArgs(): Options {
 		dataDir,
 		dryRun,
 		force,
-		noRestart,
 		noLocalSymlink,
+		noRestart,
 		remoteDir,
 	};
 }
@@ -94,15 +97,10 @@ Options:
 `);
 }
 
-async function runOrThrow(
-	command: string,
-	args: string[],
-	options: Pick<Options, "dryRun">,
-) {
-	const pretty = [
-		command,
-		...args.map((arg) => (/\s/.test(arg) ? JSON.stringify(arg) : arg)),
-	].join(" ");
+async function runOrThrow(command: string, args: string[], options: Pick<Options, "dryRun">) {
+	const pretty = [command, ...args.map((arg) => (/\s/.test(arg) ? JSON.stringify(arg) : arg))].join(
+		" ",
+	);
 	console.log(`$ ${pretty}`);
 
 	if (options.dryRun) {
@@ -122,8 +120,7 @@ function isRemoteAlreadyExistsError(error: unknown) {
 		stderr?: unknown;
 	};
 
-	const message =
-		typeof maybeError.message === "string" ? maybeError.message : "";
+	const message = typeof maybeError.message === "string" ? maybeError.message : "";
 	const stderr = maybeError.stderr ? String(maybeError.stderr) : "";
 	const combined = `${message}\n${stderr}`;
 
@@ -135,17 +132,19 @@ function getLatestDatabaseFile(dataDir: string) {
 	const candidates = readdirSync(dataDir)
 		.map((name) => {
 			const match = name.match(regex);
-			if (!match) return null;
+			if (!match) {
+				return null;
+			}
 			const fullPath = join(dataDir, name);
-			if (!lstatSync(fullPath).isFile()) return null;
-			return { name, date: match[1] };
+			if (!lstatSync(fullPath).isFile()) {
+				return null;
+			}
+			return { date: match[1], name };
 		})
 		.filter((entry) => entry !== null);
 
 	if (candidates.length === 0) {
-		throw new Error(
-			`No database files found in ${dataDir} (expected sqlite-YYYY-MM-DD.db).`,
-		);
+		throw new Error(`No database files found in ${dataDir} (expected sqlite-YYYY-MM-DD.db).`);
 	}
 
 	candidates.sort((a, b) => a.date.localeCompare(b.date));
@@ -161,9 +160,7 @@ function updateLocalSymlink(dataDir: string, targetFileName: string) {
 		if (stat.isSymbolicLink()) {
 			const currentTarget = readlinkSync(symlinkPath);
 			if (currentTarget === target) {
-				console.log(
-					`Local symlink already up to date: ${symlinkPath} -> ${currentTarget}`,
-				);
+				console.log(`Local symlink already up to date: ${symlinkPath} -> ${currentTarget}`);
 				return;
 			}
 		}
@@ -197,29 +194,14 @@ async function main() {
 		if (options.force) {
 			await runOrThrow(
 				"fly",
-				[
-					"ssh",
-					"console",
-					"-a",
-					options.app,
-					"-C",
-					`rm -f ${remoteUploadTempPath}`,
-				],
+				["ssh", "console", "-a", options.app, "-C", `rm -f ${remoteUploadTempPath}`],
 				options,
 			);
 		}
 
 		await runOrThrow(
 			"fly",
-			[
-				"ssh",
-				"sftp",
-				"put",
-				localDbPath,
-				remoteUploadTempPath,
-				"-a",
-				options.app,
-			],
+			["ssh", "sftp", "put", localDbPath, remoteUploadTempPath, "-a", options.app],
 			options,
 		);
 	} catch (error) {
@@ -228,19 +210,13 @@ async function main() {
 		}
 		throw new Error(
 			`Remote temp file already exists: ${remoteUploadTempPath}. Re-run with --force to overwrite it.`,
+			{ cause: error },
 		);
 	}
 
 	await runOrThrow(
 		"fly",
-		[
-			"ssh",
-			"console",
-			"-a",
-			options.app,
-			"-C",
-			`mv -f ${remoteUploadTempPath} ${remoteDbPath}`,
-		],
+		["ssh", "console", "-a", options.app, "-C", `mv -f ${remoteUploadTempPath} ${remoteDbPath}`],
 		options,
 	);
 
@@ -258,8 +234,6 @@ async function main() {
 }
 
 main().catch((error) => {
-	console.error(
-		error instanceof Error ? `Error: ${error.message}` : "Unknown error",
-	);
+	console.error(error instanceof Error ? `Error: ${error.message}` : "Unknown error");
 	process.exit(1);
 });

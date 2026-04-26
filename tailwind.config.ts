@@ -2,8 +2,8 @@ import { radixThemePreset } from "radix-themes-tw";
 import type { Config } from "tailwindcss";
 
 export default {
-	presets: [radixThemePreset],
 	content: ["./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx}"],
+	presets: [radixThemePreset],
 	theme: {
 		extend: {
 			fontFamily: {

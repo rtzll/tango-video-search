@@ -1,20 +1,14 @@
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
-import {
-	Button,
-	Flex,
-	Popover,
-	ScrollArea,
-	Text,
-	TextField,
-} from "@radix-ui/themes";
+import { Button, Flex, Popover, ScrollArea, Text, TextField } from "@radix-ui/themes";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+
 import { normalizeName } from "~/utils/normalize";
 
-type Option = {
+interface Option {
 	id: number;
 	name: string;
 	count: number;
-};
+}
 
 interface ComboboxProps {
 	/**
@@ -56,7 +50,7 @@ const Combobox = ({
 	const [query, setQuery] = useState("");
 	const [activeIndex, setActiveIndex] = useState(0);
 	const inputRef = useRef<HTMLInputElement>(null);
-	const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+	const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
 	const listId = useId();
 
 	useEffect(() => {
@@ -68,29 +62,26 @@ const Combobox = ({
 
 	const filteredOptions = useMemo(() => {
 		const normalizedQuery = normalizeName(query.trim());
-		if (!normalizedQuery) return options;
+		if (!normalizedQuery) {
+			return options;
+		}
 
-		return options.filter((option) =>
-			normalizeName(option.name).includes(normalizedQuery),
-		);
+		return options.filter((option) => normalizeName(option.name).includes(normalizedQuery));
 	}, [options, query]);
 
 	const listOptions = useMemo(
-		() => [
-			{ id: "any", name: placeholder, count: undefined },
-			...filteredOptions,
-		],
+		() => [{ count: undefined, id: "any", name: placeholder }, ...filteredOptions],
 		[filteredOptions, placeholder],
 	);
 
 	useEffect(() => {
-		if (!open) return;
+		if (!open) {
+			return;
+		}
 		const selectedIndex = listOptions.findIndex((option) =>
-			option.id === "any"
-				? value === "any"
-				: normalizeName(option.name) === normalizeName(value),
+			option.id === "any" ? value === "any" : normalizeName(option.name) === normalizeName(value),
 		);
-		setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+		setActiveIndex(selectedIndex !== -1 ? selectedIndex : 0);
 	}, [open, listOptions, value]);
 
 	useEffect(() => {
@@ -110,11 +101,7 @@ const Combobox = ({
 	return (
 		<Popover.Root open={open} onOpenChange={setOpen}>
 			<Popover.Trigger>
-				<Button
-					variant="ghost"
-					size="2"
-					aria-label={ariaLabel ?? selectedLabel}
-				>
+				<Button variant="ghost" size="2" aria-label={ariaLabel ?? selectedLabel}>
 					<Text size="3" className="truncate">
 						{selectedLabel}
 					</Text>
@@ -139,19 +126,17 @@ const Combobox = ({
 						aria-controls={listId}
 						aria-activedescendant={activeOptionId}
 						onKeyDown={(event) => {
-							if (!open) return;
+							if (!open) {
+								return;
+							}
 							if (event.key === "ArrowDown") {
 								event.preventDefault();
-								setActiveIndex((index) =>
-									index + 1 >= listOptions.length ? 0 : index + 1,
-								);
+								setActiveIndex((index) => (index + 1 >= listOptions.length ? 0 : index + 1));
 								return;
 							}
 							if (event.key === "ArrowUp") {
 								event.preventDefault();
-								setActiveIndex((index) =>
-									index - 1 < 0 ? listOptions.length - 1 : index - 1,
-								);
+								setActiveIndex((index) => (index - 1 < 0 ? listOptions.length - 1 : index - 1));
 								return;
 							}
 							if (event.key === "Enter") {
@@ -173,19 +158,8 @@ const Combobox = ({
 						</TextField.Slot>
 					</TextField.Root>
 
-					<ScrollArea
-						type="auto"
-						scrollbars="vertical"
-						style={{ maxHeight: 320 }}
-					>
-						<Flex
-							direction="column"
-							gap="1"
-							py="1"
-							role="listbox"
-							className="pr-2"
-							id={listId}
-						>
+					<ScrollArea type="auto" scrollbars="vertical" style={{ maxHeight: 320 }}>
+						<Flex direction="column" gap="1" py="1" role="listbox" className="pr-2" id={listId}>
 							<OptionRow
 								id={`${listId}-option-0`}
 								label={placeholder}
@@ -209,9 +183,7 @@ const Combobox = ({
 										label={option.name}
 										value={option.name}
 										count={option.count}
-										selected={
-											normalizeName(value) === normalizeName(option.name)
-										}
+										selected={normalizeName(value) === normalizeName(option.name)}
 										active={activeIndex === index + 1}
 										onSelect={handleSelect}
 										buttonRef={(node) => {
@@ -256,9 +228,9 @@ const OptionRow = ({
 		role="option"
 		aria-selected={selected}
 		style={{
+			backgroundColor: active ? "var(--gray-3)" : undefined,
 			justifyContent: "space-between",
 			width: "100%",
-			backgroundColor: active ? "var(--gray-3)" : undefined,
 		}}
 		className={selected ? "font-bold" : undefined}
 		title={count ? `${label} (${count})` : label}

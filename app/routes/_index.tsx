@@ -4,16 +4,9 @@ import {
 	GitHubLogoIcon,
 	ResetIcon,
 } from "@radix-ui/react-icons";
-import {
-	Box,
-	Button,
-	Flex,
-	Grid,
-	IconButton,
-	Link,
-	Text,
-} from "@radix-ui/themes";
+import { Box, Button, Flex, Grid, IconButton, Link, Text } from "@radix-ui/themes";
 import { Link as RouterLink, useSearchParams } from "react-router";
+
 import { Combobox } from "~/components/combobox";
 import { VideoCard } from "~/components/video-card";
 import {
@@ -24,6 +17,7 @@ import {
 	getOrchestraOptions,
 } from "~/db.server";
 import { normalizeName } from "~/utils/normalize";
+
 import type { Route } from "./+types/_index";
 
 const PAGE_SIZE = 42;
@@ -31,7 +25,7 @@ const PAGE_SIZE = 42;
 export function meta() {
 	return [
 		{ title: "Tango Video Search" },
-		{ name: "description", content: "A different way to find tango videos." },
+		{ content: "A different way to find tango videos.", name: "description" },
 	];
 }
 
@@ -43,13 +37,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 	const pageParam = url.searchParams.get("page");
 	const page = Math.max(1, Number.parseInt(pageParam || "1", 10) || 1);
 
-	const [dancerOneOptions, dancerTwoOptions, orchestraOptions, totalVideos] =
-		await Promise.all([
-			getDancerOptions(dancer2, orchestra),
-			getDancerOptions(dancer1, orchestra),
-			getOrchestraOptions(dancer1, dancer2),
-			getFilteredVideosCount(dancer1, dancer2, orchestra),
-		]);
+	const [dancerOneOptions, dancerTwoOptions, orchestraOptions, totalVideos] = await Promise.all([
+		getDancerOptions(dancer2, orchestra),
+		getDancerOptions(dancer1, orchestra),
+		getOrchestraOptions(dancer1, dancer2),
+		getFilteredVideosCount(dancer1, dancer2, orchestra),
+	]);
 	const totalPages = Math.max(1, Math.ceil(totalVideos / PAGE_SIZE));
 	const safePage = Math.min(page, totalPages);
 	const transformedVideos = await getFilteredVideos(
@@ -63,19 +56,19 @@ export async function loader({ request }: Route.LoaderArgs) {
 	const lastUpdateTime = getLastDatabaseUpdateTime();
 	const formattedLastUpdate = lastUpdateTime
 		? new Intl.DateTimeFormat("en-US", {
-				year: "numeric",
-				month: "long",
 				day: "numeric",
+				month: "long",
 				timeZone: "UTC",
+				year: "numeric",
 			}).format(lastUpdateTime)
 		: "Unknown";
 
 	return {
 		dancerOneOptions,
 		dancerTwoOptions,
-		orchestraOptions,
-		initialVideos: transformedVideos,
 		formattedLastUpdate,
+		initialVideos: transformedVideos,
+		orchestraOptions,
 		page: safePage,
 		totalPages,
 		totalVideos,
@@ -123,23 +116,17 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 				newParams.delete("dancer2");
 			} else if (dancer1 === "any" && dancer2 === "any") {
 				newParams.set("dancer1", value);
-			} else if (
-				dancer1 !== "any" &&
-				dancer2 === "any" &&
-				!isSameFilterValue(dancer1, value)
-			) {
+			} else if (dancer1 !== "any" && dancer2 === "any" && !isSameFilterValue(dancer1, value)) {
 				newParams.set("dancer2", value);
-			} else if (
-				dancer1 === "any" &&
-				dancer2 !== "any" &&
-				!isSameFilterValue(dancer2, value)
-			) {
+			} else if (dancer1 === "any" && dancer2 !== "any" && !isSameFilterValue(dancer2, value)) {
 				newParams.set("dancer1", value);
 			}
 		} else if (type === "orchestra") {
-			isSameFilterValue(orchestra, value)
-				? newParams.delete("orchestra")
-				: newParams.set("orchestra", value);
+			if (isSameFilterValue(orchestra, value)) {
+				newParams.delete("orchestra");
+			} else {
+				newParams.set("orchestra", value);
+			}
 		}
 
 		newParams.delete("page");
@@ -212,11 +199,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 			</Box>
 
 			{/* TODO: add number of performances for filter and reset filter button */}
-			<Grid
-				columns={{ initial: "1", sm: "2", md: "3" }}
-				gap="4"
-				key={searchParams.toString()}
-			>
+			<Grid columns={{ initial: "1", md: "3", sm: "2" }} gap="4" key={searchParams.toString()}>
 				{initialVideos.map((video) => (
 					<VideoCard
 						video={video}
@@ -232,9 +215,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 
 			<Flex align="center" justify="between" gap="3" className="flex-wrap">
 				<Text size="1" color="gray">
-					{totalVideos === 0
-						? "No results"
-						: `Showing ${startIndex}–${endIndex} of ${totalVideos}`}
+					{totalVideos === 0 ? "No results" : `Showing ${startIndex}–${endIndex} of ${totalVideos}`}
 				</Text>
 				<Flex align="center" gap="2">
 					{page <= 1 ? (
@@ -292,8 +273,8 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 					>
 						<span
 							style={{
-								display: "inline-flex",
 								alignItems: "center",
+								display: "inline-flex",
 								gap: "4px",
 							}}
 						>

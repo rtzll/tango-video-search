@@ -1,0 +1,23 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"categories": {
+		"correctness": "error",
+		"suspicious": "warn",
+		"style": "warn",
+		"perf": "warn"
+	},
+	"ignorePatterns": ["public/sw.js"],
+	"rules": {
+		"func-style": "off",
+		"id-length": "off",
+		"init-declarations": "off",
+		"max-params": "off",
+		"max-statements": "off",
+		"no-magic-numbers": "off",
+		"no-nested-ternary": "off",
+		"no-ternary": "off",
+		"sort-imports": "off",
+		"unicorn/no-null": "off",
+		"unicorn/prefer-ternary": "off"
+	}
+}

@@ -1,9 +1,8 @@
 import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server";
-import type { AppLoadContext, EntryContext } from "react-router";
-import { ServerRouter } from "react-router";
+import { ServerRouter, type AppLoadContext, type EntryContext } from "react-router";
 
-const ABORT_DELAY = 5_000;
+const ABORT_DELAY = 5000;
 
 export default async function handleRequest(
 	request: Request,
@@ -11,7 +10,7 @@ export default async function handleRequest(
 	responseHeaders: Headers,
 	reactRouterContext: EntryContext,
 	// This is ignored so we can keep it in the template for visibility.  Feel
-	// free to delete this parameter in your app if you're not using it!
+	// Free to delete this parameter in your app if you're not using it!
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	_loadContext: AppLoadContext,
 ) {
@@ -23,17 +22,16 @@ export default async function handleRequest(
 		const stream = await renderToReadableStream(
 			<ServerRouter context={reactRouterContext} url={request.url} />,
 			{
-				signal: controller.signal,
 				onError(error: unknown) {
 					const isNotFound = error instanceof Response && error.status === 404;
-					const message =
-						error instanceof Error ? error.message : String(error);
+					const message = error instanceof Error ? error.message : String(error);
 					if (isNotFound || message.includes("No route matches URL")) {
 						return;
 					}
 					statusCode = 500;
 					console.error(error);
 				},
+				signal: controller.signal,
 			},
 		);
 
