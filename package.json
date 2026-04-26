@@ -15,6 +15,7 @@
 		"lint": "oxlint .",
 		"lint:fix": "oxlint --fix .",
 		"format": "oxfmt --write .",
+		"check": "bun run lint && bun run typecheck && bun run knip",
 		"start": "bunx --bun --no-install react-router-serve ./build/server/index.js",
 		"typecheck": "bunx --bun --no-install react-router typegen && tsc",
 		"knip": "knip"
