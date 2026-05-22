@@ -1,4 +1,3 @@
-import { Theme } from "@radix-ui/themes";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
 import "./tailwind.css";
@@ -13,17 +12,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 				<Links />
 			</head>
 			<body>
-				<Theme
-					accentColor="crimson"
-					grayColor="mauve"
-					appearance="dark"
-					panelBackground="solid"
-					radius="none"
-				>
-					{children}
-					<ScrollRestoration />
-					<Scripts />
-				</Theme>
+				{children}
+				<ScrollRestoration />
+				<Scripts />
 			</body>
 		</html>
 	);

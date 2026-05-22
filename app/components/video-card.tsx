@@ -1,5 +1,4 @@
 import { ExternalLinkIcon } from "@radix-ui/react-icons";
-import { Box, Button, Card, DataList, Flex, Link, Text } from "@radix-ui/themes";
 
 import { normalizeName } from "~/utils/normalize";
 
@@ -23,6 +22,7 @@ interface VideoCardProps {
 		orchestra: string;
 	};
 }
+
 function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	const isActive = (type: "dancer" | "orchestra", value: string) => {
 		const normalizedValue = normalizeName(value);
@@ -36,101 +36,96 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 			normalizeName(activeFilters.orchestra) === normalizedValue
 		);
 	};
+
 	return (
-		<Card>
-			<Flex direction="column" gap="2">
-				<Link
-					href={`https://youtube.com/watch?v=${video.id}`}
-					target="_blank"
-					rel="noopener noreferrer"
-					className="font-medium hover:underline flex items-center"
-				>
-					<Flex gap="1" align="baseline">
-						<Text>{video.title}</Text>
-						<Box>
-							<ExternalLinkIcon />
-						</Box>
-					</Flex>
-				</Link>
-			</Flex>
+		<div className="bg-[var(--color-panel)] border border-[var(--color-border)] p-4">
+			<a
+				href={`https://youtube.com/watch?v=${video.id}`}
+				target="_blank"
+				rel="noopener noreferrer"
+				className="font-medium text-[var(--color-accent-text)] hover:underline inline-flex items-baseline gap-1"
+			>
+				<span>{video.title}</span>
+				<ExternalLinkIcon className="shrink-0" />
+			</a>
 
-			<DataList.Root size="1" mt="3">
-				<DataList.Item>
-					<DataList.Label minWidth="44px">Dancers</DataList.Label>
-					<DataList.Value>
-						<Flex wrap="wrap">
-							{video.dancers.map((dancer, index) => (
-								<span key={`${video.id}-${dancer}`}>
-									<Button
-										variant="ghost"
-										size="1"
-										onClick={() => onFilterClick("dancer", dancer)}
-										className={`hover:underline cursor-pointer ${
-											isActive("dancer", dancer) ? "font-bold" : ""
-										}`}
-									>
-										{dancer}
-									</Button>
-									{index < video.dancers.length - 1 ? <span className="mr-1">{" and "}</span> : ""}
-								</span>
-							))}
-						</Flex>
-					</DataList.Value>
-				</DataList.Item>
+			<dl className="mt-3 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-xs">
+				<dt className="text-[var(--color-muted)] min-w-[44px]">Dancers</dt>
+				<dd className="flex flex-wrap">
+					{video.dancers.map((dancer, index) => (
+						<span key={`${video.id}-${dancer}`}>
+							<FilterButton
+								onClick={() => onFilterClick("dancer", dancer)}
+								active={isActive("dancer", dancer)}
+							>
+								{dancer}
+							</FilterButton>
+							{index < video.dancers.length - 1 ? <span className="mr-1">{" and "}</span> : ""}
+						</span>
+					))}
+				</dd>
 
-				<DataList.Item>
-					<DataList.Label minWidth="44px">Orchestra</DataList.Label>
-					<DataList.Value>
-						<Button
-							variant="ghost"
-							size="1"
-							onClick={() => onFilterClick("orchestra", video.orchestra)}
-							className={`hover:underline cursor-pointer ${
-								isActive("orchestra", video.orchestra) ? "font-bold" : ""
-							}`}
-						>
-							{video.orchestra}
-						</Button>
-					</DataList.Value>
-				</DataList.Item>
+				<dt className="text-[var(--color-muted)] min-w-[44px]">Orchestra</dt>
+				<dd>
+					<FilterButton
+						onClick={() => onFilterClick("orchestra", video.orchestra)}
+						active={isActive("orchestra", video.orchestra)}
+					>
+						{video.orchestra}
+					</FilterButton>
+				</dd>
 
-				<DataList.Item>
-					<DataList.Label minWidth="44px">Song</DataList.Label>
-					<DataList.Value>{video.songTitle}</DataList.Value>
-				</DataList.Item>
+				<dt className="text-[var(--color-muted)] min-w-[44px]">Song</dt>
+				<dd>{video.songTitle}</dd>
 
 				{video.singers.length > 0 && (
-					<DataList.Item>
-						<DataList.Label minWidth="44px">
+					<>
+						<dt className="text-[var(--color-muted)] min-w-[44px]">
 							Singer{video.singers.length > 1 ? "s" : ""}
-						</DataList.Label>
-						<DataList.Value>{video.singers.join(", ")}</DataList.Value>
-					</DataList.Item>
+						</dt>
+						<dd>{video.singers.join(", ")}</dd>
+					</>
 				)}
 
-				<DataList.Item>
-					<DataList.Label minWidth="44px">Channel</DataList.Label>
-					<DataList.Value>
-						<Link
-							href={`https://youtube.com/channel/${video.channelId}`}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="hover:underline flex items-center"
-						>
-							<Flex gap="1" align="end">
-								<Text>{video.channelTitle}</Text>
-								<ExternalLinkIcon />
-							</Flex>
-						</Link>
-					</DataList.Value>
-				</DataList.Item>
+				<dt className="text-[var(--color-muted)] min-w-[44px]">Channel</dt>
+				<dd>
+					<a
+						href={`https://youtube.com/channel/${video.channelId}`}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="text-[var(--color-accent-text)] hover:underline inline-flex items-end gap-1"
+					>
+						<span>{video.channelTitle}</span>
+						<ExternalLinkIcon className="shrink-0" />
+					</a>
+				</dd>
 
-				<DataList.Item>
-					<DataList.Label minWidth="44px">Year</DataList.Label>
-					<DataList.Value>{video.year}</DataList.Value>
-				</DataList.Item>
-			</DataList.Root>
-		</Card>
+				<dt className="text-[var(--color-muted)] min-w-[44px]">Year</dt>
+				<dd>{video.year}</dd>
+			</dl>
+		</div>
+	);
+}
+
+function FilterButton({
+	onClick,
+	active,
+	children,
+}: {
+	onClick: () => void;
+	active: boolean;
+	children: React.ReactNode;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className={`text-[var(--color-accent-text)] hover:underline cursor-pointer ${
+				active ? "font-bold" : ""
+			}`}
+		>
+			{children}
+		</button>
 	);
 }
 

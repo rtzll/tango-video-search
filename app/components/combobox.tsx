@@ -1,5 +1,4 @@
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
-import { Button, Flex, Popover, ScrollArea, Text, TextField } from "@radix-ui/themes";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { normalizeName } from "~/utils/normalize";
@@ -11,30 +10,11 @@ interface Option {
 }
 
 interface ComboboxProps {
-	/**
-	 * Currently selected value.
-	 */
 	value: string;
-	/**
-	 * Callback when a new value is selected.
-	 */
 	onValueChange: (value: string) => void;
-	/**
-	 * List of selectable options.
-	 */
 	options: Option[];
-	/**
-	 * Placeholder text shown when no value is selected.
-	 */
 	placeholder: string;
-	/**
-	 * Optional label for the search input placeholder/aria label.
-	 */
 	searchLabel: string;
-	/**
-	 * Accessible name for the select trigger (aria-label).
-	 * Defaults to placeholder or selected value if not provided.
-	 */
 	ariaLabel?: string;
 }
 
@@ -49,6 +29,8 @@ const Combobox = ({
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [activeIndex, setActiveIndex] = useState(0);
+	const triggerRef = useRef<HTMLButtonElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
 	const listId = useId();
@@ -60,12 +42,24 @@ const Combobox = ({
 		}
 	}, [open]);
 
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+		const handlePointerDown = (event: MouseEvent) => {
+			if (!containerRef.current?.contains(event.target as Node)) {
+				setOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handlePointerDown);
+		return () => document.removeEventListener("mousedown", handlePointerDown);
+	}, [open]);
+
 	const filteredOptions = useMemo(() => {
 		const normalizedQuery = normalizeName(query.trim());
 		if (!normalizedQuery) {
 			return options;
 		}
-
 		return options.filter((option) => normalizeName(option.name).includes(normalizedQuery));
 	}, [options, query]);
 
@@ -89,9 +83,14 @@ const Combobox = ({
 		activeOption?.scrollIntoView({ block: "nearest" });
 	}, [activeIndex]);
 
+	const closeAndRestoreFocus = () => {
+		setOpen(false);
+		requestAnimationFrame(() => triggerRef.current?.focus());
+	};
+
 	const handleSelect = (nextValue: string) => {
 		onValueChange(nextValue);
-		setOpen(false);
+		closeAndRestoreFocus();
 	};
 
 	const selectedLabel = value === "any" ? placeholder : value;
@@ -99,104 +98,115 @@ const Combobox = ({
 	const activeOptionId = `${listId}-option-${activeIndex}`;
 
 	return (
-		<Popover.Root open={open} onOpenChange={setOpen}>
-			<Popover.Trigger>
-				<Button variant="ghost" size="2" aria-label={ariaLabel ?? selectedLabel}>
-					<Text size="3" className="truncate">
-						{selectedLabel}
-					</Text>
-					<ChevronDownIcon />
-				</Button>
-			</Popover.Trigger>
-			<Popover.Content sideOffset={6} className="min-w-[260px]">
-				<Flex direction="column" gap="2">
-					<TextField.Root
-						ref={inputRef}
-						value={query}
-						onChange={(event) => {
-							setQuery(event.target.value);
-							setActiveIndex(0);
-						}}
-						placeholder={`Search ${searchText}`}
-						autoComplete="off"
-						aria-label={`Search ${searchText}`}
-						role="combobox"
-						aria-autocomplete="list"
-						aria-expanded={open}
-						aria-controls={listId}
-						aria-activedescendant={activeOptionId}
-						onKeyDown={(event) => {
-							if (!open) {
-								return;
-							}
-							if (event.key === "ArrowDown") {
-								event.preventDefault();
-								setActiveIndex((index) => (index + 1 >= listOptions.length ? 0 : index + 1));
-								return;
-							}
-							if (event.key === "ArrowUp") {
-								event.preventDefault();
-								setActiveIndex((index) => (index - 1 < 0 ? listOptions.length - 1 : index - 1));
-								return;
-							}
-							if (event.key === "Enter") {
-								event.preventDefault();
-								const option = listOptions[activeIndex];
-								if (option) {
-									handleSelect(option.id === "any" ? "any" : option.name);
-								}
-								return;
-							}
-							if (event.key === "Escape") {
-								event.preventDefault();
-								setOpen(false);
-							}
-						}}
-					>
-						<TextField.Slot>
-							<MagnifyingGlassIcon />
-						</TextField.Slot>
-					</TextField.Root>
+		<div ref={containerRef} className="relative inline-block">
+			<button
+				type="button"
+				ref={triggerRef}
+				onClick={() => setOpen((o) => !o)}
+				aria-label={ariaLabel ?? selectedLabel}
+				aria-haspopup="listbox"
+				aria-expanded={open}
+				className="inline-flex items-center gap-1 px-2 py-1 text-[var(--color-accent-text)] hover:bg-[var(--color-accent-soft)] cursor-pointer"
+			>
+				<span className="truncate text-base">{selectedLabel}</span>
+				<ChevronDownIcon />
+			</button>
 
-					<ScrollArea type="auto" scrollbars="vertical" style={{ maxHeight: 320 }}>
-						<Flex direction="column" gap="1" py="1" role="listbox" className="pr-2" id={listId}>
-							<OptionRow
-								id={`${listId}-option-0`}
-								label={placeholder}
-								value="any"
-								selected={value === "any"}
-								active={activeIndex === 0}
-								onSelect={handleSelect}
-								buttonRef={(node) => {
-									optionRefs.current[0] = node;
+			{open && (
+				<div
+					className="absolute left-0 top-full mt-1.5 z-20 min-w-[260px] bg-[var(--color-panel)] border border-[var(--color-border)] p-2 shadow-lg"
+				>
+					<div className="flex flex-col gap-2">
+						<div className="relative">
+							<MagnifyingGlassIcon className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
+							<input
+								ref={inputRef}
+								type="text"
+								value={query}
+								onChange={(event) => {
+									setQuery(event.target.value);
+									setActiveIndex(0);
+								}}
+								placeholder={`Search ${searchText}`}
+								autoComplete="off"
+								aria-label={`Search ${searchText}`}
+								role="combobox"
+								aria-autocomplete="list"
+								aria-expanded={open}
+								aria-controls={listId}
+								aria-activedescendant={activeOptionId}
+								className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] pl-7 pr-2 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
+								onKeyDown={(event) => {
+									if (event.key === "ArrowDown") {
+										event.preventDefault();
+										setActiveIndex((index) => (index + 1 >= listOptions.length ? 0 : index + 1));
+										return;
+									}
+									if (event.key === "ArrowUp") {
+										event.preventDefault();
+										setActiveIndex((index) => (index - 1 < 0 ? listOptions.length - 1 : index - 1));
+										return;
+									}
+									if (event.key === "Enter") {
+										event.preventDefault();
+										const option = listOptions[activeIndex];
+										if (option) {
+											handleSelect(option.id === "any" ? "any" : option.name);
+										}
+										return;
+									}
+									if (event.key === "Escape") {
+										event.preventDefault();
+										closeAndRestoreFocus();
+									}
 								}}
 							/>
-							{filteredOptions.length === 0 ? (
-								<Text size="2" color="gray" align="center" className="py-2">
-									No matches
-								</Text>
-							) : (
-								filteredOptions.map((option, index) => (
-									<OptionRow
-										key={option.id}
-										id={`${listId}-option-${index + 1}`}
-										label={option.name}
-										value={option.name}
-										count={option.count}
-										selected={normalizeName(value) === normalizeName(option.name)}
-										active={activeIndex === index + 1}
-										onSelect={handleSelect}
-										buttonRef={(node) => {
-											optionRefs.current[index + 1] = node;
-										}}
-									/>
-								))
-							)}
-						</Flex>
-					</ScrollArea>
-				</Flex>
-			</Popover.Content>
-		</Popover.Root>
+						</div>
+
+						<div className="overflow-y-auto max-h-80">
+							<div
+								className="flex flex-col gap-1 py-1 pr-2"
+								role="listbox"
+								id={listId}
+							>
+								<OptionRow
+									id={`${listId}-option-0`}
+									label={placeholder}
+									value="any"
+									selected={value === "any"}
+									active={activeIndex === 0}
+									onSelect={handleSelect}
+									buttonRef={(node) => {
+										optionRefs.current[0] = node;
+									}}
+								/>
+								{filteredOptions.length === 0 ? (
+									<p className="text-sm text-[var(--color-muted)] text-center py-2">
+										No matches
+									</p>
+								) : (
+									filteredOptions.map((option, index) => (
+										<OptionRow
+											key={option.id}
+											id={`${listId}-option-${index + 1}`}
+											label={option.name}
+											value={option.name}
+											count={option.count}
+											selected={normalizeName(value) === normalizeName(option.name)}
+											active={activeIndex === index + 1}
+											onSelect={handleSelect}
+											buttonRef={(node) => {
+												optionRefs.current[index + 1] = node;
+											}}
+										/>
+									))
+								)}
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+		</div>
 	);
 };
 
@@ -219,31 +229,23 @@ const OptionRow = ({
 	onSelect: (value: string) => void;
 	buttonRef: (node: HTMLButtonElement | null) => void;
 }) => (
-	<Button
+	<button
+		type="button"
 		id={id}
 		ref={buttonRef}
 		onClick={() => onSelect(value)}
-		variant="ghost"
-		size="2"
 		role="option"
 		aria-selected={selected}
-		style={{
-			backgroundColor: active ? "var(--gray-3)" : undefined,
-			justifyContent: "space-between",
-			width: "100%",
-		}}
-		className={selected ? "font-bold" : undefined}
 		title={count ? `${label} (${count})` : label}
+		className={`flex items-center justify-between w-full text-sm px-2 py-1 text-left text-[var(--color-accent-text)] cursor-pointer ${
+			active ? "bg-[var(--color-panel-hover)]" : ""
+		} hover:bg-[var(--color-panel-hover)] ${selected ? "font-bold" : ""}`}
 	>
-		<span className="truncate max-w-60 text-left">{label}</span>
-		<Flex align="center" gap="1" className="shrink-0">
-			{typeof count === "number" && (
-				<Text size="2" color="gray">
-					({count})
-				</Text>
-			)}
-		</Flex>
-	</Button>
+		<span className="truncate max-w-60">{label}</span>
+		{typeof count === "number" && (
+			<span className="shrink-0 text-[var(--color-muted)]">({count})</span>
+		)}
+	</button>
 );
 
 export { Combobox };

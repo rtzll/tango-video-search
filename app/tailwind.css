@@ -1,22 +1,49 @@
 @import "tailwindcss";
-@import "@radix-ui/themes/styles.css" layer(base);
 
-@config "../tailwind.config.ts";
+@theme {
+	--font-sans:
+		-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", system-ui, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji";
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+	--color-bg: #111113;
+	--color-panel: #18191b;
+	--color-panel-hover: #212225;
+	--color-panel-active: #2a2b2e;
+	--color-border: #34363a;
+	--color-border-strong: #43464b;
+	--color-muted: #b0b4ba;
+	--color-text: #ededee;
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+	--color-accent: #e93d82;
+	--color-accent-hover: #ee518a;
+	--color-accent-text: #ff92ad;
+	--color-accent-soft: rgba(233, 61, 130, 0.16);
+	--color-accent-soft-hover: rgba(233, 61, 130, 0.24);
+}
+
 @layer base {
 	*,
 	::after,
 	::before,
 	::backdrop,
 	::file-selector-button {
-		border-color: var(--color-gray-200, currentColor);
+		border-color: var(--color-border);
+	}
+
+	html {
+		color-scheme: dark;
+	}
+
+	body {
+		background-color: var(--color-bg);
+		color: var(--color-text);
+		font-family: var(--font-sans);
+		font-size: 16px;
+		line-height: 1.5;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	button {
+		font-family: inherit;
 	}
 }

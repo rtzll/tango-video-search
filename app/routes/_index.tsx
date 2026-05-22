@@ -4,7 +4,6 @@ import {
 	GitHubLogoIcon,
 	ResetIcon,
 } from "@radix-ui/react-icons";
-import { Box, Button, Flex, Grid, IconButton, Link, Text } from "@radix-ui/themes";
 import { Link as RouterLink, useSearchParams } from "react-router";
 
 import { Combobox } from "~/components/combobox";
@@ -147,17 +146,10 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	const endIndex = Math.min(page * PAGE_SIZE, totalVideos);
 
 	return (
-		<Flex
-			direction="column"
-			gap="6"
-			className="p-6"
-			maxWidth="1400px"
-			mx="auto"
-			style={{ minHeight: "100vh" }}
-		>
-			<Box>
-				<Flex align="baseline" gap="2" className="flex-wrap">
-					<Text>I want to see</Text>
+		<div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto min-h-screen">
+			<div>
+				<div className="flex items-baseline gap-2 flex-wrap">
+					<span>I want to see</span>
 					<Combobox
 						value={dancer1}
 						onValueChange={(value) => updateSearchParam("dancer1", value)}
@@ -166,7 +158,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						searchLabel="dancer"
 						ariaLabel="Select first dancer"
 					/>
-					<Text>and</Text>
+					<span>and</span>
 					<Combobox
 						value={dancer2}
 						onValueChange={(value) => updateSearchParam("dancer2", value)}
@@ -175,7 +167,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						searchLabel="dancer"
 						ariaLabel="Select second dancer"
 					/>
-					<Text>dance to</Text>
+					<span>dance to</span>
 					{/* TODO: allow for selecting songs and singers too */}
 					<Combobox
 						value={orchestra}
@@ -186,20 +178,23 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						ariaLabel="Select orchestra"
 					/>
 					{(dancer1 !== "any" || dancer2 !== "any" || orchestra !== "any") && (
-						<IconButton
-							size="1"
-							variant="soft"
+						<button
+							type="button"
 							onClick={resetSearchParams}
 							aria-label="Reset filters"
+							className="inline-flex items-center justify-center w-6 h-6 bg-[var(--color-accent-soft)] hover:bg-[var(--color-accent-soft-hover)] text-[var(--color-accent-text)] cursor-pointer"
 						>
 							<ResetIcon width={12} height={12} />
-						</IconButton>
+						</button>
 					)}
-				</Flex>
-			</Box>
+				</div>
+			</div>
 
 			{/* TODO: add number of performances for filter and reset filter button */}
-			<Grid columns={{ initial: "1", md: "3", sm: "2" }} gap="4" key={searchParams.toString()}>
+			<div
+				className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+				key={searchParams.toString()}
+			>
 				{initialVideos.map((video) => (
 					<VideoCard
 						video={video}
@@ -211,79 +206,71 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						}}
 					/>
 				))}
-			</Grid>
+			</div>
 
-			<Flex align="center" justify="between" gap="3" className="flex-wrap">
-				<Text size="1" color="gray">
+			<div className="flex items-center justify-between gap-3 flex-wrap">
+				<span className="text-xs text-[var(--color-muted)]">
 					{totalVideos === 0 ? "No results" : `Showing ${startIndex}–${endIndex} of ${totalVideos}`}
-				</Text>
-				<Flex align="center" gap="2">
+				</span>
+				<div className="flex items-center gap-2">
 					{page <= 1 ? (
-						<Button size="1" variant="outline" disabled>
-							<span className="inline-flex items-center gap-1">
-								<ChevronLeftIcon width={14} height={14} />
-								Previous
-							</span>
-						</Button>
+						<button
+							type="button"
+							disabled
+							className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-[var(--color-border)] text-[var(--color-accent-text)] opacity-50 cursor-not-allowed"
+						>
+							<ChevronLeftIcon width={14} height={14} />
+							Previous
+						</button>
 					) : (
-						<Button size="1" variant="outline" asChild>
-							<RouterLink to={getPageHref(page - 1)}>
-								<span className="inline-flex items-center gap-1">
-									<ChevronLeftIcon width={14} height={14} />
-									Previous
-								</span>
-							</RouterLink>
-						</Button>
+						<RouterLink
+							to={getPageHref(page - 1)}
+							className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-[var(--color-border)] text-[var(--color-accent-text)] hover:bg-[var(--color-accent-soft)]"
+						>
+							<ChevronLeftIcon width={14} height={14} />
+							Previous
+						</RouterLink>
 					)}
-					<Text size="1" color="gray">
+					<span className="text-xs text-[var(--color-muted)]">
 						Page {page} of {totalPages}
-					</Text>
+					</span>
 					{page >= totalPages ? (
-						<Button size="1" variant="outline" disabled>
-							<span className="inline-flex items-center gap-1">
-								Next
-								<ChevronRightIcon width={14} height={14} />
-							</span>
-						</Button>
+						<button
+							type="button"
+							disabled
+							className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-[var(--color-border)] text-[var(--color-accent-text)] opacity-50 cursor-not-allowed"
+						>
+							Next
+							<ChevronRightIcon width={14} height={14} />
+						</button>
 					) : (
-						<Button size="1" variant="outline" asChild>
-							<RouterLink to={getPageHref(page + 1)}>
-								<span className="inline-flex items-center gap-1">
-									Next
-									<ChevronRightIcon width={14} height={14} />
-								</span>
-							</RouterLink>
-						</Button>
+						<RouterLink
+							to={getPageHref(page + 1)}
+							className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-[var(--color-border)] text-[var(--color-accent-text)] hover:bg-[var(--color-accent-soft)]"
+						>
+							Next
+							<ChevronRightIcon width={14} height={14} />
+						</RouterLink>
 					)}
-				</Flex>
-			</Flex>
+				</div>
+			</div>
 
-			<Box mt="auto" pt="4">
-				<Flex align="baseline" className="justify-between flex-wrap">
-					<Text size="1" color="gray">
+			<div className="mt-auto pt-4">
+				<div className="flex items-baseline justify-between flex-wrap">
+					<span className="text-xs text-[var(--color-muted)]">
 						Data refreshed: {formattedLastUpdate}
-					</Text>
-					<Link
+					</span>
+					<a
 						href="https://github.com/rtzll/tango-video-search"
 						target="_blank"
 						rel="noopener noreferrer"
-						className="hover:underline"
-						size="1"
-						color="gray"
+						className="text-xs text-[var(--color-muted)] hover:underline inline-flex items-center gap-1"
 					>
-						<span
-							style={{
-								alignItems: "center",
-								display: "inline-flex",
-								gap: "4px",
-							}}
-						>
-							Source code
-							<GitHubLogoIcon width={12} height={12} />
-						</span>
-					</Link>
-				</Flex>
-			</Box>
-		</Flex>
+						Source code
+						<GitHubLogoIcon width={12} height={12} />
+					</a>
+				</div>
+			</div>
+		</div>
 	);
 }
