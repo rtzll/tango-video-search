@@ -6,7 +6,6 @@
 		"style": "warn",
 		"perf": "warn"
 	},
-	"ignorePatterns": ["public/sw.js"],
 	"rules": {
 		"func-style": "off",
 		"id-length": "off",
