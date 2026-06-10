@@ -74,6 +74,10 @@ export async function loader({ request }: Route.LoaderArgs) {
 	};
 }
 
+function isSameFilterValue(current: string, candidate: string) {
+	return current !== "any" && normalizeName(current) === normalizeName(candidate);
+}
+
 export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	const {
 		dancerOneOptions,
@@ -102,8 +106,6 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		setSearchParams(newParams);
 	};
 	const resetSearchParams = () => setSearchParams(new URLSearchParams());
-	const isSameFilterValue = (current: string, candidate: string) =>
-		current !== "any" && normalizeName(current) === normalizeName(candidate);
 
 	const handleFilterClick = (type: "dancer" | "orchestra", value: string) => {
 		const newParams = new URLSearchParams(searchParams);
