@@ -28,8 +28,7 @@ export function meta() {
 	];
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-	const url = new URL(request.url);
+export async function loader({ url }: Route.LoaderArgs) {
 	const dancer1 = url.searchParams.get("dancer1") || "any";
 	const dancer2 = url.searchParams.get("dancer2") || "any";
 	const orchestra = url.searchParams.get("orchestra") || "any";
