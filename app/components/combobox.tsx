@@ -113,9 +113,7 @@ const Combobox = ({
 			</button>
 
 			{open && (
-				<div
-					className="absolute left-0 top-full mt-1.5 z-20 min-w-[260px] bg-[var(--color-panel)] border border-[var(--color-border)] p-2 shadow-lg"
-				>
+				<div className="absolute left-0 top-full mt-1.5 z-20 min-w-[260px] bg-[var(--color-panel)] border border-[var(--color-border)] p-2 shadow-lg">
 					<div className="flex flex-col gap-2">
 						<div className="relative">
 							<MagnifyingGlassIcon className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
@@ -164,11 +162,7 @@ const Combobox = ({
 						</div>
 
 						<div className="overflow-y-auto max-h-80">
-							<div
-								className="flex flex-col gap-1 py-1 pr-2"
-								role="listbox"
-								id={listId}
-							>
+							<div className="flex flex-col gap-1 py-1 pr-2" role="listbox" id={listId}>
 								<OptionRow
 									id={`${listId}-option-0`}
 									label={placeholder}
@@ -181,9 +175,7 @@ const Combobox = ({
 									}}
 								/>
 								{filteredOptions.length === 0 ? (
-									<p className="text-sm text-[var(--color-muted)] text-center py-2">
-										No matches
-									</p>
+									<p className="text-sm text-[var(--color-muted)] text-center py-2">No matches</p>
 								) : (
 									filteredOptions.map((option, index) => (
 										<OptionRow
