@@ -1,6 +1,6 @@
 import { isbot } from "isbot";
 import { renderToReadableStream } from "react-dom/server";
-import { ServerRouter, type AppLoadContext, type EntryContext } from "react-router";
+import { ServerRouter, type EntryContext } from "react-router";
 
 const ABORT_DELAY = 5000;
 
@@ -9,10 +9,6 @@ export default async function handleRequest(
 	responseStatusCode: number,
 	responseHeaders: Headers,
 	reactRouterContext: EntryContext,
-	// This is ignored so we can keep it in the template for visibility.  Feel
-	// Free to delete this parameter in your app if you're not using it!
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	_loadContext: AppLoadContext,
 ) {
 	let statusCode = responseStatusCode;
 	const controller = new AbortController();
