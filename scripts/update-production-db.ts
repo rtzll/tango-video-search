@@ -128,18 +128,19 @@ function isRemoteAlreadyExistsError(error: unknown) {
 }
 
 function getLatestDatabaseFile(dataDir: string) {
-	const regex = /^sqlite-(\d{4}-\d{2}-\d{2})\.db$/;
+	const regex = /^sqlite-(?<date>\d{4}-\d{2}-\d{2})\.db$/;
 	const candidates = readdirSync(dataDir)
 		.map((name) => {
 			const match = name.match(regex);
-			if (!match) {
+			const date = match?.groups?.date;
+			if (!date) {
 				return null;
 			}
 			const fullPath = join(dataDir, name);
 			if (!lstatSync(fullPath).isFile()) {
 				return null;
 			}
-			return { date: match[1], name };
+			return { date, name };
 		})
 		.filter((entry) => entry !== null);
 
