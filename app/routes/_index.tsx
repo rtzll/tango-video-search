@@ -15,6 +15,7 @@ import {
 	getLastDatabaseUpdateTime,
 	getOrchestraOptions,
 } from "~/db.server";
+import { ANY_FILTER_VALUE } from "~/utils/filters";
 import { normalizeName } from "~/utils/normalize";
 
 import type { Route } from "./+types/_index";
@@ -29,9 +30,9 @@ export function meta() {
 }
 
 export async function loader({ url }: Route.LoaderArgs) {
-	const dancer1 = url.searchParams.get("dancer1") || "any";
-	const dancer2 = url.searchParams.get("dancer2") || "any";
-	const orchestra = url.searchParams.get("orchestra") || "any";
+	const dancer1 = url.searchParams.get("dancer1") || ANY_FILTER_VALUE;
+	const dancer2 = url.searchParams.get("dancer2") || ANY_FILTER_VALUE;
+	const orchestra = url.searchParams.get("orchestra") || ANY_FILTER_VALUE;
 	const pageParam = url.searchParams.get("page");
 	const page = Math.max(1, Number.parseInt(pageParam || "1", 10) || 1);
 
@@ -74,7 +75,7 @@ export async function loader({ url }: Route.LoaderArgs) {
 }
 
 function isSameFilterValue(current: string, candidate: string) {
-	return current !== "any" && normalizeName(current) === normalizeName(candidate);
+	return current !== ANY_FILTER_VALUE && normalizeName(current) === normalizeName(candidate);
 }
 
 export default function SearchInterface({ loaderData }: Route.ComponentProps) {
@@ -90,13 +91,13 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	} = loaderData;
 
 	const [searchParams, setSearchParams] = useSearchParams();
-	const dancer1 = searchParams.get("dancer1") || "any";
-	const dancer2 = searchParams.get("dancer2") || "any";
-	const orchestra = searchParams.get("orchestra") || "any";
+	const dancer1 = searchParams.get("dancer1") || ANY_FILTER_VALUE;
+	const dancer2 = searchParams.get("dancer2") || ANY_FILTER_VALUE;
+	const orchestra = searchParams.get("orchestra") || ANY_FILTER_VALUE;
 
 	const updateSearchParam = (param: string, value: string) => {
 		const newParams = new URLSearchParams(searchParams);
-		if (value === "any") {
+		if (value === ANY_FILTER_VALUE) {
 			newParams.delete(param);
 		} else {
 			newParams.set(param, value);
@@ -114,11 +115,19 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 				newParams.delete("dancer1");
 			} else if (isSameFilterValue(dancer2, value)) {
 				newParams.delete("dancer2");
-			} else if (dancer1 === "any" && dancer2 === "any") {
+			} else if (dancer1 === ANY_FILTER_VALUE && dancer2 === ANY_FILTER_VALUE) {
 				newParams.set("dancer1", value);
-			} else if (dancer1 !== "any" && dancer2 === "any" && !isSameFilterValue(dancer1, value)) {
+			} else if (
+				dancer1 !== ANY_FILTER_VALUE &&
+				dancer2 === ANY_FILTER_VALUE &&
+				!isSameFilterValue(dancer1, value)
+			) {
 				newParams.set("dancer2", value);
-			} else if (dancer1 === "any" && dancer2 !== "any" && !isSameFilterValue(dancer2, value)) {
+			} else if (
+				dancer1 === ANY_FILTER_VALUE &&
+				dancer2 !== ANY_FILTER_VALUE &&
+				!isSameFilterValue(dancer2, value)
+			) {
 				newParams.set("dancer1", value);
 			}
 		} else if (type === "orchestra") {
@@ -178,7 +187,9 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						searchLabel="orchestra"
 						ariaLabel="Select orchestra"
 					/>
-					{(dancer1 !== "any" || dancer2 !== "any" || orchestra !== "any") && (
+					{(dancer1 !== ANY_FILTER_VALUE ||
+						dancer2 !== ANY_FILTER_VALUE ||
+						orchestra !== ANY_FILTER_VALUE) && (
 						<button
 							type="button"
 							onClick={resetSearchParams}

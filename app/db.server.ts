@@ -13,6 +13,7 @@ import {
 	performances,
 	videos,
 } from "../schema";
+import { ANY_FILTER_VALUE } from "./utils/filters";
 import { normalizeName } from "./utils/normalize";
 
 const DEFAULT_DB_PATH = "data/sqlite.db";
@@ -52,11 +53,13 @@ export function getLastDatabaseUpdateTime() {
 }
 
 function buildOrchestraFilter(orchestra: string) {
-	return orchestra === "any" ? undefined : eq(orchestras.normalized, normalizeName(orchestra));
+	return orchestra === ANY_FILTER_VALUE
+		? undefined
+		: eq(orchestras.normalized, normalizeName(orchestra));
 }
 
 export async function getDancerOptions(otherDancer: string, orchestra: string) {
-	if (otherDancer === "any") {
+	if (otherDancer === ANY_FILTER_VALUE) {
 		const performanceCount = count(dancersToCurations.curationId);
 
 		return await db
@@ -108,7 +111,7 @@ export async function getDancerOptions(otherDancer: string, orchestra: string) {
 }
 
 export async function getOrchestraOptions(dancer1: string, dancer2: string) {
-	if (dancer1 === "any" && dancer2 === "any") {
+	if (dancer1 === ANY_FILTER_VALUE && dancer2 === ANY_FILTER_VALUE) {
 		const performanceCount = count(curations.id);
 
 		return db
@@ -158,27 +161,31 @@ function curationHasDancer(normalizedDancer: string) {
 }
 
 function buildDancerFilterClause(dancer1: string, dancer2: string) {
-	const dancer1Normalized = dancer1 === "any" ? "any" : normalizeName(dancer1);
-	const dancer2Normalized = dancer2 === "any" ? "any" : normalizeName(dancer2);
+	const dancer1Normalized =
+		dancer1 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer1);
+	const dancer2Normalized =
+		dancer2 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer2);
 
-	if (dancer1Normalized !== "any" && dancer2Normalized !== "any") {
+	if (dancer1Normalized !== ANY_FILTER_VALUE && dancer2Normalized !== ANY_FILTER_VALUE) {
 		return and(curationHasDancer(dancer1Normalized), curationHasDancer(dancer2Normalized));
 	}
 
-	const active = dancer1Normalized !== "any" ? dancer1Normalized : dancer2Normalized;
-	return active === "any" ? undefined : curationHasDancer(active);
+	const active = dancer1Normalized !== ANY_FILTER_VALUE ? dancer1Normalized : dancer2Normalized;
+	return active === ANY_FILTER_VALUE ? undefined : curationHasDancer(active);
 }
 
 function buildJoinBasedDancerFilterClause(dancer1: string, dancer2: string) {
-	const dancer1Normalized = dancer1 === "any" ? "any" : normalizeName(dancer1);
-	const dancer2Normalized = dancer2 === "any" ? "any" : normalizeName(dancer2);
+	const dancer1Normalized =
+		dancer1 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer1);
+	const dancer2Normalized =
+		dancer2 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer2);
 
-	if (dancer1Normalized !== "any" && dancer2Normalized !== "any") {
+	if (dancer1Normalized !== ANY_FILTER_VALUE && dancer2Normalized !== ANY_FILTER_VALUE) {
 		return and(eq(dancers.normalized, dancer1Normalized), curationHasDancer(dancer2Normalized));
 	}
 
-	const active = dancer1Normalized !== "any" ? dancer1Normalized : dancer2Normalized;
-	return active === "any" ? undefined : eq(dancers.normalized, active);
+	const active = dancer1Normalized !== ANY_FILTER_VALUE ? dancer1Normalized : dancer2Normalized;
+	return active === ANY_FILTER_VALUE ? undefined : eq(dancers.normalized, active);
 }
 
 function buildWhereClause(dancer1: string, dancer2: string, orchestra: string) {

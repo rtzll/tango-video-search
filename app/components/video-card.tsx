@@ -1,5 +1,6 @@
 import { ExternalLinkIcon } from "@radix-ui/react-icons";
 
+import { ANY_FILTER_VALUE } from "~/utils/filters";
 import { normalizeName } from "~/utils/normalize";
 
 interface Video {
@@ -28,11 +29,11 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 		const normalizedValue = normalizeName(value);
 		if (type === "dancer") {
 			return activeFilters.dancers.some(
-				(dancer) => dancer !== "any" && normalizeName(dancer) === normalizedValue,
+				(dancer) => dancer !== ANY_FILTER_VALUE && normalizeName(dancer) === normalizedValue,
 			);
 		}
 		return (
-			activeFilters.orchestra !== "any" &&
+			activeFilters.orchestra !== ANY_FILTER_VALUE &&
 			normalizeName(activeFilters.orchestra) === normalizedValue
 		);
 	};

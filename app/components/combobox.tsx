@@ -1,6 +1,7 @@
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { ANY_FILTER_VALUE } from "~/utils/filters";
 import { normalizeName } from "~/utils/normalize";
 
 interface Option {
@@ -64,7 +65,7 @@ const Combobox = ({
 	}, [options, query]);
 
 	const listOptions = useMemo(
-		() => [{ count: undefined, id: "any", name: placeholder }, ...filteredOptions],
+		() => [{ count: undefined, id: ANY_FILTER_VALUE, name: placeholder }, ...filteredOptions],
 		[filteredOptions, placeholder],
 	);
 
@@ -73,7 +74,9 @@ const Combobox = ({
 			return;
 		}
 		const selectedIndex = listOptions.findIndex((option) =>
-			option.id === "any" ? value === "any" : normalizeName(option.name) === normalizeName(value),
+			option.id === ANY_FILTER_VALUE
+				? value === ANY_FILTER_VALUE
+				: normalizeName(option.name) === normalizeName(value),
 		);
 		setActiveIndex(selectedIndex !== -1 ? selectedIndex : 0);
 	}, [open, listOptions, value]);
@@ -93,7 +96,7 @@ const Combobox = ({
 		closeAndRestoreFocus();
 	};
 
-	const selectedLabel = value === "any" ? placeholder : value;
+	const selectedLabel = value === ANY_FILTER_VALUE ? placeholder : value;
 	const searchText = searchLabel ?? placeholder;
 	const activeOptionId = `${listId}-option-${activeIndex}`;
 
@@ -149,7 +152,7 @@ const Combobox = ({
 										event.preventDefault();
 										const option = listOptions[activeIndex];
 										if (option) {
-											handleSelect(option.id === "any" ? "any" : option.name);
+											handleSelect(option.id === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : option.name);
 										}
 										return;
 									}
@@ -166,8 +169,8 @@ const Combobox = ({
 								<OptionRow
 									id={`${listId}-option-0`}
 									label={placeholder}
-									value="any"
-									selected={value === "any"}
+									value={ANY_FILTER_VALUE}
+									selected={value === ANY_FILTER_VALUE}
 									active={activeIndex === 0}
 									onSelect={handleSelect}
 									buttonRef={(node) => {
