@@ -25,7 +25,6 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 COPY --from=build /app/build /app/build
-COPY --from=build /app/public /app/public
 
 RUN mkdir -p /data && chown -R 1000:1000 /app /data
 VOLUME /data
