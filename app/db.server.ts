@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { statSync } from "node:fs";
 
-import { aliasedTable, and, desc, eq, exists, ne, sql } from "drizzle-orm";
+import { aliasedTable, and, count, countDistinct, desc, eq, exists, gt, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 
 import * as schema from "../schema";
@@ -51,13 +51,17 @@ export function getLastDatabaseUpdateTime() {
 	}
 }
 
-export async function getDancerOptions(otherDancer: string, orchestra: string) {
-	const normalizedOrchestra = orchestra === "any" ? "any" : normalizeName(orchestra);
+function buildOrchestraFilter(orchestra: string) {
+	return orchestra === "any" ? undefined : eq(orchestras.normalized, normalizeName(orchestra));
+}
 
+export async function getDancerOptions(otherDancer: string, orchestra: string) {
 	if (otherDancer === "any") {
+		const performanceCount = count(dancersToCurations.curationId);
+
 		return await db
 			.select({
-				count: sql<number>`count(${dancersToCurations.curationId})`.as("performanceCount"),
+				count: performanceCount.as("performanceCount"),
 				id: dancers.id,
 				name: dancers.name,
 			})
@@ -65,10 +69,10 @@ export async function getDancerOptions(otherDancer: string, orchestra: string) {
 			.innerJoin(dancersToCurations, eq(dancers.id, dancersToCurations.dancerId))
 			.innerJoin(curations, eq(dancersToCurations.curationId, curations.id))
 			.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
-			.where(orchestra === "any" ? sql`1` : eq(orchestras.normalized, normalizedOrchestra))
+			.where(buildOrchestraFilter(orchestra))
 			.groupBy(dancers.id, dancers.name)
-			.having(sql`performanceCount > 0`)
-			.orderBy(sql`performanceCount DESC`);
+			.having(gt(performanceCount, 0))
+			.orderBy(desc(performanceCount));
 	}
 
 	const normalizedOtherDancer = normalizeName(otherDancer);
@@ -76,10 +80,11 @@ export async function getDancerOptions(otherDancer: string, orchestra: string) {
 	const dancerTwo = aliasedTable(dancers, "d2");
 	const dancerOneCurations = aliasedTable(dancersToCurations, "dc1");
 	const dancerTwoCurations = aliasedTable(dancersToCurations, "dc2");
+	const performanceCount = countDistinct(dancerOneCurations.curationId);
 
 	return await db
 		.select({
-			count: sql<number>`count(DISTINCT ${dancerOneCurations.curationId})`.as("performanceCount"),
+			count: performanceCount.as("performanceCount"),
 			id: dancerOne.id,
 			name: dancerOne.name,
 		})
@@ -96,30 +101,34 @@ export async function getDancerOptions(otherDancer: string, orchestra: string) {
 		)
 		.innerJoin(curations, eq(dancerOneCurations.curationId, curations.id))
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
-		.where(orchestra === "any" ? sql`1` : eq(orchestras.normalized, normalizedOrchestra))
+		.where(buildOrchestraFilter(orchestra))
 		.groupBy(dancerOne.id, dancerOne.name)
-		.having(sql`performanceCount > 0`)
-		.orderBy(sql`performanceCount DESC`);
+		.having(gt(performanceCount, 0))
+		.orderBy(desc(performanceCount));
 }
 
 export async function getOrchestraOptions(dancer1: string, dancer2: string) {
 	if (dancer1 === "any" && dancer2 === "any") {
+		const performanceCount = count(curations.id);
+
 		return db
 			.select({
-				count: sql<number>`count(${curations.id})`.as("performanceCount"),
+				count: performanceCount.as("performanceCount"),
 				id: orchestras.id,
 				name: orchestras.name,
 			})
 			.from(orchestras)
 			.leftJoin(curations, eq(orchestras.id, curations.orchestraId))
 			.groupBy(orchestras.id, orchestras.name)
-			.having(sql`performanceCount > 0`)
-			.orderBy(sql`performanceCount DESC`);
+			.having(gt(performanceCount, 0))
+			.orderBy(desc(performanceCount));
 	}
+
+	const performanceCount = countDistinct(curations.id);
 
 	return await db
 		.select({
-			count: sql<number>`count(DISTINCT ${curations.id})`.as("performanceCount"),
+			count: performanceCount.as("performanceCount"),
 			id: orchestras.id,
 			name: orchestras.name,
 		})
@@ -127,14 +136,10 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
 		.innerJoin(curations, eq(orchestras.id, curations.orchestraId))
 		.innerJoin(dancersToCurations, eq(curations.id, dancersToCurations.curationId))
 		.innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
-		.where(
-			dancer1 === "any" && dancer2 === "any"
-				? sql`1`
-				: buildJoinBasedDancerFilterClause(dancer1, dancer2),
-		)
+		.where(buildJoinBasedDancerFilterClause(dancer1, dancer2))
 		.groupBy(orchestras.id, orchestras.name)
-		.having(sql`performanceCount > 0`)
-		.orderBy(sql`performanceCount DESC`);
+		.having(gt(performanceCount, 0))
+		.orderBy(desc(performanceCount));
 }
 
 function curationHasDancer(normalizedDancer: string) {
@@ -157,11 +162,11 @@ function buildDancerFilterClause(dancer1: string, dancer2: string) {
 	const dancer2Normalized = dancer2 === "any" ? "any" : normalizeName(dancer2);
 
 	if (dancer1Normalized !== "any" && dancer2Normalized !== "any") {
-		return sql`${curationHasDancer(dancer1Normalized)} AND ${curationHasDancer(dancer2Normalized)}`;
+		return and(curationHasDancer(dancer1Normalized), curationHasDancer(dancer2Normalized));
 	}
 
 	const active = dancer1Normalized !== "any" ? dancer1Normalized : dancer2Normalized;
-	return active === "any" ? sql`1` : curationHasDancer(active);
+	return active === "any" ? undefined : curationHasDancer(active);
 }
 
 function buildJoinBasedDancerFilterClause(dancer1: string, dancer2: string) {
@@ -173,16 +178,11 @@ function buildJoinBasedDancerFilterClause(dancer1: string, dancer2: string) {
 	}
 
 	const active = dancer1Normalized !== "any" ? dancer1Normalized : dancer2Normalized;
-	return sql`${dancers.normalized} = ${active}`;
+	return active === "any" ? undefined : eq(dancers.normalized, active);
 }
 
 function buildWhereClause(dancer1: string, dancer2: string, orchestra: string) {
-	return (
-		and(
-			buildDancerFilterClause(dancer1, dancer2),
-			orchestra === "any" ? undefined : eq(orchestras.normalized, normalizeName(orchestra)),
-		) ?? sql`1`
-	);
+	return and(buildDancerFilterClause(dancer1, dancer2), buildOrchestraFilter(orchestra));
 }
 
 export async function getFilteredVideos(
@@ -230,7 +230,7 @@ export async function getFilteredVideosCount(dancer1: string, dancer2: string, o
 
 	const results = await db
 		.select({
-			count: sql<number>`count(*)`.as("count"),
+			count: count().as("count"),
 		})
 		.from(curations)
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
