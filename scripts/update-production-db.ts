@@ -15,6 +15,14 @@ interface Options {
 	remoteDir: string;
 }
 
+function readOptionValue(args: string[], index: number, optionName: string) {
+	const value = args[index + 1];
+	if (!value || value.startsWith("-")) {
+		throw new Error(`Missing value for ${optionName}`);
+	}
+	return value;
+}
+
 function parseArgs(): Options {
 	const args = process.argv.slice(2);
 	let app = process.env.FLY_APP_NAME ?? "tango-video-search";
@@ -29,15 +37,18 @@ function parseArgs(): Options {
 		const arg = args[i];
 		switch (arg) {
 			case "--app": {
-				app = args[++i] ?? app;
+				app = readOptionValue(args, i, arg);
+				i += 1;
 				break;
 			}
 			case "--data-dir": {
-				dataDir = args[++i] ?? dataDir;
+				dataDir = readOptionValue(args, i, arg);
+				i += 1;
 				break;
 			}
 			case "--remote-dir": {
-				remoteDir = args[++i] ?? remoteDir;
+				remoteDir = readOptionValue(args, i, arg);
+				i += 1;
 				break;
 			}
 			case "--dry-run": {
