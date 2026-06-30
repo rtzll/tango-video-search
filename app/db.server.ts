@@ -146,18 +146,16 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
 }
 
 function curationHasDancer(normalizedDancer: string) {
-	return exists(
-		db
-			.select({ curationId: dancersToCurations.curationId })
-			.from(dancersToCurations)
-			.innerJoin(dancers, eq(dancersToCurations.dancerId, dancers.id))
-			.where(
-				and(
-					eq(dancersToCurations.curationId, curations.id),
-					eq(dancers.normalized, normalizedDancer),
-				),
-			),
-	);
+	const sameCuration = eq(dancersToCurations.curationId, curations.id);
+	const sameDancer = eq(dancers.normalized, normalizedDancer);
+	const dancerFilter = and(sameCuration, sameDancer);
+	const curationQuery = db
+		.select({ curationId: dancersToCurations.curationId })
+		.from(dancersToCurations)
+		.innerJoin(dancers, eq(dancersToCurations.dancerId, dancers.id))
+		.where(dancerFilter);
+
+	return exists(curationQuery);
 }
 
 function buildDancerFilterClause(dancer1: string, dancer2: string) {
