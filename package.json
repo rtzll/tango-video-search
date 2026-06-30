@@ -9,15 +9,15 @@
 	"type": "module",
 	"sideEffects": false,
 	"scripts": {
-		"build": "bunx --bun --no-install react-router build",
-		"dev": "bunx --bun --no-install react-router dev",
+		"build": "bun --bun react-router build",
+		"dev": "bun --bun react-router dev",
 		"db:update": "bun scripts/update-production-db.ts",
 		"lint": "oxlint .",
 		"lint:fix": "oxlint --fix .",
 		"format": "oxfmt --write .",
 		"check": "bun run lint && bun run typecheck && bun run knip && bun run build",
-		"start": "bunx --bun --no-install react-router-serve ./build/server/index.js",
-		"typecheck": "bunx --bun --no-install react-router typegen && tsc",
+		"start": "bun --bun react-router-serve ./build/server/index.js",
+		"typecheck": "bun --bun react-router typegen && tsc",
 		"knip": "knip"
 	},
 	"dependencies": {
