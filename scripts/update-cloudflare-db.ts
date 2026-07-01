@@ -94,7 +94,7 @@ Options:
   --remote                Import into remote D1 instead of local D1
   --local                 Import into local D1 (default)
   --persist-to <path>     Local D1 persistence directory (default: .wrangler/state)
-  --reset                 Drop known tables before importing
+  --reset                 Drop known tables inside the generated import before loading data
   --sql-only              Only write the SQL dump; do not import it
   --no-local-symlink      Skip updating data/sqlite.db
   --dry-run               Print commands without executing them
@@ -374,6 +374,8 @@ async function writeSqlDump(
 	}
 
 	const schema = sqlite(databasePath, [".schema --nosys"]);
+	// Keep destructive drops in the same import file as replacement data.
+	// D1 can then roll back the whole refresh if the import fails.
 	const drops = reset
 		? RESET_TABLES.map((table) => `DROP TABLE IF EXISTS ${table};`).join("\n")
 		: "";
