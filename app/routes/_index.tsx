@@ -8,7 +8,9 @@ import { Link as RouterLink, useSearchParams } from "react-router";
 
 import { Combobox } from "~/components/combobox";
 import { VideoCard } from "~/components/video-card";
+import { getCloudflareRuntime } from "~/context.server";
 import {
+	createDatabase,
 	getDancerOptions,
 	getFilteredVideos,
 	getFilteredVideosCount,
@@ -29,22 +31,26 @@ export function meta() {
 	];
 }
 
-export async function loader({ url }: Route.LoaderArgs) {
+export async function loader({ context, url }: Route.LoaderArgs) {
+	const db = createDatabase(getCloudflareRuntime(context).env.DB);
 	const dancer1 = url.searchParams.get("dancer1") || ANY_FILTER_VALUE;
 	const dancer2 = url.searchParams.get("dancer2") || ANY_FILTER_VALUE;
 	const orchestra = url.searchParams.get("orchestra") || ANY_FILTER_VALUE;
 	const pageParam = url.searchParams.get("page");
 	const page = Math.max(1, Number.parseInt(pageParam || "1", 10) || 1);
 
-	const [dancerOneOptions, dancerTwoOptions, orchestraOptions, totalVideos] = await Promise.all([
-		getDancerOptions(dancer2, orchestra),
-		getDancerOptions(dancer1, orchestra),
-		getOrchestraOptions(dancer1, dancer2),
-		getFilteredVideosCount(dancer1, dancer2, orchestra),
-	]);
+	const [dancerOneOptions, dancerTwoOptions, orchestraOptions, totalVideos, lastUpdateTime] =
+		await Promise.all([
+			getDancerOptions(db, dancer2, orchestra),
+			getDancerOptions(db, dancer1, orchestra),
+			getOrchestraOptions(db, dancer1, dancer2),
+			getFilteredVideosCount(db, dancer1, dancer2, orchestra),
+			getLastDatabaseUpdateTime(db),
+		]);
 	const totalPages = Math.max(1, Math.ceil(totalVideos / PAGE_SIZE));
 	const safePage = Math.min(page, totalPages);
 	const transformedVideos = await getFilteredVideos(
+		db,
 		dancer1,
 		dancer2,
 		orchestra,
@@ -52,7 +58,6 @@ export async function loader({ url }: Route.LoaderArgs) {
 		PAGE_SIZE,
 	);
 
-	const lastUpdateTime = getLastDatabaseUpdateTime();
 	const formattedLastUpdate = lastUpdateTime
 		? new Intl.DateTimeFormat("en-US", {
 				day: "numeric",

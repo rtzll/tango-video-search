@@ -18,18 +18,36 @@
 
 - **Framework**: [React Router](https://reactrouter.com/) v8 (started as a Remix project)
 - **UI**: [Radix UI](https://www.radix-ui.com/) + [Tailwind CSS](https://tailwindcss.com/)
-- **Database**: [SQLite](https://sqlite.org/) with [Drizzle ORM](https://orm.drizzle.team/)
-- **Runtime**: [Bun](https://bun.sh/)
-- **Deployment**: [Fly.io](https://fly.io)
+- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) with [Drizzle ORM](https://orm.drizzle.team/)
+- **Runtime**: [Cloudflare Workers](https://developers.cloudflare.com/workers/)
+- **Tooling**: [Vite+](https://viteplus.dev/) through the `vp` CLI
 
 ## Development
 
-Requires Bun 1.3.14+.
+Requires Node.js 24 and the Vite+ `vp` CLI.
 
-To run the development server:
+Install dependencies:
 
 ```sh
-bun run dev
+vp install --frozen-lockfile
+```
+
+Load the latest local SQLite snapshot into local D1:
+
+```sh
+vp run db:update --local --reset
+```
+
+Run the React Router development server:
+
+```sh
+vp run dev
+```
+
+Run the built Worker locally through Wrangler:
+
+```sh
+vp run preview
 ```
 
 ### Database
@@ -37,37 +55,29 @@ bun run dev
 > [!NOTE]
 > The database is not included in the repository.
 
-The application uses SQLite via Drizzle ORM with a database file at `data/sqlite.db` by default, or override the path using the `DATABASE_URL` environment variable. The schema includes:
+The application reads from a D1 binding named `DB`. Local data updates are generated from the newest `data/sqlite-YYYY-MM-DD.db` snapshot. The schema includes:
 
 - Videos (YouTube metadata)
 - Performances (tango-specific metadata)
 - Dancers, Orchestras, Songs, Singers, and Curations
 
-## Deployment
-
-Deploying the application is handled by GitHub Actions, which will automatically deploy to Fly.io when you push to the `main` branch.
-
-### Updating Data in Production
-
-Use the automation script:
+Useful commands:
 
 ```sh
-bun run db:update
+vp run db:update --sql-only
+vp run db:update --local --reset
+vp run db:update --remote
 ```
 
-What it does:
+## Deployment
 
-- Scans `data/` for files named `sqlite-YYYY-MM-DD.db` and picks the latest date
-- Updates local `data/sqlite.db` symlink
-- Uploads the latest file to Fly volume as `/data/sqlite.db.next` via `fly ssh sftp put`
-- Atomically replaces `/data/sqlite.db` with the uploaded file via `fly ssh console -C "mv -f ..."`
-- Restarts the Fly app
+Cloudflare deployment is handled by Cloudflare Workers Builds after the GitHub repository is connected in Cloudflare:
 
-Useful flags:
+- Pushes to `main` deploy production.
+- Non-production branch builds upload Cloudflare preview versions.
+- GitHub Actions runs repository checks on PRs and pushes to `main`.
 
 ```sh
-bun run db:update --dry-run
-bun run db:update --force
-bun run db:update --app tango-video-search
-bun run db:update --no-restart
+vp run check
+vp run deploy
 ```

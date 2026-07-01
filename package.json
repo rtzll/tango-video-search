@@ -9,21 +9,20 @@
 	"type": "module",
 	"sideEffects": false,
 	"scripts": {
-		"build": "bun --bun react-router build",
-		"dev": "bun --bun react-router dev",
-		"db:update": "bun scripts/update-production-db.ts",
+		"build": "react-router build",
+		"db:update": "node scripts/update-cloudflare-db.mjs",
+		"deploy": "react-router build && wrangler deploy",
+		"dev": "react-router dev",
+		"preview": "react-router build && wrangler dev --local --config build/server/wrangler.json --persist-to .wrangler/state",
 		"lint": "oxlint .",
 		"lint:fix": "oxlint --fix .",
 		"format": "oxfmt --write .",
-		"check": "bun run lint && bun run typecheck && bun run knip && bun run build",
-		"start": "bun --bun react-router-serve ./build/server/index.js",
-		"typecheck": "bun --bun react-router typegen && tsc",
+		"check": "oxlint . && react-router typegen && tsc && knip && react-router build",
+		"typecheck": "react-router typegen && tsc",
 		"knip": "knip"
 	},
 	"dependencies": {
 		"@radix-ui/react-icons": "^1.3.2",
-		"@react-router/node": "^8.1.0",
-		"@react-router/serve": "^8.1.0",
 		"@tailwindcss/vite": "^4.3.2",
 		"drizzle-orm": "^0.40.1",
 		"isbot": "^5.1.44",
@@ -32,8 +31,9 @@
 		"react-router": "^8.1.0"
 	},
 	"devDependencies": {
+		"@cloudflare/vite-plugin": "^1.42.4",
+		"@cloudflare/workers-types": "^4.20260701.1",
 		"@react-router/dev": "^8.1.0",
-		"@types/bun": "^1.3.14",
 		"@types/node": "^24.13.2",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
@@ -43,10 +43,9 @@
 		"tailwindcss": "^4.3.2",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.6",
-		"vite-tsconfig-paths": "^5.1.4"
+		"vite-plus": "^0.2.1",
+		"vite-tsconfig-paths": "^5.1.4",
+		"wrangler": "^4.106.0"
 	},
-	"engines": {
-		"bun": ">=1.3.14"
-	},
-	"packageManager": "bun@1.3.14"
+	"packageManager": "pnpm@10.33.2"
 }

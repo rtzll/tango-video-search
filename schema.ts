@@ -1,6 +1,11 @@
 import { type InferInsertModel, relations } from "drizzle-orm";
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+export const appMetadata = sqliteTable("app_metadata", {
+	key: text("key").primaryKey(),
+	value: text("value").notNull(),
+});
+
 export const videos = sqliteTable("videos", {
 	channelId: text("channel_id").notNull(),
 	channelName: text("channel_name").notNull(),
