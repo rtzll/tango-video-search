@@ -46,6 +46,10 @@ const RESET_TABLES = [
 	"__drizzle_migrations",
 	"tango_video_scraper_migrations",
 ];
+const APP_METADATA_SCHEMA = `CREATE TABLE IF NOT EXISTS app_metadata (
+  key text PRIMARY KEY,
+  value text NOT NULL
+);`;
 
 interface Options {
 	dataDir: string;
@@ -280,6 +284,20 @@ function buildInsertSelect(table: string, columns: string[]) {
 	return `SELECT ${quoteSqlString(insertPrefix)} || ${values} || ');' FROM ${quoteSqlIdentifier(table)};`;
 }
 
+function makeSchemaIdempotent(schema: string) {
+	return schema
+		.replace(/^CREATE TABLE(?! IF NOT EXISTS)/gm, "CREATE TABLE IF NOT EXISTS")
+		.replace(/^CREATE UNIQUE INDEX(?! IF NOT EXISTS)/gm, "CREATE UNIQUE INDEX IF NOT EXISTS")
+		.replace(/^CREATE INDEX(?! IF NOT EXISTS)/gm, "CREATE INDEX IF NOT EXISTS");
+}
+
+function buildRefreshSql() {
+	const deletes = RESET_TABLES.map((table) => `DELETE FROM ${quoteSqlIdentifier(table)};`).join(
+		"\n",
+	);
+	return `${APP_METADATA_SCHEMA}\n${deletes}`;
+}
+
 async function run(command: string, args: string[], { dryRun }: Pick<Options, "dryRun">) {
 	const pretty = [command, ...args.map((arg) => (/\s/.test(arg) ? JSON.stringify(arg) : arg))].join(
 		" ",
@@ -359,7 +377,9 @@ async function writeSqlDump(
 	const drops = reset
 		? RESET_TABLES.map((table) => `DROP TABLE IF EXISTS ${table};`).join("\n")
 		: "";
-	writeFileSync(outputPath, `PRAGMA foreign_keys=OFF;\n${drops}\n${schema}\n`);
+	const schemaSql = reset ? schema : makeSchemaIdempotent(schema);
+	const refreshSql = reset ? "" : buildRefreshSql();
+	writeFileSync(outputPath, `PRAGMA foreign_keys=OFF;\n${drops}\n${schemaSql}\n${refreshSql}\n`);
 
 	await getExportTables(databasePath).reduce(async (previous, table) => {
 		await previous;
@@ -372,10 +392,7 @@ async function writeSqlDump(
 	appendFileSync(
 		outputPath,
 		`
-CREATE TABLE IF NOT EXISTS app_metadata (
-  key text PRIMARY KEY,
-  value text NOT NULL
-);
+${APP_METADATA_SCHEMA}
 INSERT OR REPLACE INTO app_metadata (key, value) VALUES
   ('database_file', ${quoteSqlString(metadata.fileName)}),
   ('database_updated_at', ${quoteSqlString(metadata.updatedAt)});
