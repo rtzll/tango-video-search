@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/// <reference types="node" />
+
 import { spawn, spawnSync } from "node:child_process";
 import {
 	appendFileSync,
@@ -45,6 +47,36 @@ const RESET_TABLES = [
 	"tango_video_scraper_migrations",
 ];
 
+interface Options {
+	dataDir: string;
+	database: string;
+	dryRun: boolean;
+	noLocalSymlink: boolean;
+	outDir: string;
+	persistTo: string;
+	remote: boolean;
+	reset: boolean;
+	sqlOnly: boolean;
+}
+
+interface LatestDatabaseFile {
+	date: string;
+	name: string;
+}
+
+interface Metadata {
+	fileName: string;
+	updatedAt: string;
+}
+
+interface SqliteTableRow {
+	name: string;
+}
+
+interface TableInfoRow {
+	name: string;
+}
+
 function printHelp() {
 	console.log(`Update the Cloudflare D1 database from the latest local SQLite snapshot.
 
@@ -66,7 +98,7 @@ Options:
 `);
 }
 
-function readOptionValue(args, index, optionName) {
+function readOptionValue(args: string[], index: number, optionName: string) {
 	const value = args[index + 1];
 	if (!value || value.startsWith("-")) {
 		throw new Error(`Missing value for ${optionName}`);
@@ -74,9 +106,9 @@ function readOptionValue(args, index, optionName) {
 	return value;
 }
 
-function parseArgs() {
+function parseArgs(): Options {
 	const args = process.argv.slice(2);
-	const options = {
+	const options: Options = {
 		dataDir: "data",
 		database: DEFAULT_DATABASE,
 		dryRun: false,
@@ -149,9 +181,9 @@ function parseArgs() {
 	return options;
 }
 
-function getLatestDatabaseFile(dataDir) {
+function getLatestDatabaseFile(dataDir: string): LatestDatabaseFile {
 	const candidates = readdirSync(dataDir)
-		.map((name) => {
+		.map((name): LatestDatabaseFile | null => {
 			const match = name.match(DATA_FILE_PATTERN);
 			const date = match?.groups?.date;
 			if (!date) {
@@ -160,7 +192,7 @@ function getLatestDatabaseFile(dataDir) {
 			const path = join(dataDir, name);
 			return lstatSync(path).isFile() ? { date, name } : null;
 		})
-		.filter(Boolean)
+		.filter((candidate): candidate is LatestDatabaseFile => Boolean(candidate))
 		.toSorted((a, b) => a.date.localeCompare(b.date));
 
 	if (candidates.length === 0) {
@@ -170,7 +202,7 @@ function getLatestDatabaseFile(dataDir) {
 	return candidates[candidates.length - 1];
 }
 
-function updateLocalSymlink(dataDir, targetFileName) {
+function updateLocalSymlink(dataDir: string, targetFileName: string) {
 	const symlinkPath = join(dataDir, "sqlite.db");
 
 	if (existsSync(symlinkPath)) {
@@ -186,15 +218,15 @@ function updateLocalSymlink(dataDir, targetFileName) {
 	console.log(`Updated local symlink: ${symlinkPath} -> ${targetFileName}`);
 }
 
-function quoteSqlString(value) {
+function quoteSqlString(value: string) {
 	return `'${value.replaceAll("'", "''")}'`;
 }
 
-function quoteSqlIdentifier(value) {
+function quoteSqlIdentifier(value: string) {
 	return `"${value.replaceAll('"', '""')}"`;
 }
 
-function sqlite(databasePath, args) {
+function sqlite(databasePath: string, args: string[]) {
 	const result = spawnSync("sqlite3", ["-batch", databasePath, ...args], {
 		encoding: "utf8",
 		maxBuffer: 1024 * 1024 * 128,
@@ -205,19 +237,19 @@ function sqlite(databasePath, args) {
 	}
 
 	if (result.status !== 0) {
-		throw new Error(result.stderr.trim() || `sqlite3 exited with code ${result.status}`);
+		throw new Error(String(result.stderr).trim() || `sqlite3 exited with code ${result.status}`);
 	}
 
 	return result.stdout;
 }
 
-function sqliteJson(databasePath, sql) {
+function sqliteJson<T>(databasePath: string, sql: string) {
 	const output = sqlite(databasePath, ["-json", sql]).trim();
-	return output ? JSON.parse(output) : [];
+	return output ? (JSON.parse(output) as T[]) : [];
 }
 
-function getExportTables(databasePath) {
-	const tables = sqliteJson(
+function getExportTables(databasePath: string) {
+	const tables = sqliteJson<SqliteTableRow>(
 		databasePath,
 		"SELECT name FROM sqlite_schema WHERE type = 'table' AND sql IS NOT NULL ORDER BY name;",
 	)
@@ -230,13 +262,14 @@ function getExportTables(databasePath) {
 	return [...knownTables, ...remainingTables];
 }
 
-function getTableColumns(databasePath, table) {
-	return sqliteJson(databasePath, `PRAGMA table_info(${quoteSqlIdentifier(table)});`).map(
-		(row) => row.name,
-	);
+function getTableColumns(databasePath: string, table: string) {
+	return sqliteJson<TableInfoRow>(
+		databasePath,
+		`PRAGMA table_info(${quoteSqlIdentifier(table)});`,
+	).map((row) => row.name);
 }
 
-function buildInsertSelect(table, columns) {
+function buildInsertSelect(table: string, columns: string[]) {
 	const insertPrefix = `INSERT INTO ${quoteSqlIdentifier(table)} (${columns
 		.map(quoteSqlIdentifier)
 		.join(", ")}) VALUES (`;
@@ -247,7 +280,7 @@ function buildInsertSelect(table, columns) {
 	return `SELECT ${quoteSqlString(insertPrefix)} || ${values} || ');' FROM ${quoteSqlIdentifier(table)};`;
 }
 
-async function run(command, args, { dryRun }) {
+async function run(command: string, args: string[], { dryRun }: Pick<Options, "dryRun">) {
 	const pretty = [command, ...args.map((arg) => (/\s/.test(arg) ? JSON.stringify(arg) : arg))].join(
 		" ",
 	);
@@ -257,7 +290,7 @@ async function run(command, args, { dryRun }) {
 		return;
 	}
 
-	await new Promise((resolvePromise, rejectPromise) => {
+	await new Promise<void>((resolvePromise, rejectPromise) => {
 		const child = spawn(command, args, { stdio: "inherit" });
 		child.on("error", rejectPromise);
 		child.on("close", (code) => {
@@ -270,20 +303,25 @@ async function run(command, args, { dryRun }) {
 	});
 }
 
-async function appendSqlQuery(databasePath, sql, outputPath) {
-	await new Promise((resolvePromise, rejectPromise) => {
+async function appendSqlQuery(databasePath: string, sql: string, outputPath: string) {
+	await new Promise<void>((resolvePromise, rejectPromise) => {
 		const output = createWriteStream(outputPath, { flags: "a" });
 		const child = spawn("sqlite3", ["-batch", databasePath, sql], {
 			stdio: ["ignore", "pipe", "inherit"],
 		});
 
 		let settled = false;
-		const rejectOnce = (error) => {
+		const rejectOnce = (error: Error) => {
 			if (!settled) {
 				settled = true;
 				rejectPromise(error);
 			}
 		};
+
+		if (!child.stdout) {
+			rejectOnce(new Error("sqlite3 stdout stream was not available"));
+			return;
+		}
 
 		child.stdout.pipe(output, { end: false });
 		child.on("error", rejectOnce);
@@ -304,7 +342,12 @@ async function appendSqlQuery(databasePath, sql, outputPath) {
 	});
 }
 
-async function writeSqlDump(databasePath, outputPath, metadata, { dryRun }) {
+async function writeSqlDump(
+	databasePath: string,
+	outputPath: string,
+	metadata: Metadata,
+	{ dryRun, reset }: Pick<Options, "dryRun" | "reset">,
+) {
 	console.log(`$ sqlite3 ${databasePath} .schema --nosys > ${outputPath}`);
 	console.log(`$ sqlite3 ${databasePath} <table exports> >> ${outputPath}`);
 
@@ -313,7 +356,10 @@ async function writeSqlDump(databasePath, outputPath, metadata, { dryRun }) {
 	}
 
 	const schema = sqlite(databasePath, [".schema --nosys"]);
-	writeFileSync(outputPath, `PRAGMA foreign_keys=OFF;\n${schema}\n`);
+	const drops = reset
+		? RESET_TABLES.map((table) => `DROP TABLE IF EXISTS ${table};`).join("\n")
+		: "";
+	writeFileSync(outputPath, `PRAGMA foreign_keys=OFF;\n${drops}\n${schema}\n`);
 
 	await getExportTables(databasePath).reduce(async (previous, table) => {
 		await previous;
@@ -337,29 +383,11 @@ INSERT OR REPLACE INTO app_metadata (key, value) VALUES
 	);
 }
 
-function writeResetSql(outputPath) {
-	const drops = RESET_TABLES.map((table) => `DROP TABLE IF EXISTS ${table};`).join("\n");
-	writeFileSync(
-		outputPath,
-		`PRAGMA foreign_keys=OFF;
-${drops}
-`,
-	);
-}
-
-async function importSql(sqlPath, options) {
+async function importSql(sqlPath: string, options: Options) {
 	const target = options.remote ? "--remote" : "--local";
 	const wranglerBaseArgs = ["d1", "execute", options.database, target];
 	if (!options.remote && options.persistTo) {
 		wranglerBaseArgs.push("--persist-to", options.persistTo);
-	}
-
-	if (options.reset) {
-		const resetPath = join(options.outDir, "reset.sql");
-		if (!options.dryRun) {
-			writeResetSql(resetPath);
-		}
-		await run("wrangler", [...wranglerBaseArgs, "--file", resetPath], options);
 	}
 
 	await run("wrangler", [...wranglerBaseArgs, "--file", sqlPath], options);

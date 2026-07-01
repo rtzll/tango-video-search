@@ -10,7 +10,7 @@
 	"sideEffects": false,
 	"scripts": {
 		"build": "react-router build",
-		"db:update": "node scripts/update-cloudflare-db.mjs",
+		"db:update": "node scripts/update-cloudflare-db.ts",
 		"deploy": "react-router build && wrangler deploy",
 		"dev": "react-router dev",
 		"preview": "react-router build && wrangler dev --local --config build/server/wrangler.json --persist-to .wrangler/state",
@@ -41,10 +41,10 @@
 		"oxfmt": "^0.46.0",
 		"oxlint": "^1.72.0",
 		"tailwindcss": "^4.3.2",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.3",
 		"vite": "^7.3.6",
 		"vite-plus": "^0.2.1",
-		"vite-tsconfig-paths": "^5.1.4",
+		"vite-tsconfig-paths": "^6.1.1",
 		"wrangler": "^4.106.0"
 	},
 	"packageManager": "pnpm@10.33.2"
