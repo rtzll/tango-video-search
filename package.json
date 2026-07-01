@@ -7,6 +7,9 @@
 		"url": "https://github.com/rtzll/tango-video-search.git"
 	},
 	"type": "module",
+	"engines": {
+		"node": ">=24.11.0"
+	},
 	"sideEffects": false,
 	"scripts": {
 		"build": "react-router build",

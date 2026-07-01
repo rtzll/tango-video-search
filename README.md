@@ -76,6 +76,7 @@ Cloudflare deployment is handled by Cloudflare Workers Builds after the GitHub r
 - Pushes to `main` deploy production.
 - Non-production branch builds upload Cloudflare preview versions.
 - GitHub Actions runs repository checks on PRs and pushes to `main`.
+- Node.js 24 is pinned with `.node-version` for Cloudflare Builds.
 
 ```sh
 vp run check
