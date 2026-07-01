@@ -1,0 +1,23 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "tango-video-search",
+	"main": "./workers/app.ts",
+	"compatibility_date": "2026-07-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"preview_urls": true,
+	"assets": {
+		"directory": "./build/client",
+		"binding": "ASSETS",
+	},
+	"observability": {
+		"enabled": true,
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "tango-video-search",
+			"database_id": "3b43b65f-f7a6-4600-97fb-300df7715a4e",
+			"preview_database_id": "DB",
+		},
+	],
+}

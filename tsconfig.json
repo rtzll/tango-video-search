@@ -9,8 +9,8 @@
 		".react-router/types/**/*"
 	],
 	"compilerOptions": {
-		"lib": ["DOM", "DOM.Iterable", "ES2022"],
-		"types": ["@react-router/node", "vite/client", "bun"],
+		"lib": ["DOM", "DOM.Iterable", "ES2023"],
+		"types": ["@cloudflare/workers-types", "vite/client"],
 		"isolatedModules": true,
 		"esModuleInterop": true,
 		"jsx": "react-jsx",
@@ -21,7 +21,6 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"baseUrl": ".",
 		"paths": {
 			"~/*": ["./app/*"]
 		},

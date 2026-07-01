@@ -1,11 +1,9 @@
-import { Database } from "bun:sqlite";
-import { statSync } from "node:fs";
-
 import { aliasedTable, and, count, countDistinct, desc, eq, exists, gt, ne } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import { drizzle } from "drizzle-orm/d1";
 
 import * as schema from "../schema";
 import {
+	appMetadata,
 	curations,
 	dancers,
 	dancersToCurations,
@@ -16,38 +14,23 @@ import {
 import { ANY_FILTER_VALUE } from "./utils/filters";
 import { normalizeName } from "./utils/normalize";
 
-const DEFAULT_DB_PATH = "data/sqlite.db";
-const databaseUrl = process.env.DATABASE_URL?.trim();
-
-let dbPath: string;
-if (databaseUrl) {
-	if (databaseUrl.startsWith("file:")) {
-		dbPath = Bun.fileURLToPath(databaseUrl);
-	} else {
-		dbPath = databaseUrl;
-	}
-} else {
-	dbPath = DEFAULT_DB_PATH;
+export function createDatabase(database: D1Database) {
+	return drizzle(database, { schema });
 }
 
-const sqlite = new Database(dbPath, {
-	readonly: true,
-});
-// Configure sqlite
-sqlite.query("pragma synchronous = normal;").run();
-sqlite.query("pragma busy_timeout = 5000;").run();
-sqlite.query("pragma cache_size = 500;").run();
-sqlite.query("pragma temp_store = file;").run();
-sqlite.query("pragma mmap_size = 67108864;").run();
-sqlite.query("pragma foreign_keys = on;").run();
-const db = drizzle({ client: sqlite, schema });
+type AppDatabase = ReturnType<typeof createDatabase>;
 
-export function getLastDatabaseUpdateTime() {
+export async function getLastDatabaseUpdateTime(db: AppDatabase) {
 	try {
-		const stats = statSync(dbPath);
-		return stats.mtime;
+		const results = await db
+			.select({ value: appMetadata.value })
+			.from(appMetadata)
+			.where(eq(appMetadata.key, "database_updated_at"))
+			.limit(1);
+		const value = results[0]?.value;
+		return value ? new Date(value) : null;
 	} catch (error) {
-		console.error("Error getting database file stats:", error);
+		console.error("Error getting database update metadata:", error);
 		return null;
 	}
 }
@@ -58,7 +41,7 @@ function buildOrchestraFilter(orchestra: string) {
 		: eq(orchestras.normalized, normalizeName(orchestra));
 }
 
-export async function getDancerOptions(otherDancer: string, orchestra: string) {
+export async function getDancerOptions(db: AppDatabase, otherDancer: string, orchestra: string) {
 	if (otherDancer === ANY_FILTER_VALUE) {
 		const performanceCount = count(dancersToCurations.curationId);
 
@@ -110,7 +93,7 @@ export async function getDancerOptions(otherDancer: string, orchestra: string) {
 		.orderBy(desc(performanceCount));
 }
 
-export async function getOrchestraOptions(dancer1: string, dancer2: string) {
+export async function getOrchestraOptions(db: AppDatabase, dancer1: string, dancer2: string) {
 	if (dancer1 === ANY_FILTER_VALUE && dancer2 === ANY_FILTER_VALUE) {
 		const performanceCount = count(curations.id);
 
@@ -139,13 +122,13 @@ export async function getOrchestraOptions(dancer1: string, dancer2: string) {
 		.innerJoin(curations, eq(orchestras.id, curations.orchestraId))
 		.innerJoin(dancersToCurations, eq(curations.id, dancersToCurations.curationId))
 		.innerJoin(dancers, eq(dancers.id, dancersToCurations.dancerId))
-		.where(buildJoinBasedDancerFilterClause(dancer1, dancer2))
+		.where(buildJoinBasedDancerFilterClause(db, dancer1, dancer2))
 		.groupBy(orchestras.id, orchestras.name)
 		.having(gt(performanceCount, 0))
 		.orderBy(desc(performanceCount));
 }
 
-function curationHasDancer(normalizedDancer: string) {
+function curationHasDancer(db: AppDatabase, normalizedDancer: string) {
 	const sameCuration = eq(dancersToCurations.curationId, curations.id);
 	const sameDancer = eq(dancers.normalized, normalizedDancer);
 	const dancerFilter = and(sameCuration, sameDancer);
@@ -158,46 +141,47 @@ function curationHasDancer(normalizedDancer: string) {
 	return exists(curationQuery);
 }
 
-function buildDancerFilterClause(dancer1: string, dancer2: string) {
+function buildDancerFilterClause(db: AppDatabase, dancer1: string, dancer2: string) {
 	const dancer1Normalized =
 		dancer1 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer1);
 	const dancer2Normalized =
 		dancer2 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer2);
 
 	if (dancer1Normalized !== ANY_FILTER_VALUE && dancer2Normalized !== ANY_FILTER_VALUE) {
-		return and(curationHasDancer(dancer1Normalized), curationHasDancer(dancer2Normalized));
+		return and(curationHasDancer(db, dancer1Normalized), curationHasDancer(db, dancer2Normalized));
 	}
 
 	const active = dancer1Normalized !== ANY_FILTER_VALUE ? dancer1Normalized : dancer2Normalized;
-	return active === ANY_FILTER_VALUE ? undefined : curationHasDancer(active);
+	return active === ANY_FILTER_VALUE ? undefined : curationHasDancer(db, active);
 }
 
-function buildJoinBasedDancerFilterClause(dancer1: string, dancer2: string) {
+function buildJoinBasedDancerFilterClause(db: AppDatabase, dancer1: string, dancer2: string) {
 	const dancer1Normalized =
 		dancer1 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer1);
 	const dancer2Normalized =
 		dancer2 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer2);
 
 	if (dancer1Normalized !== ANY_FILTER_VALUE && dancer2Normalized !== ANY_FILTER_VALUE) {
-		return and(eq(dancers.normalized, dancer1Normalized), curationHasDancer(dancer2Normalized));
+		return and(eq(dancers.normalized, dancer1Normalized), curationHasDancer(db, dancer2Normalized));
 	}
 
 	const active = dancer1Normalized !== ANY_FILTER_VALUE ? dancer1Normalized : dancer2Normalized;
 	return active === ANY_FILTER_VALUE ? undefined : eq(dancers.normalized, active);
 }
 
-function buildWhereClause(dancer1: string, dancer2: string, orchestra: string) {
-	return and(buildDancerFilterClause(dancer1, dancer2), buildOrchestraFilter(orchestra));
+function buildWhereClause(db: AppDatabase, dancer1: string, dancer2: string, orchestra: string) {
+	return and(buildDancerFilterClause(db, dancer1, dancer2), buildOrchestraFilter(orchestra));
 }
 
 export async function getFilteredVideos(
+	db: AppDatabase,
 	dancer1: string,
 	dancer2: string,
 	orchestra: string,
 	page: number,
 	pageSize: number,
 ) {
-	const whereClause = buildWhereClause(dancer1, dancer2, orchestra);
+	const whereClause = buildWhereClause(db, dancer1, dancer2, orchestra);
 	const offset = (page - 1) * pageSize;
 
 	const results = await db
@@ -230,8 +214,13 @@ export async function getFilteredVideos(
 	}));
 }
 
-export async function getFilteredVideosCount(dancer1: string, dancer2: string, orchestra: string) {
-	const whereClause = buildWhereClause(dancer1, dancer2, orchestra);
+export async function getFilteredVideosCount(
+	db: AppDatabase,
+	dancer1: string,
+	dancer2: string,
+	orchestra: string,
+) {
+	const whereClause = buildWhereClause(db, dancer1, dancer2, orchestra);
 
 	const results = await db
 		.select({
