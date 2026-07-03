@@ -1,10 +1,14 @@
 # Tango Video Search
 
-**Problem:** YouTube search for tango performances is inefficient. Results are buried due to YouTube's algorithmic sorting and inconsistent metadata.
+**Problem:** YouTube search for tango performances is inefficient. Results are
+buried due to YouTube's algorithmic sorting and inconsistent metadata.
 
-**Solution:** Tango Video Search provides a streamlined interface to filter by dancer or orchestra with minimal friction.
+**Solution:** Tango Video Search provides a streamlined interface to filter by
+dancer or orchestra with minimal friction.
 
-**How it works:** It’s powered by an LLM-curated index built from YouTube metadata. That means faster, more accurate retrieval of the performances you're looking for.
+**How it works:** It’s powered by an LLM-curated index built from YouTube
+metadata. That means faster, more accurate retrieval of the performances you're
+looking for.
 
 ## Features
 
@@ -16,9 +20,12 @@
 
 ## Tech Stack
 
-- **Framework**: [React Router](https://reactrouter.com/) v8 (started as a Remix project)
-- **UI**: [Radix UI](https://www.radix-ui.com/) + [Tailwind CSS](https://tailwindcss.com/)
-- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) with [Drizzle ORM](https://orm.drizzle.team/)
+- **Framework**: [React Router](https://reactrouter.com/) v8 (started as a Remix
+  project)
+- **UI**: [Radix UI](https://www.radix-ui.com/) +
+  [Tailwind CSS](https://tailwindcss.com/)
+- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) with
+  [Drizzle ORM](https://orm.drizzle.team/)
 - **Runtime**: [Cloudflare Workers](https://developers.cloudflare.com/workers/)
 - **Tooling**: [Vite+](https://viteplus.dev/) through the `vp` CLI
 
@@ -55,7 +62,9 @@ vp run preview
 > [!NOTE]
 > The database is not included in the repository.
 
-The application reads from a D1 binding named `DB`. Local data updates are generated from the newest `data/sqlite-YYYY-MM-DD.db` snapshot. The schema includes:
+The application reads from a D1 binding named `DB`. Local data updates are
+generated from the newest `data/sqlite-YYYY-MM-DD.db` snapshot. The schema
+includes:
 
 - Videos (YouTube metadata)
 - Performances (tango-specific metadata)
@@ -71,7 +80,8 @@ vp run db:update --remote
 
 ## Deployment
 
-Cloudflare deployment is handled by Cloudflare Workers Builds after the GitHub repository is connected in Cloudflare:
+Cloudflare deployment is handled by Cloudflare Workers Builds after the GitHub
+repository is connected in Cloudflare:
 
 - Pushes to `main` deploy production.
 - Non-production branch builds upload Cloudflare preview versions.
