@@ -1,5 +1,5 @@
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { ANY_FILTER_VALUE } from "~/utils/filters";
 import { normalizeName } from "~/utils/normalize";
@@ -36,6 +36,11 @@ const Combobox = ({
 	const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
 	const listId = useId();
 
+	const closeCombobox = useCallback(() => {
+		inputRef.current?.blur();
+		setOpen(false);
+	}, []);
+
 	useEffect(() => {
 		if (open) {
 			setQuery("");
@@ -49,12 +54,12 @@ const Combobox = ({
 		}
 		const handlePointerDown = (event: MouseEvent) => {
 			if (!containerRef.current?.contains(event.target as Node)) {
-				setOpen(false);
+				closeCombobox();
 			}
 		};
 		document.addEventListener("mousedown", handlePointerDown);
 		return () => document.removeEventListener("mousedown", handlePointerDown);
-	}, [open]);
+	}, [closeCombobox, open]);
 
 	const filteredOptions = useMemo(() => {
 		const normalizedQuery = normalizeName(query.trim());
@@ -87,8 +92,8 @@ const Combobox = ({
 	}, [activeIndex]);
 
 	const closeAndRestoreFocus = () => {
-		setOpen(false);
-		requestAnimationFrame(() => triggerRef.current?.focus());
+		closeCombobox();
+		requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
 	};
 
 	const handleSelect = (nextValue: string) => {
@@ -136,7 +141,7 @@ const Combobox = ({
 								aria-expanded={open}
 								aria-controls={listId}
 								aria-activedescendant={activeOptionId}
-								className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] pl-7 pr-2 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
+								className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] pl-7 pr-2 py-1.5 text-base outline-none focus:border-[var(--color-accent)]"
 								onKeyDown={(event) => {
 									if (event.key === "ArrowDown") {
 										event.preventDefault();
