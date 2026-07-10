@@ -39,72 +39,87 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	};
 
 	return (
-		<div className="bg-[var(--color-panel)] border border-[var(--color-border)] p-4">
+		<article className="border-border bg-panel flex flex-col overflow-hidden border">
 			<a
 				href={`https://youtube.com/watch?v=${video.id}`}
 				target="_blank"
 				rel="noopener noreferrer"
-				className="font-medium text-[var(--color-accent-text)] hover:underline inline-flex items-baseline gap-1"
+				aria-label={`Watch ${video.title} on YouTube`}
+				className="bg-panel-hover group relative aspect-video overflow-hidden"
 			>
-				<span>{video.title}</span>
-				<ExternalLinkIcon className="shrink-0" />
+				<img
+					src={`https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`}
+					alt=""
+					loading="lazy"
+					className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+				/>
+				<span className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10" />
 			</a>
 
-			<dl className="mt-3 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-xs">
-				<dt className="text-[var(--color-muted)] min-w-[44px]">Dancers</dt>
-				<dd className="flex flex-wrap">
-					{video.dancers.map((dancer, index) => (
-						<span key={`${video.id}-${dancer}`}>
-							<FilterButton
-								onClick={() => onFilterClick("dancer", dancer)}
-								active={isActive("dancer", dancer)}
-							>
-								{dancer}
-							</FilterButton>
-							{index < video.dancers.length - 1 ? <span className="mr-1">{" and "}</span> : ""}
-						</span>
-					))}
-				</dd>
+			<div className="flex flex-1 flex-col p-4">
+				<a
+					href={`https://youtube.com/watch?v=${video.id}`}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="text-text hover:text-accent-text inline-flex items-baseline gap-1 text-base leading-snug font-semibold"
+				>
+					<span>{video.title}</span>
+					<ExternalLinkIcon className="shrink-0" />
+				</a>
 
-				<dt className="text-[var(--color-muted)] min-w-[44px]">Orchestra</dt>
-				<dd>
-					<FilterButton
-						onClick={() => onFilterClick("orchestra", video.orchestra)}
-						active={isActive("orchestra", video.orchestra)}
-					>
-						{video.orchestra}
-					</FilterButton>
-				</dd>
+				<dl className="mt-4 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">
+					<dt className="text-muted min-w-[44px]">Dancers</dt>
+					<dd className="flex flex-wrap">
+						{video.dancers.map((dancer, index) => (
+							<span key={`${video.id}-${dancer}`}>
+								<FilterButton
+									onClick={() => onFilterClick("dancer", dancer)}
+									active={isActive("dancer", dancer)}
+								>
+									{dancer}
+								</FilterButton>
+								{index < video.dancers.length - 1 ? <span className="mr-1">{" and "}</span> : ""}
+							</span>
+						))}
+					</dd>
 
-				<dt className="text-[var(--color-muted)] min-w-[44px]">Song</dt>
-				<dd>{video.songTitle}</dd>
+					<dt className="text-muted min-w-[44px]">Orchestra</dt>
+					<dd>
+						<FilterButton
+							onClick={() => onFilterClick("orchestra", video.orchestra)}
+							active={isActive("orchestra", video.orchestra)}
+						>
+							{video.orchestra}
+						</FilterButton>
+					</dd>
 
-				{video.singers.length > 0 && (
-					<>
-						<dt className="text-[var(--color-muted)] min-w-[44px]">
-							Singer{video.singers.length > 1 ? "s" : ""}
-						</dt>
-						<dd>{video.singers.join(", ")}</dd>
-					</>
-				)}
+					<dt className="text-muted min-w-[44px]">Song</dt>
+					<dd>{video.songTitle}</dd>
 
-				<dt className="text-[var(--color-muted)] min-w-[44px]">Channel</dt>
-				<dd>
+					{video.singers.length > 0 && (
+						<>
+							<dt className="text-muted min-w-[44px]">
+								Singer{video.singers.length > 1 ? "s" : ""}
+							</dt>
+							<dd>{video.singers.join(", ")}</dd>
+						</>
+					)}
+				</dl>
+
+				<div className="border-border text-muted mt-auto flex items-end justify-between gap-3 border-t pt-3 text-xs">
 					<a
 						href={`https://youtube.com/channel/${video.channelId}`}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="text-[var(--color-accent-text)] hover:underline inline-flex items-end gap-1"
+						className="hover:text-accent-text inline-flex min-w-0 items-end gap-1 hover:underline"
 					>
-						<span>{video.channelTitle}</span>
+						<span className="truncate">{video.channelTitle}</span>
 						<ExternalLinkIcon className="shrink-0" />
 					</a>
-				</dd>
-
-				<dt className="text-[var(--color-muted)] min-w-[44px]">Year</dt>
-				<dd>{video.year}</dd>
-			</dl>
-		</div>
+					<span className="shrink-0">{video.year}</span>
+				</div>
+			</div>
+		</article>
 	);
 }
 
@@ -121,9 +136,7 @@ function FilterButton({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`text-[var(--color-accent-text)] hover:underline cursor-pointer ${
-				active ? "font-bold" : ""
-			}`}
+			className={`text-accent-text cursor-pointer hover:underline ${active ? "font-bold" : ""}`}
 		>
 			{children}
 		</button>
