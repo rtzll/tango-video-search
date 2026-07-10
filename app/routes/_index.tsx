@@ -83,6 +83,71 @@ function isSameFilterValue(current: string, candidate: string) {
 	return current !== ANY_FILTER_VALUE && normalizeName(current) === normalizeName(candidate);
 }
 
+function ResultsNavigation({
+	announce,
+	ariaLabel,
+	getPageHref,
+	page,
+	resultText,
+	totalPages,
+}: {
+	announce?: boolean;
+	ariaLabel: string;
+	getPageHref: (nextPage: number) => string;
+	page: number;
+	resultText: string;
+	totalPages: number;
+}) {
+	return (
+		<div className="flex flex-wrap items-center justify-between gap-3">
+			<span className="text-muted text-sm" aria-live={announce ? "polite" : undefined}>
+				{resultText}
+			</span>
+			<nav className="flex items-center gap-2" aria-label={ariaLabel}>
+				{page <= 1 ? (
+					<button
+						type="button"
+						disabled
+						className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 border px-2 py-1 text-xs opacity-50"
+					>
+						<ChevronLeftIcon width={14} height={14} />
+						Previous
+					</button>
+				) : (
+					<RouterLink
+						to={getPageHref(page - 1)}
+						className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 border px-2 py-1 text-xs"
+					>
+						<ChevronLeftIcon width={14} height={14} />
+						Previous
+					</RouterLink>
+				)}
+				<span className="text-muted text-xs">
+					Page {page} of {totalPages}
+				</span>
+				{page >= totalPages ? (
+					<button
+						type="button"
+						disabled
+						className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 border px-2 py-1 text-xs opacity-50"
+					>
+						Next
+						<ChevronRightIcon width={14} height={14} />
+					</button>
+				) : (
+					<RouterLink
+						to={getPageHref(page + 1)}
+						className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 border px-2 py-1 text-xs"
+					>
+						Next
+						<ChevronRightIcon width={14} height={14} />
+					</RouterLink>
+				)}
+			</nav>
+		</div>
+	);
+}
+
 export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	const {
 		dancerOneOptions,
@@ -159,116 +224,95 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 
 	const startIndex = totalVideos === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
 	const endIndex = Math.min(page * PAGE_SIZE, totalVideos);
+	const formattedTotalVideos = totalVideos.toLocaleString("en-US");
+	const resultText =
+		totalVideos === 0
+			? "No performances match these filters."
+			: `Showing ${startIndex}–${endIndex} of ${formattedTotalVideos} performances`;
 
 	return (
 		<div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto min-h-screen">
-			<div>
-				<div className="flex items-baseline gap-2 flex-wrap">
-					<span>I want to see</span>
-					<Combobox
-						value={dancer1}
-						onValueChange={(value) => updateSearchParam("dancer1", value)}
-						options={dancerOneOptions}
-						placeholder="any dancer"
-						searchLabel="dancer"
-						ariaLabel="Select first dancer"
-					/>
-					<span>and</span>
-					<Combobox
-						value={dancer2}
-						onValueChange={(value) => updateSearchParam("dancer2", value)}
-						options={dancerTwoOptions}
-						placeholder="any dancer"
-						searchLabel="dancer"
-						ariaLabel="Select second dancer"
-					/>
-					<span>dance to</span>
-					{/* TODO: allow for selecting songs and singers too */}
-					<Combobox
-						value={orchestra}
-						onValueChange={(value) => updateSearchParam("orchestra", value)}
-						options={orchestraOptions}
-						placeholder="any orchestra"
-						searchLabel="orchestra"
-						ariaLabel="Select orchestra"
-					/>
-					{(dancer1 !== ANY_FILTER_VALUE ||
-						dancer2 !== ANY_FILTER_VALUE ||
-						orchestra !== ANY_FILTER_VALUE) && (
-						<button
-							type="button"
-							onClick={resetSearchParams}
-							aria-label="Reset filters"
-							className="inline-flex items-center justify-center w-6 h-6 bg-[var(--color-accent-soft)] hover:bg-[var(--color-accent-soft-hover)] text-[var(--color-accent-text)] cursor-pointer"
-						>
-							<ResetIcon width={12} height={12} />
-						</button>
-					)}
+			<div className="flex flex-col gap-3">
+				<div>
+					<div className="flex items-baseline gap-2 flex-wrap">
+						<span>I want to see</span>
+						<Combobox
+							value={dancer1}
+							onValueChange={(value) => updateSearchParam("dancer1", value)}
+							options={dancerOneOptions}
+							placeholder="any dancer"
+							searchLabel="dancer"
+							ariaLabel="Select first dancer"
+						/>
+						<span>and</span>
+						<Combobox
+							value={dancer2}
+							onValueChange={(value) => updateSearchParam("dancer2", value)}
+							options={dancerTwoOptions}
+							placeholder="any dancer"
+							searchLabel="dancer"
+							ariaLabel="Select second dancer"
+						/>
+						<span>dance to</span>
+						{/* TODO: allow for selecting songs and singers too */}
+						<Combobox
+							value={orchestra}
+							onValueChange={(value) => updateSearchParam("orchestra", value)}
+							options={orchestraOptions}
+							placeholder="any orchestra"
+							searchLabel="orchestra"
+							ariaLabel="Select orchestra"
+						/>
+						{(dancer1 !== ANY_FILTER_VALUE ||
+							dancer2 !== ANY_FILTER_VALUE ||
+							orchestra !== ANY_FILTER_VALUE) && (
+							<button
+								type="button"
+								onClick={resetSearchParams}
+								aria-label="Reset filters"
+								className="inline-flex items-center justify-center w-6 h-6 bg-[var(--color-accent-soft)] hover:bg-[var(--color-accent-soft-hover)] text-[var(--color-accent-text)] cursor-pointer"
+							>
+								<ResetIcon width={12} height={12} />
+							</button>
+						)}
+					</div>
+					<div className="mt-2">
+						<ResultsNavigation
+							announce
+							ariaLabel="Results pages, top"
+							getPageHref={getPageHref}
+							page={page}
+							resultText={resultText}
+							totalPages={totalPages}
+						/>
+					</div>
 				</div>
-			</div>
 
-			{/* TODO: add number of performances for filter and reset filter button */}
-			<div
-				className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
-				key={searchParams.toString()}
-			>
-				{initialVideos.map((video) => (
-					<VideoCard
-						video={video}
-						key={video.id}
-						onFilterClick={handleFilterClick}
-						activeFilters={{
-							dancers: [dancer1, dancer2],
-							orchestra,
-						}}
+				<div className="flex flex-col gap-3">
+					<div
+						className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+						key={searchParams.toString()}
+					>
+						{initialVideos.map((video) => (
+							<VideoCard
+								video={video}
+								key={video.id}
+								onFilterClick={handleFilterClick}
+								activeFilters={{
+									dancers: [dancer1, dancer2],
+									orchestra,
+								}}
+							/>
+						))}
+					</div>
+
+					<ResultsNavigation
+						ariaLabel="Results pages, bottom"
+						getPageHref={getPageHref}
+						page={page}
+						resultText={resultText}
+						totalPages={totalPages}
 					/>
-				))}
-			</div>
-
-			<div className="flex items-center justify-between gap-3 flex-wrap">
-				<span className="text-xs text-[var(--color-muted)]">
-					{totalVideos === 0 ? "No results" : `Showing ${startIndex}–${endIndex} of ${totalVideos}`}
-				</span>
-				<div className="flex items-center gap-2">
-					{page <= 1 ? (
-						<button
-							type="button"
-							disabled
-							className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-[var(--color-border)] text-[var(--color-accent-text)] opacity-50 cursor-not-allowed"
-						>
-							<ChevronLeftIcon width={14} height={14} />
-							Previous
-						</button>
-					) : (
-						<RouterLink
-							to={getPageHref(page - 1)}
-							className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-[var(--color-border)] text-[var(--color-accent-text)] hover:bg-[var(--color-accent-soft)]"
-						>
-							<ChevronLeftIcon width={14} height={14} />
-							Previous
-						</RouterLink>
-					)}
-					<span className="text-xs text-[var(--color-muted)]">
-						Page {page} of {totalPages}
-					</span>
-					{page >= totalPages ? (
-						<button
-							type="button"
-							disabled
-							className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-[var(--color-border)] text-[var(--color-accent-text)] opacity-50 cursor-not-allowed"
-						>
-							Next
-							<ChevronRightIcon width={14} height={14} />
-						</button>
-					) : (
-						<RouterLink
-							to={getPageHref(page + 1)}
-							className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-[var(--color-border)] text-[var(--color-accent-text)] hover:bg-[var(--color-accent-soft)]"
-						>
-							Next
-							<ChevronRightIcon width={14} height={14} />
-						</RouterLink>
-					)}
 				</div>
 			</div>
 
