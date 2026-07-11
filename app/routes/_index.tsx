@@ -22,7 +22,7 @@ import { normalizeName } from "~/utils/normalize";
 
 import type { Route } from "./+types/_index";
 
-const PAGE_SIZE = 42;
+const PAGE_SIZE = 18;
 
 export function meta() {
 	return [
