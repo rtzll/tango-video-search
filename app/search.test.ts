@@ -111,5 +111,15 @@ describe("toggleResultFilterSearchParams", () => {
 
 		const toggledOff = toggleResultFilterSearchParams(selected, "orchestra", "orchestra one");
 		expect(toggledOff.toString()).toBe("");
+
+		const eventAndYear = toggleResultFilterSearchParams(
+			toggleResultFilterSearchParams(new URLSearchParams(), "event", "Festival One"),
+			"year",
+			"2024",
+		);
+		expect(eventAndYear.toString()).toBe("event=Festival+One&year=2024");
+
+		const yearToggledOff = toggleResultFilterSearchParams(eventAndYear, "year", "2024");
+		expect(yearToggledOff.toString()).toBe("event=Festival+One");
 	});
 });

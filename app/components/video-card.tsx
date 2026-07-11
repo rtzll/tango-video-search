@@ -9,9 +9,11 @@ interface VideoCardProps {
 	onFilterClick: (type: ResultFilter, value: string) => void;
 	activeFilters: {
 		dancers: string[];
+		event: string;
 		orchestra: string;
 		singer: string;
 		song: string;
+		year: string;
 	};
 }
 
@@ -27,7 +29,7 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 				(dancer) => dancer !== ANY_FILTER_VALUE && normalizeName(dancer) === normalizedValue,
 			);
 		}
-		const currentValue = type === "orchestra" ? activeFilters.orchestra : activeFilters[type];
+		const currentValue = activeFilters[type];
 		return currentValue !== ANY_FILTER_VALUE && normalizeName(currentValue) === normalizedValue;
 	};
 
@@ -109,14 +111,26 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 					</a>
 					{eventMetadata && (
 						<span
-							className="flex min-w-0 max-w-[55%] shrink-0 items-baseline justify-end gap-1"
+							className="flex min-w-0 max-w-3/5 shrink-0 items-baseline justify-end gap-1"
 							title={eventMetadata.label}
 						>
-							{eventMetadata.event && (
-								<span className="min-w-0 truncate">{eventMetadata.event}</span>
+							{eventMetadata.event && eventMetadata.eventValue && (
+								<FilterButton
+									active={isActive("event", eventMetadata.eventValue)}
+									onClick={() => onFilterClick("event", eventMetadata.eventValue || "")}
+								>
+									<span className="block max-w-60 truncate">{eventMetadata.event}</span>
+								</FilterButton>
 							)}
 							{eventMetadata.event && eventMetadata.year && <span>·</span>}
-							{eventMetadata.year && <span className="shrink-0">{eventMetadata.year}</span>}
+							{eventMetadata.year && (
+								<FilterButton
+									active={isActive("year", eventMetadata.year)}
+									onClick={() => onFilterClick("year", eventMetadata.year || "")}
+								>
+									{eventMetadata.year}
+								</FilterButton>
+							)}
 						</span>
 					)}
 				</div>
@@ -131,11 +145,15 @@ function getEventMetadata(event: string | null, year: number | null) {
 	if (!cleanEvent && !cleanYear) {
 		return null;
 	}
-	const appendedYear = cleanYear && !cleanEvent?.includes(cleanYear) ? cleanYear : null;
+	const displayEvent =
+		cleanEvent && cleanYear
+			? cleanEvent.replace(new RegExp(`(?:\\s*[·–—-]?\\s*)${cleanYear}\\s*$`), "").trim() || null
+			: cleanEvent;
 	return {
-		event: cleanEvent,
-		label: [cleanEvent, appendedYear].filter(Boolean).join(" · "),
-		year: appendedYear,
+		event: displayEvent,
+		eventValue: cleanEvent,
+		label: [displayEvent, cleanYear].filter(Boolean).join(" · "),
+		year: cleanYear,
 	};
 }
 
@@ -152,7 +170,9 @@ function FilterButton({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`text-accent-text cursor-pointer hover:underline ${active ? "font-bold" : ""}`}
+			className={`cursor-pointer rounded-sm px-1 font-normal transition-colors ${
+				active ? "text-accent-text" : "bg-panel-active text-text hover:bg-accent-soft"
+			}`}
 		>
 			{children}
 		</button>

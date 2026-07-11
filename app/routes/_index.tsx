@@ -55,7 +55,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 
 	const [searchParams, setSearchParams] = useSearchParams();
 	const { filters } = parseSearchParams(searchParams);
-	const { dancer1, dancer2, orchestra, singer, song } = filters;
+	const { dancer1, dancer2, event, orchestra, singer, song, year } = filters;
 
 	const updateSearchParam = (param: keyof SearchFilters, value: string) => {
 		setSearchParams(updateFilterSearchParams(searchParams, param, value));
@@ -109,9 +109,11 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								onFilterClick={handleFilterClick}
 								activeFilters={{
 									dancers: [dancer1, dancer2],
+									event,
 									orchestra,
 									singer,
 									song,
+									year,
 								}}
 							/>
 						))}
@@ -129,9 +131,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 
 			<div className="mt-auto pt-4">
 				<div className="flex items-baseline justify-between flex-wrap">
-					<span className="text-muted text-xs">
-						Data refreshed: {formattedLastUpdate}
-					</span>
+					<span className="text-muted text-xs">Data refreshed: {formattedLastUpdate}</span>
 					<a
 						href="https://github.com/rtzll/tango-video-search"
 						target="_blank"

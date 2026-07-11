@@ -1,7 +1,7 @@
 import { ANY_FILTER_VALUE } from "./utils/filters";
 import { normalizeName } from "./utils/normalize";
 
-export type ResultFilter = "dancer" | "orchestra" | "singer" | "song";
+export type ResultFilter = "dancer" | "event" | "orchestra" | "singer" | "song" | "year";
 
 export interface SearchOption {
 	count: number;
@@ -87,9 +87,8 @@ export function toggleResultFilterSearchParams(
 	value: string,
 ) {
 	const nextSearchParams = new URLSearchParams(searchParams);
-	const {
-		filters: { dancer1, dancer2, orchestra, singer, song },
-	} = parseSearchParams(searchParams);
+	const { filters } = parseSearchParams(searchParams);
+	const { dancer1, dancer2 } = filters;
 
 	if (type === "dancer") {
 		if (isSameFilterValue(dancer1, value)) {
@@ -103,14 +102,8 @@ export function toggleResultFilterSearchParams(
 		} else if (dancer1 === ANY_FILTER_VALUE && dancer2 !== ANY_FILTER_VALUE) {
 			nextSearchParams.set("dancer1", value);
 		}
-	} else if (type === "orchestra") {
-		if (isSameFilterValue(orchestra, value)) {
-			nextSearchParams.delete("orchestra");
-		} else {
-			nextSearchParams.set("orchestra", value);
-		}
 	} else {
-		const currentValue = type === "song" ? song : singer;
+		const currentValue = filters[type];
 		if (isSameFilterValue(currentValue, value)) {
 			nextSearchParams.delete(type);
 		} else {
