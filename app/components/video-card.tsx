@@ -25,6 +25,8 @@ interface VideoCardProps {
 }
 
 function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
+	const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
+
 	const isActive = (type: "dancer" | "orchestra", value: string) => {
 		const normalizedValue = normalizeName(value);
 		if (type === "dancer") {
@@ -47,13 +49,8 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 				aria-label={`Watch ${video.title} on YouTube`}
 				className="bg-panel-hover group relative aspect-video overflow-hidden"
 			>
-				<img
-					src={`https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`}
-					alt=""
-					loading="lazy"
-					className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-				/>
-				<span className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10" />
+				<img src={thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+				<span className="bg-accent/45 pointer-events-none absolute inset-0 mix-blend-color transition-opacity duration-200 group-hover:opacity-0 group-focus-visible:opacity-0" />
 			</a>
 
 			<div className="flex flex-1 flex-col p-4">
