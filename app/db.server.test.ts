@@ -182,4 +182,15 @@ describe("loadSearchPage", () => {
 		expect(result.page).toBe(2);
 		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-3"]);
 	});
+
+	it("clamps a page below the beginning to the first page", async () => {
+		const result = await loadSearchPage(createDatabase(database), {
+			filters: emptyFilters,
+			page: 0,
+			pageSize: 2,
+		});
+
+		expect(result.page).toBe(1);
+		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1", "video-2"]);
+	});
 });

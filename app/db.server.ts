@@ -321,7 +321,7 @@ export async function loadSearchPage(
 		getLastDatabaseUpdateTime(db),
 	]);
 	const totalPages = Math.max(1, Math.ceil(totalVideos / pageSize));
-	const safePage = Math.min(page, totalPages);
+	const safePage = Math.max(1, Math.min(page, totalPages));
 	const initialVideos = await getFilteredVideos(db, filters, safePage, pageSize);
 
 	return {
