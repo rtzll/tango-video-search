@@ -19,6 +19,7 @@ import {
 	getOrchestraOptions,
 	getSingerOptions,
 	getSongOptions,
+	type VideoFilters,
 } from "~/db.server";
 import { ANY_FILTER_VALUE } from "~/utils/filters";
 import { normalizeName } from "~/utils/normalize";
@@ -41,6 +42,7 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 	const orchestra = url.searchParams.get("orchestra") || ANY_FILTER_VALUE;
 	const song = url.searchParams.get("song") || ANY_FILTER_VALUE;
 	const singer = url.searchParams.get("singer") || ANY_FILTER_VALUE;
+	const filters = { dancer1, dancer2, orchestra, singer, song } satisfies VideoFilters;
 	const pageParam = url.searchParams.get("page");
 	const page = Math.max(1, Number.parseInt(pageParam || "1", 10) || 1);
 
@@ -53,26 +55,17 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 		totalVideos,
 		lastUpdateTime,
 	] = await Promise.all([
-		getDancerOptions(db, dancer2, orchestra),
-		getDancerOptions(db, dancer1, orchestra),
-		getOrchestraOptions(db, dancer1, dancer2),
-		getSongOptions(db),
-		getSingerOptions(db),
-		getFilteredVideosCount(db, dancer1, dancer2, orchestra, song, singer),
+		getDancerOptions(db, filters, "dancer1"),
+		getDancerOptions(db, filters, "dancer2"),
+		getOrchestraOptions(db, filters),
+		getSongOptions(db, filters),
+		getSingerOptions(db, filters),
+		getFilteredVideosCount(db, filters),
 		getLastDatabaseUpdateTime(db),
 	]);
 	const totalPages = Math.max(1, Math.ceil(totalVideos / PAGE_SIZE));
 	const safePage = Math.min(page, totalPages);
-	const transformedVideos = await getFilteredVideos(
-		db,
-		dancer1,
-		dancer2,
-		orchestra,
-		song,
-		singer,
-		safePage,
-		PAGE_SIZE,
-	);
+	const transformedVideos = await getFilteredVideos(db, filters, safePage, PAGE_SIZE);
 
 	const formattedLastUpdate = lastUpdateTime
 		? new Intl.DateTimeFormat("en-US", {
