@@ -26,6 +26,7 @@ interface VideoCardProps {
 
 function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
+	const videoLinkLabel = `Watch ${video.dancers.join(" and ")} dance to ${video.songTitle} by ${video.orchestra} on YouTube`;
 
 	const isActive = (type: "dancer" | "orchestra", value: string) => {
 		const normalizedValue = normalizeName(value);
@@ -46,7 +47,7 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 				href={`https://youtube.com/watch?v=${video.id}`}
 				target="_blank"
 				rel="noopener noreferrer"
-				aria-label={`Watch ${video.title} on YouTube`}
+				aria-label={videoLinkLabel}
 				className="bg-panel-hover group relative aspect-video overflow-hidden"
 			>
 				<img src={thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -54,17 +55,7 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 			</a>
 
 			<div className="flex flex-1 flex-col p-4">
-				<a
-					href={`https://youtube.com/watch?v=${video.id}`}
-					target="_blank"
-					rel="noopener noreferrer"
-					className="text-text hover:text-accent-text inline-flex items-baseline gap-1 text-base leading-snug font-semibold"
-				>
-					<span>{video.title}</span>
-					<ExternalLinkIcon className="shrink-0" />
-				</a>
-
-				<dl className="mt-4 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">
+				<dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">
 					<dt className="text-muted min-w-[44px]">Dancers</dt>
 					<dd className="flex flex-wrap">
 						{video.dancers.map((dancer, index) => (
@@ -102,8 +93,9 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 						</>
 					)}
 				</dl>
+				<div className="min-h-4 flex-1" />
 
-				<div className="border-border text-muted mt-auto flex items-end justify-between gap-3 border-t pt-3 text-xs">
+				<div className="border-border text-muted flex items-end justify-between gap-3 border-t pt-3 text-xs">
 					<a
 						href={`https://youtube.com/channel/${video.channelId}`}
 						target="_blank"
