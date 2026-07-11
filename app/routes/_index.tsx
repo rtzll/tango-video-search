@@ -13,6 +13,7 @@ import { getCloudflareRuntime } from "~/context.server";
 import {
 	createDatabase,
 	getDancerOptions,
+	getEventOptions,
 	getFilteredVideos,
 	getFilteredVideosCount,
 	getLastDatabaseUpdateTime,
@@ -28,6 +29,12 @@ import type { Route } from "./+types/_index";
 
 const PAGE_SIZE = 18;
 
+interface FilterOption {
+	id: number;
+	name: string;
+	count: number;
+}
+
 export function meta() {
 	return [
 		{ title: "Tango Video Search" },
@@ -39,16 +46,18 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 	const db = createDatabase(getCloudflareRuntime(context).env.DB);
 	const dancer1 = url.searchParams.get("dancer1") || ANY_FILTER_VALUE;
 	const dancer2 = url.searchParams.get("dancer2") || ANY_FILTER_VALUE;
+	const event = url.searchParams.get("event") || ANY_FILTER_VALUE;
 	const orchestra = url.searchParams.get("orchestra") || ANY_FILTER_VALUE;
 	const song = url.searchParams.get("song") || ANY_FILTER_VALUE;
 	const singer = url.searchParams.get("singer") || ANY_FILTER_VALUE;
-	const filters = { dancer1, dancer2, orchestra, singer, song } satisfies VideoFilters;
+	const filters = { dancer1, dancer2, event, orchestra, singer, song } satisfies VideoFilters;
 	const pageParam = url.searchParams.get("page");
 	const page = Math.max(1, Number.parseInt(pageParam || "1", 10) || 1);
 
 	const [
 		dancerOneOptions,
 		dancerTwoOptions,
+		eventOptions,
 		orchestraOptions,
 		songOptions,
 		singerOptions,
@@ -57,6 +66,7 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 	] = await Promise.all([
 		getDancerOptions(db, filters, "dancer1"),
 		getDancerOptions(db, filters, "dancer2"),
+		getEventOptions(db, filters),
 		getOrchestraOptions(db, filters),
 		getSongOptions(db, filters),
 		getSingerOptions(db, filters),
@@ -79,6 +89,7 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 	return {
 		dancerOneOptions,
 		dancerTwoOptions,
+		eventOptions,
 		formattedLastUpdate,
 		initialVideos: transformedVideos,
 		orchestraOptions,
@@ -92,6 +103,50 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 
 function isSameFilterValue(current: string, candidate: string) {
 	return current !== ANY_FILTER_VALUE && normalizeName(current) === normalizeName(candidate);
+}
+
+function OptionalFilter({
+	available,
+	label,
+	onValueChange,
+	options,
+	value,
+}: {
+	available: boolean;
+	label: string;
+	onValueChange: (value: string) => void;
+	options: FilterOption[];
+	value: string;
+}) {
+	const article = label === "event" ? "an" : "a";
+
+	if (value === ANY_FILTER_VALUE) {
+		return available ? (
+			<Combobox
+				value={ANY_FILTER_VALUE}
+				onValueChange={onValueChange}
+				options={options}
+				placeholder={`+ ${label}`}
+				searchLabel={label}
+				ariaLabel={`Add ${article} ${label} filter`}
+				includeEmptyOption={false}
+				showCaret={false}
+			/>
+		) : null;
+	}
+
+	return (
+		<button
+			type="button"
+			onClick={() => onValueChange(ANY_FILTER_VALUE)}
+			className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex max-w-full cursor-pointer items-center gap-1 rounded-sm px-2 py-1 text-xs"
+		>
+			<span className="truncate">
+				{label.charAt(0).toUpperCase() + label.slice(1)}: {value}
+			</span>
+			<Cross1Icon className="shrink-0" />
+		</button>
+	);
 }
 
 function ResultsNavigation({
@@ -163,6 +218,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	const {
 		dancerOneOptions,
 		dancerTwoOptions,
+		eventOptions,
 		orchestraOptions,
 		songOptions,
 		singerOptions,
@@ -176,19 +232,27 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const dancer1 = searchParams.get("dancer1") || ANY_FILTER_VALUE;
 	const dancer2 = searchParams.get("dancer2") || ANY_FILTER_VALUE;
+	const event = searchParams.get("event") || ANY_FILTER_VALUE;
 	const orchestra = searchParams.get("orchestra") || ANY_FILTER_VALUE;
 	const song = searchParams.get("song") || ANY_FILTER_VALUE;
 	const singer = searchParams.get("singer") || ANY_FILTER_VALUE;
 	const hasAnyFilters =
 		dancer1 !== ANY_FILTER_VALUE ||
 		dancer2 !== ANY_FILTER_VALUE ||
+		event !== ANY_FILTER_VALUE ||
 		orchestra !== ANY_FILTER_VALUE ||
 		song !== ANY_FILTER_VALUE ||
 		singer !== ANY_FILTER_VALUE;
 	const canAddSong = songOptions.length > 0;
 	const canAddSinger = singerOptions.length > 0;
+	const canAddEvent = eventOptions.length > 0;
 	const showOptionalFilters =
-		canAddSong || canAddSinger || song !== ANY_FILTER_VALUE || singer !== ANY_FILTER_VALUE;
+		canAddSong ||
+		canAddSinger ||
+		canAddEvent ||
+		song !== ANY_FILTER_VALUE ||
+		singer !== ANY_FILTER_VALUE ||
+		event !== ANY_FILTER_VALUE;
 
 	const updateSearchParam = (param: string, value: string) => {
 		const newParams = new URLSearchParams(searchParams);
@@ -307,52 +371,27 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 					</div>
 					{showOptionalFilters && (
 						<div className="relative mt-2 flex flex-wrap items-center gap-2">
-							{song === ANY_FILTER_VALUE ? (
-								canAddSong ? (
-									<Combobox
-										value={ANY_FILTER_VALUE}
-										onValueChange={(value) => updateSearchParam("song", value)}
-										options={songOptions}
-										placeholder="+ song"
-										searchLabel="song"
-										ariaLabel="Add a song filter"
-										includeEmptyOption={false}
-										showCaret={false}
-									/>
-								) : null
-							) : (
-								<button
-									type="button"
-									onClick={() => updateSearchParam("song", ANY_FILTER_VALUE)}
-									className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-1 text-xs"
-								>
-									Song: {song}
-									<Cross1Icon />
-								</button>
-							)}
-							{singer === ANY_FILTER_VALUE ? (
-								canAddSinger ? (
-									<Combobox
-										value={ANY_FILTER_VALUE}
-										onValueChange={(value) => updateSearchParam("singer", value)}
-										options={singerOptions}
-										placeholder="+ singer"
-										searchLabel="singer"
-										ariaLabel="Add a singer filter"
-										includeEmptyOption={false}
-										showCaret={false}
-									/>
-								) : null
-							) : (
-								<button
-									type="button"
-									onClick={() => updateSearchParam("singer", ANY_FILTER_VALUE)}
-									className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-1 text-xs"
-								>
-									Singer: {singer}
-									<Cross1Icon />
-								</button>
-							)}
+							<OptionalFilter
+								available={canAddSong}
+								label="song"
+								onValueChange={(value) => updateSearchParam("song", value)}
+								options={songOptions}
+								value={song}
+							/>
+							<OptionalFilter
+								available={canAddSinger}
+								label="singer"
+								onValueChange={(value) => updateSearchParam("singer", value)}
+								options={singerOptions}
+								value={singer}
+							/>
+							<OptionalFilter
+								available={canAddEvent}
+								label="event"
+								onValueChange={(value) => updateSearchParam("event", value)}
+								options={eventOptions}
+								value={event}
+							/>
 						</div>
 					)}
 					<div className="mt-2">

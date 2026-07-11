@@ -1,4 +1,4 @@
-import { and, count, countDistinct, desc, eq, exists, gt, ne } from "drizzle-orm";
+import { and, count, countDistinct, desc, eq, exists, gt, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
 import * as schema from "../schema";
@@ -41,6 +41,7 @@ export async function getLastDatabaseUpdateTime(db: AppDatabase) {
 export interface VideoFilters {
 	dancer1: string;
 	dancer2: string;
+	event: string;
 	orchestra: string;
 	singer: string;
 	song: string;
@@ -113,9 +114,24 @@ function curationHasSong(db: AppDatabase, normalizedSong: string) {
 	return exists(curationQuery);
 }
 
+function curationHasEvent(db: AppDatabase, event: string) {
+	const curationQuery = db
+		.select({ id: performances.id })
+		.from(performances)
+		.where(
+			and(
+				eq(performances.id, curations.performanceId),
+				eq(sql`trim(${performances.event})`, event),
+			),
+		);
+
+	return exists(curationQuery);
+}
+
 function buildWhereClause(db: AppDatabase, filters: VideoFilters) {
 	return and(
 		buildDancerFilterClause(db, filters.dancer1, filters.dancer2),
+		filters.event === ANY_FILTER_VALUE ? undefined : curationHasEvent(db, filters.event.trim()),
 		filters.orchestra === ANY_FILTER_VALUE
 			? undefined
 			: curationHasOrchestra(db, normalizeName(filters.orchestra)),
@@ -126,6 +142,26 @@ function buildWhereClause(db: AppDatabase, filters: VideoFilters) {
 			? undefined
 			: curationHasSinger(db, normalizeName(filters.singer)),
 	);
+}
+
+export async function getEventOptions(db: AppDatabase, filters: VideoFilters) {
+	const eventName = sql<string>`trim(${performances.event})`;
+	const performanceCount = countDistinct(curations.id);
+	const scopedFilters = withoutFilter(filters, "event");
+	const scopedWhereClause = buildWhereClause(db, scopedFilters);
+
+	return db
+		.select({
+			count: performanceCount.as("performanceCount"),
+			id: sql<number>`min(${curations.id})`,
+			name: eventName,
+		})
+		.from(performances)
+		.innerJoin(curations, eq(performances.id, curations.performanceId))
+		.where(and(scopedWhereClause, sql`${performances.event} is not null`, ne(eventName, "")))
+		.groupBy(eventName)
+		.having(gt(performanceCount, 0))
+		.orderBy(desc(performanceCount));
 }
 
 export async function getDancerOptions(
