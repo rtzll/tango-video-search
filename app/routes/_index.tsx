@@ -76,7 +76,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 			: `Showing ${startIndex}–${endIndex} of ${formattedTotalVideos} performances`;
 
 	return (
-		<div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto min-h-screen">
+		<div className="mx-auto flex min-h-screen max-w-350 flex-col gap-6 p-6">
 			<div className="flex flex-col gap-3">
 				<div>
 					<SearchControls
@@ -129,14 +129,14 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 
 			<div className="mt-auto pt-4">
 				<div className="flex items-baseline justify-between flex-wrap">
-					<span className="text-xs text-[var(--color-muted)]">
+					<span className="text-muted text-xs">
 						Data refreshed: {formattedLastUpdate}
 					</span>
 					<a
 						href="https://github.com/rtzll/tango-video-search"
 						target="_blank"
 						rel="noopener noreferrer"
-						className="text-xs text-[var(--color-muted)] hover:underline inline-flex items-center gap-1"
+						className="text-muted inline-flex items-center gap-1 text-xs hover:underline"
 					>
 						Source code
 						<GitHubLogoIcon width={12} height={12} />

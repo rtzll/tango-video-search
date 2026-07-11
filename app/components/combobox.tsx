@@ -148,7 +148,7 @@ const Combobox = ({
 			{open && (
 				<div
 					ref={panelRef}
-					className={`border-border bg-panel absolute inset-x-0 z-20 min-w-0 rounded-md border p-1 shadow-xl sm:right-auto sm:min-w-[280px] ${panelPosition}`}
+					className={`border-border bg-panel absolute inset-x-0 z-20 min-w-0 rounded-md border p-1 shadow-xl sm:right-auto sm:min-w-70 ${panelPosition}`}
 				>
 					<div className="flex flex-col gap-2">
 						<div className="relative flex items-center gap-2 px-2 py-2">
