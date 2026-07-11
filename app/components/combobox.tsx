@@ -17,6 +17,7 @@ interface ComboboxProps {
 	placeholder: string;
 	searchLabel: string;
 	ariaLabel?: string;
+	includeEmptyOption?: boolean;
 	showCaret?: boolean;
 }
 
@@ -27,14 +28,17 @@ const Combobox = ({
 	placeholder,
 	searchLabel,
 	ariaLabel,
+	includeEmptyOption = true,
 	showCaret = true,
 }: ComboboxProps) => {
 	const [open, setOpen] = useState(false);
+	const [openAbove, setOpenAbove] = useState(false);
 	const [query, setQuery] = useState("");
 	const [activeIndex, setActiveIndex] = useState(0);
 	const triggerRef = useRef<HTMLButtonElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const panelRef = useRef<HTMLDivElement>(null);
 	const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
 	const listId = useId();
 
@@ -71,10 +75,27 @@ const Combobox = ({
 		return options.filter((option) => normalizeName(option.name).includes(normalizedQuery));
 	}, [options, query]);
 
-	const listOptions = useMemo(
-		() => [{ count: undefined, id: ANY_FILTER_VALUE, name: placeholder }, ...filteredOptions],
-		[filteredOptions, placeholder],
-	);
+	const listOptions = useMemo(() => {
+		const emptyOption = { count: undefined, id: ANY_FILTER_VALUE, name: placeholder };
+		return includeEmptyOption ? [emptyOption, ...filteredOptions] : filteredOptions;
+	}, [filteredOptions, includeEmptyOption, placeholder]);
+
+	useEffect(() => {
+		if (!open) {
+			setOpenAbove(false);
+			return;
+		}
+
+		const triggerRect = triggerRef.current?.getBoundingClientRect();
+		const panelHeight = panelRef.current?.offsetHeight;
+		if (!triggerRect || !panelHeight) {
+			return;
+		}
+
+		const spaceAbove = triggerRect.top;
+		const spaceBelow = globalThis.innerHeight - triggerRect.bottom;
+		setOpenAbove(spaceBelow < panelHeight + 8 && spaceAbove > spaceBelow);
+	}, [filteredOptions.length, open]);
 
 	useEffect(() => {
 		if (!open) {
@@ -104,15 +125,15 @@ const Combobox = ({
 	};
 
 	const selectedLabel = value === ANY_FILTER_VALUE ? placeholder : value;
-	const searchText = searchLabel ?? placeholder;
 	const activeOptionId = `${listId}-option-${activeIndex}`;
+	const panelPosition = openAbove ? "bottom-full mb-1.5" : "top-full mt-1.5";
 
 	return (
 		<div ref={containerRef} className="static inline-block sm:relative">
 			<button
 				type="button"
 				ref={triggerRef}
-				onClick={() => setOpen((o) => !o)}
+				onClick={() => setOpen((currentOpen) => !currentOpen)}
 				aria-label={ariaLabel ?? selectedLabel}
 				aria-haspopup="listbox"
 				aria-expanded={open}
@@ -125,10 +146,13 @@ const Combobox = ({
 			</button>
 
 			{open && (
-				<div className="absolute inset-x-0 top-full z-20 mt-1.5 min-w-0 border border-[var(--color-border)] bg-[var(--color-panel)] p-2 shadow-lg sm:right-auto sm:min-w-[260px]">
+				<div
+					ref={panelRef}
+					className={`border-border bg-panel absolute inset-x-0 z-20 min-w-0 rounded-md border p-1 shadow-xl sm:right-auto sm:min-w-[280px] ${panelPosition}`}
+				>
 					<div className="flex flex-col gap-2">
-						<div className="relative">
-							<MagnifyingGlassIcon className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
+						<div className="relative flex items-center gap-2 px-2 py-2">
+							<MagnifyingGlassIcon className="text-muted shrink-0" />
 							<input
 								ref={inputRef}
 								type="text"
@@ -137,15 +161,15 @@ const Combobox = ({
 									setQuery(event.target.value);
 									setActiveIndex(0);
 								}}
-								placeholder={`Search ${searchText}`}
+								placeholder={`Search ${searchLabel}`}
 								autoComplete="off"
-								aria-label={`Search ${searchText}`}
+								aria-label={`Search ${searchLabel}`}
 								role="combobox"
 								aria-autocomplete="list"
 								aria-expanded={open}
 								aria-controls={listId}
 								aria-activedescendant={activeOptionId}
-								className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] pl-7 pr-2 py-1.5 text-base outline-none focus:border-[var(--color-accent)]"
+								className="placeholder:text-muted min-w-0 flex-1 bg-transparent py-1 text-base outline-none"
 								onKeyDown={(event) => {
 									if (event.key === "ArrowDown") {
 										event.preventDefault();
@@ -173,37 +197,45 @@ const Combobox = ({
 							/>
 						</div>
 
-						<div className="overflow-y-auto max-h-80">
-							<div className="flex flex-col gap-1 py-1 pr-2" role="listbox" id={listId}>
-								<OptionRow
-									id={`${listId}-option-0`}
-									label={placeholder}
-									value={ANY_FILTER_VALUE}
-									selected={value === ANY_FILTER_VALUE}
-									active={activeIndex === 0}
-									onSelect={handleSelect}
-									buttonRef={(node) => {
-										optionRefs.current[0] = node;
-									}}
-								/>
+						<div className="max-h-80 overflow-y-auto px-1 pb-1">
+							<div className="flex flex-col gap-1" role="listbox" id={listId}>
+								{includeEmptyOption && (
+									<OptionRow
+										id={`${listId}-option-0`}
+										label={placeholder}
+										value={ANY_FILTER_VALUE}
+										selected={value === ANY_FILTER_VALUE}
+										active={activeIndex === 0}
+										onSelect={handleSelect}
+										buttonRef={(node) => {
+											optionRefs.current[0] = node;
+										}}
+									/>
+								)}
+								{includeEmptyOption && filteredOptions.length > 0 && (
+									<div className="border-border mx-2 my-1 border-t" />
+								)}
 								{filteredOptions.length === 0 ? (
-									<p className="text-sm text-[var(--color-muted)] text-center py-2">No matches</p>
+									<p className="text-muted py-3 text-center text-sm">No matches</p>
 								) : (
-									filteredOptions.map((option, index) => (
-										<OptionRow
-											key={option.id}
-											id={`${listId}-option-${index + 1}`}
-											label={option.name}
-											value={option.name}
-											count={option.count}
-											selected={normalizeName(value) === normalizeName(option.name)}
-											active={activeIndex === index + 1}
-											onSelect={handleSelect}
-											buttonRef={(node) => {
-												optionRefs.current[index + 1] = node;
-											}}
-										/>
-									))
+									filteredOptions.map((option, index) => {
+										const optionIndex = index + (includeEmptyOption ? 1 : 0);
+										return (
+											<OptionRow
+												key={option.id}
+												id={`${listId}-option-${optionIndex}`}
+												label={option.name}
+												value={option.name}
+												count={option.count}
+												selected={normalizeName(value) === normalizeName(option.name)}
+												active={activeIndex === optionIndex}
+												onSelect={handleSelect}
+												buttonRef={(node) => {
+													optionRefs.current[optionIndex] = node;
+												}}
+											/>
+										);
+									})
 								)}
 							</div>
 						</div>
@@ -241,14 +273,12 @@ const OptionRow = ({
 		role="option"
 		aria-selected={selected}
 		title={count ? `${label} (${count})` : label}
-		className={`flex items-center justify-between w-full text-sm px-2 py-1 text-left text-[var(--color-accent-text)] cursor-pointer ${
-			active ? "bg-[var(--color-panel-hover)]" : ""
-		} hover:bg-[var(--color-panel-hover)] ${selected ? "font-bold" : ""}`}
+		className={`hover:bg-panel-hover flex min-h-10 w-full cursor-pointer items-center justify-between rounded-sm px-3 py-2 text-left text-sm ${
+			active ? "bg-panel-hover" : ""
+		} ${selected ? "bg-accent-soft text-accent-text font-medium" : "text-text"}`}
 	>
-		<span className="truncate max-w-60">{label}</span>
-		{typeof count === "number" && (
-			<span className="shrink-0 text-[var(--color-muted)]">({count})</span>
-		)}
+		<span className="max-w-60 truncate">{label}</span>
+		{typeof count === "number" && <span className="text-muted shrink-0">({count})</span>}
 	</button>
 );
 

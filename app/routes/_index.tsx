@@ -316,6 +316,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 										placeholder="+ song"
 										searchLabel="song"
 										ariaLabel="Add a song filter"
+										includeEmptyOption={false}
 										showCaret={false}
 									/>
 								) : null
@@ -338,6 +339,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 										placeholder="+ singer"
 										searchLabel="singer"
 										ariaLabel="Add a singer filter"
+										includeEmptyOption={false}
 										showCaret={false}
 									/>
 								) : null
