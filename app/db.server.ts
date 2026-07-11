@@ -24,7 +24,7 @@ export function createDatabase(database: D1Database) {
 
 type AppDatabase = ReturnType<typeof createDatabase>;
 
-export async function getLastDatabaseUpdateTime(db: AppDatabase) {
+async function getLastDatabaseUpdateTime(db: AppDatabase) {
 	try {
 		const results = await db
 			.select({ value: appMetadata.value })
@@ -136,7 +136,7 @@ function buildWhereClause(db: AppDatabase, filters: SearchFilters) {
 	);
 }
 
-export async function getEventOptions(db: AppDatabase, filters: SearchFilters) {
+async function getEventOptions(db: AppDatabase, filters: SearchFilters) {
 	const eventName = sql<string>`trim(${performances.event})`;
 	const performanceCount = countDistinct(curations.id);
 	const scopedFilters = withoutFilter(filters, "event");
@@ -156,7 +156,7 @@ export async function getEventOptions(db: AppDatabase, filters: SearchFilters) {
 		.orderBy(desc(performanceCount));
 }
 
-export async function getDancerOptions(
+async function getDancerOptions(
 	db: AppDatabase,
 	filters: SearchFilters,
 	filterKey: DancerFilterKey,
@@ -185,7 +185,7 @@ export async function getDancerOptions(
 		.orderBy(desc(performanceCount));
 }
 
-export async function getOrchestraOptions(db: AppDatabase, filters: SearchFilters) {
+async function getOrchestraOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
@@ -202,7 +202,7 @@ export async function getOrchestraOptions(db: AppDatabase, filters: SearchFilter
 		.orderBy(desc(performanceCount));
 }
 
-export async function getSongOptions(db: AppDatabase, filters: SearchFilters) {
+async function getSongOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
@@ -219,7 +219,7 @@ export async function getSongOptions(db: AppDatabase, filters: SearchFilters) {
 		.orderBy(desc(performanceCount));
 }
 
-export async function getSingerOptions(db: AppDatabase, filters: SearchFilters) {
+async function getSingerOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
@@ -237,7 +237,7 @@ export async function getSingerOptions(db: AppDatabase, filters: SearchFilters) 
 		.orderBy(desc(performanceCount));
 }
 
-export async function getFilteredVideos(
+async function getFilteredVideos(
 	db: AppDatabase,
 	filters: SearchFilters,
 	page: number,
@@ -276,7 +276,7 @@ export async function getFilteredVideos(
 	}));
 }
 
-export async function getFilteredVideosCount(db: AppDatabase, filters: SearchFilters) {
+async function getFilteredVideosCount(db: AppDatabase, filters: SearchFilters) {
 	const whereClause = buildWhereClause(db, filters);
 
 	const results = await db
@@ -287,4 +287,54 @@ export async function getFilteredVideosCount(db: AppDatabase, filters: SearchFil
 		.where(whereClause);
 
 	return results[0]?.count ?? 0;
+}
+
+export async function loadSearchPage(
+	db: AppDatabase,
+	{
+		filters,
+		page,
+		pageSize,
+	}: {
+		filters: SearchFilters;
+		page: number;
+		pageSize: number;
+	},
+) {
+	const [
+		dancerOneOptions,
+		dancerTwoOptions,
+		eventOptions,
+		orchestraOptions,
+		songOptions,
+		singerOptions,
+		totalVideos,
+		lastUpdateTime,
+	] = await Promise.all([
+		getDancerOptions(db, filters, "dancer1"),
+		getDancerOptions(db, filters, "dancer2"),
+		getEventOptions(db, filters),
+		getOrchestraOptions(db, filters),
+		getSongOptions(db, filters),
+		getSingerOptions(db, filters),
+		getFilteredVideosCount(db, filters),
+		getLastDatabaseUpdateTime(db),
+	]);
+	const totalPages = Math.max(1, Math.ceil(totalVideos / pageSize));
+	const safePage = Math.min(page, totalPages);
+	const initialVideos = await getFilteredVideos(db, filters, safePage, pageSize);
+
+	return {
+		dancerOneOptions,
+		dancerTwoOptions,
+		eventOptions,
+		initialVideos,
+		lastUpdateTime,
+		orchestraOptions,
+		page: safePage,
+		singerOptions,
+		songOptions,
+		totalPages,
+		totalVideos,
+	};
 }

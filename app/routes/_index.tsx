@@ -10,17 +10,7 @@ import { Link as RouterLink, useSearchParams } from "react-router";
 import { Combobox } from "~/components/combobox";
 import { VideoCard } from "~/components/video-card";
 import { getCloudflareRuntime } from "~/context.server";
-import {
-	createDatabase,
-	getDancerOptions,
-	getEventOptions,
-	getFilteredVideos,
-	getFilteredVideosCount,
-	getLastDatabaseUpdateTime,
-	getOrchestraOptions,
-	getSingerOptions,
-	getSongOptions,
-} from "~/db.server";
+import { createDatabase, loadSearchPage } from "~/db.server";
 import {
 	getPageHref as createPageHref,
 	parseSearchParams,
@@ -50,29 +40,11 @@ export function meta() {
 export async function loader({ context, url }: Route.LoaderArgs) {
 	const db = createDatabase(getCloudflareRuntime(context).env.DB);
 	const { filters, page: requestedPage } = parseSearchParams(url.searchParams);
-
-	const [
-		dancerOneOptions,
-		dancerTwoOptions,
-		eventOptions,
-		orchestraOptions,
-		songOptions,
-		singerOptions,
-		totalVideos,
-		lastUpdateTime,
-	] = await Promise.all([
-		getDancerOptions(db, filters, "dancer1"),
-		getDancerOptions(db, filters, "dancer2"),
-		getEventOptions(db, filters),
-		getOrchestraOptions(db, filters),
-		getSongOptions(db, filters),
-		getSingerOptions(db, filters),
-		getFilteredVideosCount(db, filters),
-		getLastDatabaseUpdateTime(db),
-	]);
-	const totalPages = Math.max(1, Math.ceil(totalVideos / PAGE_SIZE));
-	const safePage = Math.min(requestedPage, totalPages);
-	const transformedVideos = await getFilteredVideos(db, filters, safePage, PAGE_SIZE);
+	const { lastUpdateTime, ...searchPage } = await loadSearchPage(db, {
+		filters,
+		page: requestedPage,
+		pageSize: PAGE_SIZE,
+	});
 
 	const formattedLastUpdate = lastUpdateTime
 		? new Intl.DateTimeFormat("en-US", {
@@ -84,17 +56,8 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 		: "Unknown";
 
 	return {
-		dancerOneOptions,
-		dancerTwoOptions,
-		eventOptions,
 		formattedLastUpdate,
-		initialVideos: transformedVideos,
-		orchestraOptions,
-		page: safePage,
-		singerOptions,
-		songOptions,
-		totalPages,
-		totalVideos,
+		...searchPage,
 	};
 }
 
