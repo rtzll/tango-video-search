@@ -186,6 +186,12 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	const orchestra = searchParams.get("orchestra") || ANY_FILTER_VALUE;
 	const song = searchParams.get("song") || ANY_FILTER_VALUE;
 	const singer = searchParams.get("singer") || ANY_FILTER_VALUE;
+	const hasAnyFilters =
+		dancer1 !== ANY_FILTER_VALUE ||
+		dancer2 !== ANY_FILTER_VALUE ||
+		orchestra !== ANY_FILTER_VALUE ||
+		song !== ANY_FILTER_VALUE ||
+		singer !== ANY_FILTER_VALUE;
 
 	const updateSearchParam = (param: string, value: string) => {
 		const newParams = new URLSearchParams(searchParams);
@@ -263,7 +269,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		<div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto min-h-screen">
 			<div className="flex flex-col gap-3">
 				<div>
-					<div className="flex items-baseline gap-2 flex-wrap">
+					<div className="flex flex-wrap items-baseline gap-2">
 						<span>I want to see</span>
 						<Combobox
 							value={dancer1}
@@ -283,7 +289,6 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 							ariaLabel="Select second dancer"
 						/>
 						<span>dance to</span>
-						{/* TODO: allow for selecting songs and singers too */}
 						<Combobox
 							value={orchestra}
 							onValueChange={(value) => updateSearchParam("orchestra", value)}
@@ -292,16 +297,12 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 							searchLabel="orchestra"
 							ariaLabel="Select orchestra"
 						/>
-						{(dancer1 !== ANY_FILTER_VALUE ||
-							dancer2 !== ANY_FILTER_VALUE ||
-							orchestra !== ANY_FILTER_VALUE ||
-							song !== ANY_FILTER_VALUE ||
-							singer !== ANY_FILTER_VALUE) && (
+						{hasAnyFilters && (
 							<button
 								type="button"
 								onClick={resetSearchParams}
 								aria-label="Reset filters"
-								className="inline-flex items-center justify-center w-6 h-6 bg-[var(--color-accent-soft)] hover:bg-[var(--color-accent-soft-hover)] text-[var(--color-accent-text)] cursor-pointer"
+								className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 w-6 cursor-pointer items-center justify-center"
 							>
 								<ResetIcon width={12} height={12} />
 							</button>
@@ -316,6 +317,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								placeholder="+ song"
 								searchLabel="song"
 								ariaLabel="Add a song filter"
+								showCaret={false}
 							/>
 						) : (
 							<button
@@ -335,6 +337,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								placeholder="+ singer"
 								searchLabel="singer"
 								ariaLabel="Add a singer filter"
+								showCaret={false}
 							/>
 						) : (
 							<button

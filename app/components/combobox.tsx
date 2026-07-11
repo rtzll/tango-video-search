@@ -17,6 +17,7 @@ interface ComboboxProps {
 	placeholder: string;
 	searchLabel: string;
 	ariaLabel?: string;
+	showCaret?: boolean;
 }
 
 const Combobox = ({
@@ -26,6 +27,7 @@ const Combobox = ({
 	placeholder,
 	searchLabel,
 	ariaLabel,
+	showCaret = true,
 }: ComboboxProps) => {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
@@ -114,10 +116,12 @@ const Combobox = ({
 				aria-label={ariaLabel ?? selectedLabel}
 				aria-haspopup="listbox"
 				aria-expanded={open}
-				className="inline-flex items-center gap-1 px-2 py-1 text-[var(--color-accent-text)] hover:bg-[var(--color-accent-soft)] cursor-pointer"
+				className="decoration-accent/60 hover:decoration-accent focus-visible:decoration-accent relative inline-flex cursor-pointer items-center gap-1 px-0 py-0 text-accent-text underline decoration-dotted underline-offset-4 after:absolute after:-inset-y-2 after:inset-x-0 after:content-[''] hover:decoration-solid focus-visible:outline-none focus-visible:decoration-solid"
 			>
 				<span className="truncate text-base">{selectedLabel}</span>
-				<ChevronDownIcon />
+				{showCaret && value === ANY_FILTER_VALUE && (
+					<ChevronDownIcon className="opacity-50" width={12} height={12} />
+				)}
 			</button>
 
 			{open && (
