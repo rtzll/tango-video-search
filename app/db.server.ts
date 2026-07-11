@@ -238,12 +238,13 @@ export async function getFilteredVideos(
 		channelId: video.channelId,
 		channelTitle: video.channelTitle,
 		dancers: video.performance?.dancers?.split(",").map((d) => d.trim()) || [],
+		event: video.performance?.event?.trim() || null,
 		id: video.id,
 		orchestra: video.performance?.orchestra || "Unknown",
 		singers: (video.performance?.singers?.split(",") || []).filter(Boolean),
 		songTitle: video.performance?.songTitle || "Unknown",
 		title: video.title,
-		year: video.performance?.performanceYear || 0,
+		year: video.performance?.performanceYear ?? null,
 	}));
 }
 

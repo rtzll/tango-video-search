@@ -9,10 +9,11 @@ interface Video {
 	channelTitle: string;
 	channelId: string;
 	dancers: string[];
+	event: string | null;
 	orchestra: string;
 	songTitle: string;
 	singers: string[];
-	year: number;
+	year: number | null;
 }
 
 interface VideoCardProps {
@@ -29,6 +30,7 @@ interface VideoCardProps {
 function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
 	const videoLinkLabel = `Watch ${video.dancers.join(" and ")} dance to ${video.songTitle} by ${video.orchestra} on YouTube`;
+	const eventAndYear = getEventAndYearLabel(video.event, video.year);
 
 	const isActive = (type: "dancer" | "orchestra" | "singer" | "song", value: string) => {
 		const normalizedValue = normalizeName(value);
@@ -114,11 +116,24 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 						<span className="truncate">via {video.channelTitle}</span>
 						<ArrowTopRightIcon className="shrink-0" />
 					</a>
-					<span className="shrink-0">{video.year}</span>
+					{eventAndYear && (
+						<span className="max-w-[55%] shrink-0 text-right leading-snug">{eventAndYear}</span>
+					)}
 				</div>
 			</div>
 		</article>
 	);
+}
+
+function getEventAndYearLabel(event: string | null, year: number | null) {
+	const cleanEvent = event?.trim() || null;
+	if (!cleanEvent) {
+		return year ? String(year) : null;
+	}
+	if (!year || cleanEvent.includes(String(year))) {
+		return cleanEvent;
+	}
+	return `${cleanEvent} · ${year}`;
 }
 
 function FilterButton({
