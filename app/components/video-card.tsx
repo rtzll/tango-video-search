@@ -170,11 +170,17 @@ function FilterButton({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`-mx-1 cursor-pointer rounded-sm px-1 leading-tight font-normal transition-colors ${
-				active ? "text-accent-text" : "bg-panel-active text-text hover:bg-accent-soft"
+			className={`group relative cursor-pointer leading-tight font-normal ${
+				active ? "text-accent-text" : "text-text"
 			}`}
 		>
-			{children}
+			{!active && (
+				<span
+					aria-hidden
+					className="bg-panel-active group-hover:bg-accent-soft pointer-events-none absolute inset-y-0 -inset-x-0.5 z-0 rounded-sm transition-colors"
+				/>
+			)}
+			<span className="relative z-10">{children}</span>
 		</button>
 	);
 }
