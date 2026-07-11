@@ -108,7 +108,7 @@ const Combobox = ({
 	const activeOptionId = `${listId}-option-${activeIndex}`;
 
 	return (
-		<div ref={containerRef} className="relative inline-block">
+		<div ref={containerRef} className="static inline-block sm:relative">
 			<button
 				type="button"
 				ref={triggerRef}
@@ -125,7 +125,7 @@ const Combobox = ({
 			</button>
 
 			{open && (
-				<div className="absolute left-0 top-full mt-1.5 z-20 min-w-[260px] bg-[var(--color-panel)] border border-[var(--color-border)] p-2 shadow-lg">
+				<div className="absolute inset-x-0 top-full z-20 mt-1.5 min-w-0 border border-[var(--color-border)] bg-[var(--color-panel)] p-2 shadow-lg sm:right-auto sm:min-w-[260px]">
 					<div className="flex flex-col gap-2">
 						<div className="relative">
 							<MagnifyingGlassIcon className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />

@@ -262,7 +262,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		<div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto min-h-screen">
 			<div className="flex flex-col gap-3">
 				<div>
-					<div className="flex flex-wrap items-baseline gap-2">
+					<div className="relative flex flex-wrap items-baseline gap-2">
 						<span>I want to see</span>
 						<Combobox
 							value={dancer1}
@@ -301,7 +301,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 							</button>
 						)}
 					</div>
-					<div className="mt-2 flex flex-wrap items-center gap-2">
+					<div className="relative mt-2 flex flex-wrap items-center gap-2">
 						{song === ANY_FILTER_VALUE ? (
 							<Combobox
 								value={ANY_FILTER_VALUE}
