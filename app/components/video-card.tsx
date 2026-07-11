@@ -170,7 +170,7 @@ function FilterButton({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`-mx-1 cursor-pointer rounded-sm px-1 font-normal transition-colors ${
+			className={`-mx-1 cursor-pointer rounded-sm px-1 leading-tight font-normal transition-colors ${
 				active ? "text-accent-text" : "bg-panel-active text-text hover:bg-accent-soft"
 			}`}
 		>
