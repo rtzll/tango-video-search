@@ -31,6 +31,7 @@ export const videoRelations = relations(videos, ({ one }) => ({
 
 export const performances = sqliteTable("performances", {
 	dancers: text("dancers"),
+	event: text("event"),
 	id: text("id").primaryKey(),
 	orchestra: text("orchestra"),
 	performanceYear: integer("performance_year"),
