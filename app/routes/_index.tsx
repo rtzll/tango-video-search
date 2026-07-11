@@ -1,6 +1,7 @@
-import { ChevronLeftIcon, ChevronRightIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Link as RouterLink, useSearchParams } from "react-router";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { useSearchParams } from "react-router";
 
+import { ResultsNavigation } from "~/components/results-navigation";
 import { SearchControls } from "~/components/search-controls";
 import { VideoCard } from "~/components/video-card";
 import { getCloudflareRuntime } from "~/context.server";
@@ -51,71 +52,6 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 
 function isSameFilterValue(current: string, candidate: string) {
 	return current !== ANY_FILTER_VALUE && normalizeName(current) === normalizeName(candidate);
-}
-
-function ResultsNavigation({
-	announce,
-	ariaLabel,
-	getPageHref,
-	page,
-	resultText,
-	totalPages,
-}: {
-	announce?: boolean;
-	ariaLabel: string;
-	getPageHref: (nextPage: number) => string;
-	page: number;
-	resultText: string;
-	totalPages: number;
-}) {
-	return (
-		<div className="flex flex-wrap items-center justify-between gap-3">
-			<span className="text-muted text-sm" aria-live={announce ? "polite" : undefined}>
-				{resultText}
-			</span>
-			<nav className="flex items-center gap-2" aria-label={ariaLabel}>
-				{page <= 1 ? (
-					<button
-						type="button"
-						disabled
-						className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 rounded-sm border px-2 py-1 text-xs opacity-50"
-					>
-						<ChevronLeftIcon width={14} height={14} />
-						Previous
-					</button>
-				) : (
-					<RouterLink
-						to={getPageHref(page - 1)}
-						className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs"
-					>
-						<ChevronLeftIcon width={14} height={14} />
-						Previous
-					</RouterLink>
-				)}
-				<span className="text-muted text-xs">
-					Page {page} of {totalPages}
-				</span>
-				{page >= totalPages ? (
-					<button
-						type="button"
-						disabled
-						className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 rounded-sm border px-2 py-1 text-xs opacity-50"
-					>
-						Next
-						<ChevronRightIcon width={14} height={14} />
-					</button>
-				) : (
-					<RouterLink
-						to={getPageHref(page + 1)}
-						className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs"
-					>
-						Next
-						<ChevronRightIcon width={14} height={14} />
-					</RouterLink>
-				)}
-			</nav>
-		</div>
-	);
 }
 
 export default function SearchInterface({ loaderData }: Route.ComponentProps) {
