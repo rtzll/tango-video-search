@@ -9,6 +9,9 @@ import {
 	dancersToCurations,
 	orchestras,
 	performances,
+	singers,
+	singersToCurations,
+	songs,
 	videos,
 } from "../schema";
 import { ANY_FILTER_VALUE } from "./utils/filters";
@@ -128,6 +131,38 @@ export async function getOrchestraOptions(db: AppDatabase, dancer1: string, danc
 		.orderBy(desc(performanceCount));
 }
 
+export async function getSongOptions(db: AppDatabase) {
+	const performanceCount = count(curations.id);
+
+	return db
+		.select({
+			count: performanceCount.as("performanceCount"),
+			id: songs.id,
+			name: songs.title,
+		})
+		.from(songs)
+		.innerJoin(curations, eq(songs.id, curations.songId))
+		.groupBy(songs.id, songs.title)
+		.having(gt(performanceCount, 0))
+		.orderBy(desc(performanceCount));
+}
+
+export async function getSingerOptions(db: AppDatabase) {
+	const performanceCount = count(singersToCurations.curationId);
+
+	return db
+		.select({
+			count: performanceCount.as("performanceCount"),
+			id: singers.id,
+			name: singers.name,
+		})
+		.from(singers)
+		.innerJoin(singersToCurations, eq(singers.id, singersToCurations.singerId))
+		.groupBy(singers.id, singers.name)
+		.having(gt(performanceCount, 0))
+		.orderBy(desc(performanceCount));
+}
+
 function curationHasDancer(db: AppDatabase, normalizedDancer: string) {
 	const sameCuration = eq(dancersToCurations.curationId, curations.id);
 	const sameDancer = eq(dancers.normalized, normalizedDancer);
@@ -169,8 +204,35 @@ function buildJoinBasedDancerFilterClause(db: AppDatabase, dancer1: string, danc
 	return active === ANY_FILTER_VALUE ? undefined : eq(dancers.normalized, active);
 }
 
-function buildWhereClause(db: AppDatabase, dancer1: string, dancer2: string, orchestra: string) {
-	return and(buildDancerFilterClause(db, dancer1, dancer2), buildOrchestraFilter(orchestra));
+function curationHasSinger(db: AppDatabase, normalizedSinger: string) {
+	const curationQuery = db
+		.select({ curationId: singersToCurations.curationId })
+		.from(singersToCurations)
+		.innerJoin(singers, eq(singersToCurations.singerId, singers.id))
+		.where(
+			and(
+				eq(singersToCurations.curationId, curations.id),
+				eq(singers.normalized, normalizedSinger),
+			),
+		);
+
+	return exists(curationQuery);
+}
+
+function buildWhereClause(
+	db: AppDatabase,
+	dancer1: string,
+	dancer2: string,
+	orchestra: string,
+	song: string,
+	singer: string,
+) {
+	return and(
+		buildDancerFilterClause(db, dancer1, dancer2),
+		buildOrchestraFilter(orchestra),
+		song === ANY_FILTER_VALUE ? undefined : eq(songs.normalized, normalizeName(song)),
+		singer === ANY_FILTER_VALUE ? undefined : curationHasSinger(db, normalizeName(singer)),
+	);
 }
 
 export async function getFilteredVideos(
@@ -178,10 +240,12 @@ export async function getFilteredVideos(
 	dancer1: string,
 	dancer2: string,
 	orchestra: string,
+	song: string,
+	singer: string,
 	page: number,
 	pageSize: number,
 ) {
-	const whereClause = buildWhereClause(db, dancer1, dancer2, orchestra);
+	const whereClause = buildWhereClause(db, dancer1, dancer2, orchestra, song, singer);
 	const offset = (page - 1) * pageSize;
 
 	const results = await db
@@ -196,6 +260,7 @@ export async function getFilteredVideos(
 		.innerJoin(performances, eq(curations.performanceId, performances.id))
 		.innerJoin(videos, eq(performances.videoId, videos.id))
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
+		.innerJoin(songs, eq(curations.songId, songs.id))
 		.where(whereClause)
 		.orderBy(desc(performances.performanceYear), desc(videos.publishedAt))
 		.limit(pageSize)
@@ -219,8 +284,10 @@ export async function getFilteredVideosCount(
 	dancer1: string,
 	dancer2: string,
 	orchestra: string,
+	song: string,
+	singer: string,
 ) {
-	const whereClause = buildWhereClause(db, dancer1, dancer2, orchestra);
+	const whereClause = buildWhereClause(db, dancer1, dancer2, orchestra, song, singer);
 
 	const results = await db
 		.select({
@@ -228,6 +295,7 @@ export async function getFilteredVideosCount(
 		})
 		.from(curations)
 		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
+		.innerJoin(songs, eq(curations.songId, songs.id))
 		.where(whereClause);
 
 	return results[0]?.count ?? 0;

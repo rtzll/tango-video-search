@@ -17,10 +17,12 @@ interface Video {
 
 interface VideoCardProps {
 	video: Video;
-	onFilterClick: (type: "dancer" | "orchestra", value: string) => void;
+	onFilterClick: (type: "dancer" | "orchestra" | "singer" | "song", value: string) => void;
 	activeFilters: {
 		dancers: string[];
 		orchestra: string;
+		singer: string;
+		song: string;
 	};
 }
 
@@ -28,17 +30,15 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
 	const videoLinkLabel = `Watch ${video.dancers.join(" and ")} dance to ${video.songTitle} by ${video.orchestra} on YouTube`;
 
-	const isActive = (type: "dancer" | "orchestra", value: string) => {
+	const isActive = (type: "dancer" | "orchestra" | "singer" | "song", value: string) => {
 		const normalizedValue = normalizeName(value);
 		if (type === "dancer") {
 			return activeFilters.dancers.some(
 				(dancer) => dancer !== ANY_FILTER_VALUE && normalizeName(dancer) === normalizedValue,
 			);
 		}
-		return (
-			activeFilters.orchestra !== ANY_FILTER_VALUE &&
-			normalizeName(activeFilters.orchestra) === normalizedValue
-		);
+		const currentValue = type === "orchestra" ? activeFilters.orchestra : activeFilters[type];
+		return currentValue !== ANY_FILTER_VALUE && normalizeName(currentValue) === normalizedValue;
 	};
 
 	return (
@@ -70,7 +70,14 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 				</h2>
 
 				<p className="text-muted mt-1 text-sm">
-					dancing to <span className="text-text">{video.songTitle}</span> by{" "}
+					dancing to{" "}
+					<FilterButton
+						onClick={() => onFilterClick("song", video.songTitle)}
+						active={isActive("song", video.songTitle)}
+					>
+						{video.songTitle}
+					</FilterButton>{" "}
+					by{" "}
 					<FilterButton
 						onClick={() => onFilterClick("orchestra", video.orchestra)}
 						active={isActive("orchestra", video.orchestra)}
@@ -81,7 +88,18 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 
 				{video.singers.length > 0 && (
 					<p className="text-muted mt-1 text-sm">
-						with vocals by <span className="text-text">{video.singers.join(", ")}</span>
+						with vocals by{" "}
+						{video.singers.map((singer, index) => (
+							<span key={`${video.id}-${singer}`}>
+								<FilterButton
+									onClick={() => onFilterClick("singer", singer)}
+									active={isActive("singer", singer)}
+								>
+									{singer}
+								</FilterButton>
+								{index < video.singers.length - 1 ? ", " : ""}
+							</span>
+						))}
 					</p>
 				)}
 				<div className="min-h-5 flex-1" />

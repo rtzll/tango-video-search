@@ -1,6 +1,7 @@
 import {
 	ChevronLeftIcon,
 	ChevronRightIcon,
+	Cross1Icon,
 	GitHubLogoIcon,
 	ResetIcon,
 } from "@radix-ui/react-icons";
@@ -16,6 +17,8 @@ import {
 	getFilteredVideosCount,
 	getLastDatabaseUpdateTime,
 	getOrchestraOptions,
+	getSingerOptions,
+	getSongOptions,
 } from "~/db.server";
 import { ANY_FILTER_VALUE } from "~/utils/filters";
 import { normalizeName } from "~/utils/normalize";
@@ -36,17 +39,28 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 	const dancer1 = url.searchParams.get("dancer1") || ANY_FILTER_VALUE;
 	const dancer2 = url.searchParams.get("dancer2") || ANY_FILTER_VALUE;
 	const orchestra = url.searchParams.get("orchestra") || ANY_FILTER_VALUE;
+	const song = url.searchParams.get("song") || ANY_FILTER_VALUE;
+	const singer = url.searchParams.get("singer") || ANY_FILTER_VALUE;
 	const pageParam = url.searchParams.get("page");
 	const page = Math.max(1, Number.parseInt(pageParam || "1", 10) || 1);
 
-	const [dancerOneOptions, dancerTwoOptions, orchestraOptions, totalVideos, lastUpdateTime] =
-		await Promise.all([
-			getDancerOptions(db, dancer2, orchestra),
-			getDancerOptions(db, dancer1, orchestra),
-			getOrchestraOptions(db, dancer1, dancer2),
-			getFilteredVideosCount(db, dancer1, dancer2, orchestra),
-			getLastDatabaseUpdateTime(db),
-		]);
+	const [
+		dancerOneOptions,
+		dancerTwoOptions,
+		orchestraOptions,
+		songOptions,
+		singerOptions,
+		totalVideos,
+		lastUpdateTime,
+	] = await Promise.all([
+		getDancerOptions(db, dancer2, orchestra),
+		getDancerOptions(db, dancer1, orchestra),
+		getOrchestraOptions(db, dancer1, dancer2),
+		getSongOptions(db),
+		getSingerOptions(db),
+		getFilteredVideosCount(db, dancer1, dancer2, orchestra, song, singer),
+		getLastDatabaseUpdateTime(db),
+	]);
 	const totalPages = Math.max(1, Math.ceil(totalVideos / PAGE_SIZE));
 	const safePage = Math.min(page, totalPages);
 	const transformedVideos = await getFilteredVideos(
@@ -54,6 +68,8 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 		dancer1,
 		dancer2,
 		orchestra,
+		song,
+		singer,
 		safePage,
 		PAGE_SIZE,
 	);
@@ -74,6 +90,8 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 		initialVideos: transformedVideos,
 		orchestraOptions,
 		page: safePage,
+		singerOptions,
+		songOptions,
 		totalPages,
 		totalVideos,
 	};
@@ -153,6 +171,8 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		dancerOneOptions,
 		dancerTwoOptions,
 		orchestraOptions,
+		songOptions,
+		singerOptions,
 		initialVideos,
 		formattedLastUpdate,
 		page,
@@ -164,6 +184,8 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	const dancer1 = searchParams.get("dancer1") || ANY_FILTER_VALUE;
 	const dancer2 = searchParams.get("dancer2") || ANY_FILTER_VALUE;
 	const orchestra = searchParams.get("orchestra") || ANY_FILTER_VALUE;
+	const song = searchParams.get("song") || ANY_FILTER_VALUE;
+	const singer = searchParams.get("singer") || ANY_FILTER_VALUE;
 
 	const updateSearchParam = (param: string, value: string) => {
 		const newParams = new URLSearchParams(searchParams);
@@ -177,7 +199,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	};
 	const resetSearchParams = () => setSearchParams(new URLSearchParams());
 
-	const handleFilterClick = (type: "dancer" | "orchestra", value: string) => {
+	const handleFilterClick = (type: "dancer" | "orchestra" | "singer" | "song", value: string) => {
 		const newParams = new URLSearchParams(searchParams);
 
 		if (type === "dancer") {
@@ -205,6 +227,13 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 				newParams.delete("orchestra");
 			} else {
 				newParams.set("orchestra", value);
+			}
+		} else {
+			const currentValue = type === "song" ? song : singer;
+			if (isSameFilterValue(currentValue, value)) {
+				newParams.delete(type);
+			} else {
+				newParams.set(type, value);
 			}
 		}
 
@@ -265,7 +294,9 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						/>
 						{(dancer1 !== ANY_FILTER_VALUE ||
 							dancer2 !== ANY_FILTER_VALUE ||
-							orchestra !== ANY_FILTER_VALUE) && (
+							orchestra !== ANY_FILTER_VALUE ||
+							song !== ANY_FILTER_VALUE ||
+							singer !== ANY_FILTER_VALUE) && (
 							<button
 								type="button"
 								onClick={resetSearchParams}
@@ -273,6 +304,46 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								className="inline-flex items-center justify-center w-6 h-6 bg-[var(--color-accent-soft)] hover:bg-[var(--color-accent-soft-hover)] text-[var(--color-accent-text)] cursor-pointer"
 							>
 								<ResetIcon width={12} height={12} />
+							</button>
+						)}
+					</div>
+					<div className="mt-2 flex flex-wrap items-center gap-2">
+						{song === ANY_FILTER_VALUE ? (
+							<Combobox
+								value={ANY_FILTER_VALUE}
+								onValueChange={(value) => updateSearchParam("song", value)}
+								options={songOptions}
+								placeholder="+ song"
+								searchLabel="song"
+								ariaLabel="Add a song filter"
+							/>
+						) : (
+							<button
+								type="button"
+								onClick={() => updateSearchParam("song", ANY_FILTER_VALUE)}
+								className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs"
+							>
+								Song: {song}
+								<Cross1Icon />
+							</button>
+						)}
+						{singer === ANY_FILTER_VALUE ? (
+							<Combobox
+								value={ANY_FILTER_VALUE}
+								onValueChange={(value) => updateSearchParam("singer", value)}
+								options={singerOptions}
+								placeholder="+ singer"
+								searchLabel="singer"
+								ariaLabel="Add a singer filter"
+							/>
+						) : (
+							<button
+								type="button"
+								onClick={() => updateSearchParam("singer", ANY_FILTER_VALUE)}
+								className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs"
+							>
+								Singer: {singer}
+								<Cross1Icon />
 							</button>
 						)}
 					</div>
@@ -301,6 +372,8 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								activeFilters={{
 									dancers: [dancer1, dancer2],
 									orchestra,
+									singer,
+									song,
 								}}
 							/>
 						))}
