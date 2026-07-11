@@ -120,6 +120,25 @@ function curationHasEvent(db: AppDatabase, event: string) {
 	return exists(curationQuery);
 }
 
+function curationHasYear(db: AppDatabase, year: string) {
+	const parsedYear = Number(year);
+	if (!Number.isInteger(parsedYear)) {
+		return sql`0`;
+	}
+
+	const curationQuery = db
+		.select({ id: performances.id })
+		.from(performances)
+		.where(
+			and(
+				eq(performances.id, curations.performanceId),
+				eq(performances.performanceYear, parsedYear),
+			),
+		);
+
+	return exists(curationQuery);
+}
+
 function buildWhereClause(db: AppDatabase, filters: SearchFilters) {
 	return and(
 		buildDancerFilterClause(db, filters.dancer1, filters.dancer2),
@@ -133,6 +152,7 @@ function buildWhereClause(db: AppDatabase, filters: SearchFilters) {
 		filters.singer === ANY_FILTER_VALUE
 			? undefined
 			: curationHasSinger(db, normalizeName(filters.singer)),
+		filters.year === ANY_FILTER_VALUE ? undefined : curationHasYear(db, filters.year),
 	);
 }
 
@@ -237,6 +257,31 @@ async function getSingerOptions(db: AppDatabase, filters: SearchFilters) {
 		.orderBy(desc(performanceCount));
 }
 
+async function getYearOptions(db: AppDatabase, filters: SearchFilters) {
+	const performanceCount = countDistinct(curations.id);
+	const scopedFilters = withoutFilter(filters, "year");
+	const scopedWhereClause = buildWhereClause(db, scopedFilters);
+	const year = sql<number>`${performances.performanceYear}`;
+
+	return db
+		.select({
+			count: performanceCount.as("performanceCount"),
+			id: year,
+			name: sql<string>`cast(${performances.performanceYear} as text)`,
+		})
+		.from(performances)
+		.innerJoin(curations, eq(performances.id, curations.performanceId))
+		.where(
+			and(
+				scopedWhereClause,
+				sql`${performances.performanceYear} is not null`,
+			),
+		)
+		.groupBy(performances.performanceYear)
+		.having(gt(performanceCount, 0))
+		.orderBy(desc(performances.performanceYear));
+}
+
 async function getFilteredVideos(
 	db: AppDatabase,
 	filters: SearchFilters,
@@ -308,6 +353,7 @@ export async function loadSearchPage(
 		orchestraOptions,
 		songOptions,
 		singerOptions,
+		yearOptions,
 		totalVideos,
 		lastUpdateTime,
 	] = await Promise.all([
@@ -317,6 +363,7 @@ export async function loadSearchPage(
 		getOrchestraOptions(db, filters),
 		getSongOptions(db, filters),
 		getSingerOptions(db, filters),
+		getYearOptions(db, filters),
 		getFilteredVideosCount(db, filters),
 		getLastDatabaseUpdateTime(db),
 	]);
@@ -334,6 +381,7 @@ export async function loadSearchPage(
 			orchestra: orchestraOptions,
 			singer: singerOptions,
 			song: songOptions,
+			year: yearOptions,
 		},
 		page: safePage,
 		totalPages,

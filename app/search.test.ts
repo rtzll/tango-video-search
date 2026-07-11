@@ -18,6 +18,7 @@ describe("parseSearchParams", () => {
 				orchestra: ANY_FILTER_VALUE,
 				singer: ANY_FILTER_VALUE,
 				song: ANY_FILTER_VALUE,
+				year: ANY_FILTER_VALUE,
 			},
 			page: 1,
 		});
@@ -32,6 +33,7 @@ describe("parseSearchParams", () => {
 			page: "3",
 			singer: "Alberto Echagüe",
 			song: "Paciencia",
+			year: "2024",
 		});
 
 		expect(parseSearchParams(searchParams)).toEqual({
@@ -42,6 +44,7 @@ describe("parseSearchParams", () => {
 				orchestra: "Juan D'Arienzo",
 				singer: "Alberto Echagüe",
 				song: "Paciencia",
+				year: "2024",
 			},
 			page: 3,
 		});

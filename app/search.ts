@@ -16,6 +16,7 @@ export interface SearchOptions {
 	orchestra: SearchOption[];
 	singer: SearchOption[];
 	song: SearchOption[];
+	year: SearchOption[];
 }
 
 export interface SearchVideo {
@@ -38,6 +39,7 @@ export interface SearchFilters {
 	orchestra: string;
 	singer: string;
 	song: string;
+	year: string;
 }
 
 interface SearchState {
@@ -131,6 +133,7 @@ export function parseSearchParams(searchParams: URLSearchParams): SearchState {
 			orchestra: getFilter(searchParams, "orchestra"),
 			singer: getFilter(searchParams, "singer"),
 			song: getFilter(searchParams, "song"),
+			year: getFilter(searchParams, "year"),
 		},
 		page: Math.max(1, requestedPage),
 	};

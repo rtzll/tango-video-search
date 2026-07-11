@@ -57,7 +57,7 @@ function OptionalFilter({
 }
 
 function SearchControls({ filters, onFilterChange, onReset, options }: SearchControlsProps) {
-	const { dancer1, dancer2, event, orchestra, singer, song } = filters;
+	const { dancer1, dancer2, event, orchestra, singer, song, year } = filters;
 	const {
 		dancer1: dancerOneOptions,
 		dancer2: dancerTwoOptions,
@@ -65,18 +65,22 @@ function SearchControls({ filters, onFilterChange, onReset, options }: SearchCon
 		orchestra: orchestraOptions,
 		singer: singerOptions,
 		song: songOptions,
+		year: yearOptions,
 	} = options;
 	const hasAnyFilters = Object.values(filters).some((value) => value !== ANY_FILTER_VALUE);
 	const canAddSong = songOptions.length > 0;
 	const canAddSinger = singerOptions.length > 0;
 	const canAddEvent = eventOptions.length > 0;
+	const canAddYear = yearOptions.length > 0;
 	const showOptionalFilters =
 		canAddSong ||
 		canAddSinger ||
 		canAddEvent ||
+		canAddYear ||
 		song !== ANY_FILTER_VALUE ||
 		singer !== ANY_FILTER_VALUE ||
-		event !== ANY_FILTER_VALUE;
+		event !== ANY_FILTER_VALUE ||
+		year !== ANY_FILTER_VALUE;
 
 	return (
 		<>
@@ -141,6 +145,13 @@ function SearchControls({ filters, onFilterChange, onReset, options }: SearchCon
 						onValueChange={(value) => onFilterChange("event", value)}
 						options={eventOptions}
 						value={event}
+					/>
+					<OptionalFilter
+						available={canAddYear}
+						label="year"
+						onValueChange={(value) => onFilterChange("year", value)}
+						options={yearOptions}
+						value={year}
 					/>
 				</div>
 			)}

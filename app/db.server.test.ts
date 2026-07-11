@@ -12,6 +12,7 @@ const emptyFilters = {
 	orchestra: ANY_FILTER_VALUE,
 	singer: ANY_FILTER_VALUE,
 	song: ANY_FILTER_VALUE,
+	year: ANY_FILTER_VALUE,
 };
 
 async function executeStatements(sql: string) {
@@ -142,6 +143,11 @@ describe("loadSearchPage", () => {
 			{ count: 2, id: 1, name: "Song One" },
 			{ count: 1, id: 2, name: "Song Two" },
 		]);
+		expect(result.options.year).toEqual([
+			{ count: 1, id: 2024, name: "2024" },
+			{ count: 1, id: 2023, name: "2023" },
+			{ count: 1, id: 2022, name: "2022" },
+		]);
 		expect(result.lastUpdateTime).toEqual(new Date("2026-07-11T00:00:00.000Z"));
 	});
 
@@ -169,6 +175,29 @@ describe("loadSearchPage", () => {
 		expect(result.options.song).toEqual([
 			{ count: 1, id: 1, name: "Song One" },
 			{ count: 1, id: 2, name: "Song Two" },
+		]);
+		expect(result.options.year).toEqual([
+			{ count: 1, id: 2024, name: "2024" },
+			{ count: 1, id: 2023, name: "2023" },
+		]);
+	});
+
+	it("filters performances by year and scopes the other option lists", async () => {
+		const result = await loadSearchPage(createDatabase(database), {
+			filters: { ...emptyFilters, year: "2024" },
+			page: 1,
+			pageSize: 18,
+		});
+
+		expect(result.totalVideos).toBe(1);
+		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1"]);
+		expect(result.options.event.map(({ count, name }) => ({ count, name }))).toEqual([
+			{ count: 1, name: "Event One" },
+		]);
+		expect(result.options.year).toEqual([
+			{ count: 1, id: 2024, name: "2024" },
+			{ count: 1, id: 2023, name: "2023" },
+			{ count: 1, id: 2022, name: "2022" },
 		]);
 	});
 
