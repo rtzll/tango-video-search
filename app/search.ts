@@ -1,6 +1,6 @@
 import { ANY_FILTER_VALUE } from "./utils/filters";
 
-interface SearchFilters {
+export interface SearchFilters {
 	dancer1: string;
 	dancer2: string;
 	event: string;

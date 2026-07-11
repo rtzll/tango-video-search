@@ -14,6 +14,7 @@ import {
 	songs,
 	videos,
 } from "../schema";
+import type { SearchFilters } from "./search";
 import { ANY_FILTER_VALUE } from "./utils/filters";
 import { normalizeName } from "./utils/normalize";
 
@@ -38,18 +39,9 @@ export async function getLastDatabaseUpdateTime(db: AppDatabase) {
 	}
 }
 
-export interface VideoFilters {
-	dancer1: string;
-	dancer2: string;
-	event: string;
-	orchestra: string;
-	singer: string;
-	song: string;
-}
-
 type DancerFilterKey = "dancer1" | "dancer2";
 
-function withoutFilter(filters: VideoFilters, key: keyof VideoFilters): VideoFilters {
+function withoutFilter(filters: SearchFilters, key: keyof SearchFilters): SearchFilters {
 	return { ...filters, [key]: ANY_FILTER_VALUE };
 }
 
@@ -128,7 +120,7 @@ function curationHasEvent(db: AppDatabase, event: string) {
 	return exists(curationQuery);
 }
 
-function buildWhereClause(db: AppDatabase, filters: VideoFilters) {
+function buildWhereClause(db: AppDatabase, filters: SearchFilters) {
 	return and(
 		buildDancerFilterClause(db, filters.dancer1, filters.dancer2),
 		filters.event === ANY_FILTER_VALUE ? undefined : curationHasEvent(db, filters.event.trim()),
@@ -144,7 +136,7 @@ function buildWhereClause(db: AppDatabase, filters: VideoFilters) {
 	);
 }
 
-export async function getEventOptions(db: AppDatabase, filters: VideoFilters) {
+export async function getEventOptions(db: AppDatabase, filters: SearchFilters) {
 	const eventName = sql<string>`trim(${performances.event})`;
 	const performanceCount = countDistinct(curations.id);
 	const scopedFilters = withoutFilter(filters, "event");
@@ -166,7 +158,7 @@ export async function getEventOptions(db: AppDatabase, filters: VideoFilters) {
 
 export async function getDancerOptions(
 	db: AppDatabase,
-	filters: VideoFilters,
+	filters: SearchFilters,
 	filterKey: DancerFilterKey,
 ) {
 	const otherDancer = filterKey === "dancer1" ? filters.dancer2 : filters.dancer1;
@@ -193,7 +185,7 @@ export async function getDancerOptions(
 		.orderBy(desc(performanceCount));
 }
 
-export async function getOrchestraOptions(db: AppDatabase, filters: VideoFilters) {
+export async function getOrchestraOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
@@ -210,7 +202,7 @@ export async function getOrchestraOptions(db: AppDatabase, filters: VideoFilters
 		.orderBy(desc(performanceCount));
 }
 
-export async function getSongOptions(db: AppDatabase, filters: VideoFilters) {
+export async function getSongOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
@@ -227,7 +219,7 @@ export async function getSongOptions(db: AppDatabase, filters: VideoFilters) {
 		.orderBy(desc(performanceCount));
 }
 
-export async function getSingerOptions(db: AppDatabase, filters: VideoFilters) {
+export async function getSingerOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
@@ -247,7 +239,7 @@ export async function getSingerOptions(db: AppDatabase, filters: VideoFilters) {
 
 export async function getFilteredVideos(
 	db: AppDatabase,
-	filters: VideoFilters,
+	filters: SearchFilters,
 	page: number,
 	pageSize: number,
 ) {
@@ -284,7 +276,7 @@ export async function getFilteredVideos(
 	}));
 }
 
-export async function getFilteredVideosCount(db: AppDatabase, filters: VideoFilters) {
+export async function getFilteredVideosCount(db: AppDatabase, filters: SearchFilters) {
 	const whereClause = buildWhereClause(db, filters);
 
 	const results = await db

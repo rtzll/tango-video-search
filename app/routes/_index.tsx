@@ -20,8 +20,13 @@ import {
 	getOrchestraOptions,
 	getSingerOptions,
 	getSongOptions,
-	type VideoFilters,
 } from "~/db.server";
+import {
+	getPageHref as createPageHref,
+	parseSearchParams,
+	type SearchFilters,
+	updateFilterSearchParams,
+} from "~/search";
 import { ANY_FILTER_VALUE } from "~/utils/filters";
 import { normalizeName } from "~/utils/normalize";
 
@@ -44,15 +49,7 @@ export function meta() {
 
 export async function loader({ context, url }: Route.LoaderArgs) {
 	const db = createDatabase(getCloudflareRuntime(context).env.DB);
-	const dancer1 = url.searchParams.get("dancer1") || ANY_FILTER_VALUE;
-	const dancer2 = url.searchParams.get("dancer2") || ANY_FILTER_VALUE;
-	const event = url.searchParams.get("event") || ANY_FILTER_VALUE;
-	const orchestra = url.searchParams.get("orchestra") || ANY_FILTER_VALUE;
-	const song = url.searchParams.get("song") || ANY_FILTER_VALUE;
-	const singer = url.searchParams.get("singer") || ANY_FILTER_VALUE;
-	const filters = { dancer1, dancer2, event, orchestra, singer, song } satisfies VideoFilters;
-	const pageParam = url.searchParams.get("page");
-	const page = Math.max(1, Number.parseInt(pageParam || "1", 10) || 1);
+	const { filters, page: requestedPage } = parseSearchParams(url.searchParams);
 
 	const [
 		dancerOneOptions,
@@ -74,7 +71,7 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 		getLastDatabaseUpdateTime(db),
 	]);
 	const totalPages = Math.max(1, Math.ceil(totalVideos / PAGE_SIZE));
-	const safePage = Math.min(page, totalPages);
+	const safePage = Math.min(requestedPage, totalPages);
 	const transformedVideos = await getFilteredVideos(db, filters, safePage, PAGE_SIZE);
 
 	const formattedLastUpdate = lastUpdateTime
@@ -230,12 +227,9 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	} = loaderData;
 
 	const [searchParams, setSearchParams] = useSearchParams();
-	const dancer1 = searchParams.get("dancer1") || ANY_FILTER_VALUE;
-	const dancer2 = searchParams.get("dancer2") || ANY_FILTER_VALUE;
-	const event = searchParams.get("event") || ANY_FILTER_VALUE;
-	const orchestra = searchParams.get("orchestra") || ANY_FILTER_VALUE;
-	const song = searchParams.get("song") || ANY_FILTER_VALUE;
-	const singer = searchParams.get("singer") || ANY_FILTER_VALUE;
+	const {
+		filters: { dancer1, dancer2, event, orchestra, singer, song },
+	} = parseSearchParams(searchParams);
 	const hasAnyFilters =
 		dancer1 !== ANY_FILTER_VALUE ||
 		dancer2 !== ANY_FILTER_VALUE ||
@@ -254,15 +248,8 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		singer !== ANY_FILTER_VALUE ||
 		event !== ANY_FILTER_VALUE;
 
-	const updateSearchParam = (param: string, value: string) => {
-		const newParams = new URLSearchParams(searchParams);
-		if (value === ANY_FILTER_VALUE) {
-			newParams.delete(param);
-		} else {
-			newParams.set(param, value);
-		}
-		newParams.delete("page");
-		setSearchParams(newParams);
+	const updateSearchParam = (param: keyof SearchFilters, value: string) => {
+		setSearchParams(updateFilterSearchParams(searchParams, param, value));
 	};
 	const resetSearchParams = () => setSearchParams(new URLSearchParams());
 
@@ -307,16 +294,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		newParams.delete("page");
 		setSearchParams(newParams);
 	};
-	const getPageHref = (nextPage: number) => {
-		const newParams = new URLSearchParams(searchParams);
-		if (nextPage <= 1) {
-			newParams.delete("page");
-		} else {
-			newParams.set("page", String(nextPage));
-		}
-		const query = newParams.toString();
-		return query ? `?${query}` : ".";
-	};
+	const getPageHref = (nextPage: number) => createPageHref(searchParams, nextPage);
 
 	const startIndex = totalVideos === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
 	const endIndex = Math.min(page * PAGE_SIZE, totalVideos);
