@@ -1,4 +1,4 @@
-import { ExternalLinkIcon } from "@radix-ui/react-icons";
+import { ArrowTopRightIcon } from "@radix-ui/react-icons";
 
 import { ANY_FILTER_VALUE } from "~/utils/filters";
 import { normalizeName } from "~/utils/normalize";
@@ -55,55 +55,46 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 			</a>
 
 			<div className="flex flex-1 flex-col p-4">
-				<dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">
-					<dt className="text-muted min-w-[44px]">Dancers</dt>
-					<dd className="flex flex-wrap">
-						{video.dancers.map((dancer, index) => (
-							<span key={`${video.id}-${dancer}`}>
-								<FilterButton
-									onClick={() => onFilterClick("dancer", dancer)}
-									active={isActive("dancer", dancer)}
-								>
-									{dancer}
-								</FilterButton>
-								{index < video.dancers.length - 1 ? <span className="mr-1">{" and "}</span> : ""}
-							</span>
-						))}
-					</dd>
+				<h2 className="flex flex-wrap text-lg leading-snug font-normal">
+					{video.dancers.map((dancer, index) => (
+						<span key={`${video.id}-${dancer}`}>
+							<FilterButton
+								onClick={() => onFilterClick("dancer", dancer)}
+								active={isActive("dancer", dancer)}
+							>
+								{dancer}
+							</FilterButton>
+							{index < video.dancers.length - 1 ? <span className="mr-1">{" and "}</span> : ""}
+						</span>
+					))}
+				</h2>
 
-					<dt className="text-muted min-w-[44px]">Orchestra</dt>
-					<dd>
-						<FilterButton
-							onClick={() => onFilterClick("orchestra", video.orchestra)}
-							active={isActive("orchestra", video.orchestra)}
-						>
-							{video.orchestra}
-						</FilterButton>
-					</dd>
+				<p className="text-muted mt-1 text-sm">
+					dancing to <span className="text-text">{video.songTitle}</span> by{" "}
+					<FilterButton
+						onClick={() => onFilterClick("orchestra", video.orchestra)}
+						active={isActive("orchestra", video.orchestra)}
+					>
+						{video.orchestra}
+					</FilterButton>
+				</p>
 
-					<dt className="text-muted min-w-[44px]">Song</dt>
-					<dd>{video.songTitle}</dd>
+				{video.singers.length > 0 && (
+					<p className="text-muted mt-1 text-sm">
+						with vocals by <span className="text-text">{video.singers.join(", ")}</span>
+					</p>
+				)}
+				<div className="min-h-5 flex-1" />
 
-					{video.singers.length > 0 && (
-						<>
-							<dt className="text-muted min-w-[44px]">
-								Singer{video.singers.length > 1 ? "s" : ""}
-							</dt>
-							<dd>{video.singers.join(", ")}</dd>
-						</>
-					)}
-				</dl>
-				<div className="min-h-4 flex-1" />
-
-				<div className="border-border text-muted flex items-end justify-between gap-3 border-t pt-3 text-xs">
+				<div className="text-muted flex items-end justify-between gap-3 text-xs">
 					<a
 						href={`https://youtube.com/channel/${video.channelId}`}
 						target="_blank"
 						rel="noopener noreferrer"
 						className="hover:text-accent-text inline-flex min-w-0 items-end gap-1 hover:underline"
 					>
-						<span className="truncate">{video.channelTitle}</span>
-						<ExternalLinkIcon className="shrink-0" />
+						<span className="truncate">via {video.channelTitle}</span>
+						<ArrowTopRightIcon className="shrink-0" />
 					</a>
 					<span className="shrink-0">{video.year}</span>
 				</div>
