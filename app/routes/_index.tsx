@@ -9,11 +9,11 @@ import { createDatabase, loadSearchPage } from "~/db.server";
 import {
 	getPageHref as createPageHref,
 	parseSearchParams,
+	type ResultFilter,
 	type SearchFilters,
+	toggleResultFilterSearchParams,
 	updateFilterSearchParams,
 } from "~/search";
-import { ANY_FILTER_VALUE } from "~/utils/filters";
-import { normalizeName } from "~/utils/normalize";
 
 import type { Route } from "./+types/_index";
 
@@ -50,10 +50,6 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 	};
 }
 
-function isSameFilterValue(current: string, candidate: string) {
-	return current !== ANY_FILTER_VALUE && normalizeName(current) === normalizeName(candidate);
-}
-
 export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	const {
 		dancerOneOptions,
@@ -78,46 +74,8 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	};
 	const resetSearchParams = () => setSearchParams(new URLSearchParams());
 
-	const handleFilterClick = (type: "dancer" | "orchestra" | "singer" | "song", value: string) => {
-		const newParams = new URLSearchParams(searchParams);
-
-		if (type === "dancer") {
-			if (isSameFilterValue(dancer1, value)) {
-				newParams.delete("dancer1");
-			} else if (isSameFilterValue(dancer2, value)) {
-				newParams.delete("dancer2");
-			} else if (dancer1 === ANY_FILTER_VALUE && dancer2 === ANY_FILTER_VALUE) {
-				newParams.set("dancer1", value);
-			} else if (
-				dancer1 !== ANY_FILTER_VALUE &&
-				dancer2 === ANY_FILTER_VALUE &&
-				!isSameFilterValue(dancer1, value)
-			) {
-				newParams.set("dancer2", value);
-			} else if (
-				dancer1 === ANY_FILTER_VALUE &&
-				dancer2 !== ANY_FILTER_VALUE &&
-				!isSameFilterValue(dancer2, value)
-			) {
-				newParams.set("dancer1", value);
-			}
-		} else if (type === "orchestra") {
-			if (isSameFilterValue(orchestra, value)) {
-				newParams.delete("orchestra");
-			} else {
-				newParams.set("orchestra", value);
-			}
-		} else {
-			const currentValue = type === "song" ? song : singer;
-			if (isSameFilterValue(currentValue, value)) {
-				newParams.delete(type);
-			} else {
-				newParams.set(type, value);
-			}
-		}
-
-		newParams.delete("page");
-		setSearchParams(newParams);
+	const handleFilterClick = (type: ResultFilter, value: string) => {
+		setSearchParams(toggleResultFilterSearchParams(searchParams, type, value));
 	};
 	const getPageHref = (nextPage: number) => createPageHref(searchParams, nextPage);
 

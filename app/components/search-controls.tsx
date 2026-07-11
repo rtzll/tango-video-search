@@ -1,26 +1,20 @@
 import { Cross1Icon, ResetIcon } from "@radix-ui/react-icons";
 
-import type { SearchFilters } from "~/search";
+import type { SearchFilters, SearchOption } from "~/search";
 import { ANY_FILTER_VALUE } from "~/utils/filters";
 
 import { Combobox } from "./combobox";
 
-interface FilterOption {
-	id: number;
-	name: string;
-	count: number;
-}
-
 interface SearchControlsProps {
-	dancerOneOptions: FilterOption[];
-	dancerTwoOptions: FilterOption[];
-	eventOptions: FilterOption[];
+	dancerOneOptions: SearchOption[];
+	dancerTwoOptions: SearchOption[];
+	eventOptions: SearchOption[];
 	filters: SearchFilters;
 	onFilterChange: (filter: keyof SearchFilters, value: string) => void;
 	onReset: () => void;
-	orchestraOptions: FilterOption[];
-	singerOptions: FilterOption[];
-	songOptions: FilterOption[];
+	orchestraOptions: SearchOption[];
+	singerOptions: SearchOption[];
+	songOptions: SearchOption[];
 }
 
 function OptionalFilter({
@@ -33,7 +27,7 @@ function OptionalFilter({
 	available: boolean;
 	label: string;
 	onValueChange: (value: string) => void;
-	options: FilterOption[];
+	options: SearchOption[];
 	value: string;
 }) {
 	const article = label === "event" ? "an" : "a";

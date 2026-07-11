@@ -14,7 +14,7 @@ import {
 	songs,
 	videos,
 } from "../schema";
-import type { SearchFilters } from "./search";
+import type { SearchFilters, SearchVideo } from "./search";
 import { ANY_FILTER_VALUE } from "./utils/filters";
 import { normalizeName } from "./utils/normalize";
 
@@ -273,7 +273,7 @@ async function getFilteredVideos(
 		songTitle: video.performance?.songTitle || "Unknown",
 		title: video.title,
 		year: video.performance?.performanceYear ?? null,
-	}));
+	})) satisfies SearchVideo[];
 }
 
 async function getFilteredVideosCount(db: AppDatabase, filters: SearchFilters) {

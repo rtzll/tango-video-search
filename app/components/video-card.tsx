@@ -1,24 +1,12 @@
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
 
+import type { ResultFilter, SearchVideo } from "~/search";
 import { ANY_FILTER_VALUE } from "~/utils/filters";
 import { normalizeName } from "~/utils/normalize";
 
-interface Video {
-	id: string;
-	title: string;
-	channelTitle: string;
-	channelId: string;
-	dancers: string[];
-	event: string | null;
-	orchestra: string;
-	songTitle: string;
-	singers: string[];
-	year: number | null;
-}
-
 interface VideoCardProps {
-	video: Video;
-	onFilterClick: (type: "dancer" | "orchestra" | "singer" | "song", value: string) => void;
+	video: SearchVideo;
+	onFilterClick: (type: ResultFilter, value: string) => void;
 	activeFilters: {
 		dancers: string[];
 		orchestra: string;
@@ -32,7 +20,7 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	const videoLinkLabel = `Watch ${video.dancers.join(" and ")} dance to ${video.songTitle} by ${video.orchestra} on YouTube`;
 	const eventMetadata = getEventMetadata(video.event, video.year);
 
-	const isActive = (type: "dancer" | "orchestra" | "singer" | "song", value: string) => {
+	const isActive = (type: ResultFilter, value: string) => {
 		const normalizedValue = normalizeName(value);
 		if (type === "dancer") {
 			return activeFilters.dancers.some(

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { getPageHref, parseSearchParams, updateFilterSearchParams } from "./search";
+import {
+	getPageHref,
+	parseSearchParams,
+	toggleResultFilterSearchParams,
+	updateFilterSearchParams,
+} from "./search";
 import { ANY_FILTER_VALUE } from "./utils/filters";
 
 describe("parseSearchParams", () => {
@@ -71,5 +76,37 @@ describe("getPageHref", () => {
 
 		expect(getPageHref(current, 4)).toBe("?orchestra=Carlos+Di+Sarli&page=4");
 		expect(getPageHref(current, 1)).toBe("?orchestra=Carlos+Di+Sarli");
+	});
+});
+
+describe("toggleResultFilterSearchParams", () => {
+	it("fills, toggles, and limits the two dancer filters", () => {
+		const firstDancer = toggleResultFilterSearchParams(
+			new URLSearchParams({ page: "3" }),
+			"dancer",
+			"Alice",
+		);
+		expect(firstDancer.toString()).toBe("dancer1=Alice");
+
+		const secondDancer = toggleResultFilterSearchParams(firstDancer, "dancer", "Bob");
+		expect(secondDancer.toString()).toBe("dancer1=Alice&dancer2=Bob");
+
+		const unchanged = toggleResultFilterSearchParams(secondDancer, "dancer", "Carol");
+		expect(unchanged.toString()).toBe("dancer1=Alice&dancer2=Bob");
+
+		const toggledOff = toggleResultFilterSearchParams(secondDancer, "dancer", "Alice");
+		expect(toggledOff.toString()).toBe("dancer2=Bob");
+	});
+
+	it("toggles single-value card filters and resets pagination", () => {
+		const selected = toggleResultFilterSearchParams(
+			new URLSearchParams({ page: "3" }),
+			"orchestra",
+			"Orchestra One",
+		);
+		expect(selected.toString()).toBe("orchestra=Orchestra+One");
+
+		const toggledOff = toggleResultFilterSearchParams(selected, "orchestra", "orchestra one");
+		expect(toggledOff.toString()).toBe("");
 	});
 });

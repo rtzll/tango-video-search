@@ -1,4 +1,26 @@
 import { ANY_FILTER_VALUE } from "./utils/filters";
+import { normalizeName } from "./utils/normalize";
+
+export type ResultFilter = "dancer" | "orchestra" | "singer" | "song";
+
+export interface SearchOption {
+	count: number;
+	id: number;
+	name: string;
+}
+
+export interface SearchVideo {
+	channelId: string;
+	channelTitle: string;
+	dancers: string[];
+	event: string | null;
+	id: string;
+	orchestra: string;
+	singers: string[];
+	songTitle: string;
+	title: string;
+	year: number | null;
+}
 
 export interface SearchFilters {
 	dancer1: string;
@@ -16,6 +38,10 @@ interface SearchState {
 
 function getFilter(searchParams: URLSearchParams, key: keyof SearchFilters) {
 	return searchParams.get(key) || ANY_FILTER_VALUE;
+}
+
+function isSameFilterValue(current: string, candidate: string) {
+	return current !== ANY_FILTER_VALUE && normalizeName(current) === normalizeName(candidate);
 }
 
 export function updateFilterSearchParams(
@@ -42,6 +68,47 @@ export function getPageHref(searchParams: URLSearchParams, page: number) {
 	}
 	const query = nextSearchParams.toString();
 	return query ? `?${query}` : ".";
+}
+
+export function toggleResultFilterSearchParams(
+	searchParams: URLSearchParams,
+	type: ResultFilter,
+	value: string,
+) {
+	const nextSearchParams = new URLSearchParams(searchParams);
+	const {
+		filters: { dancer1, dancer2, orchestra, singer, song },
+	} = parseSearchParams(searchParams);
+
+	if (type === "dancer") {
+		if (isSameFilterValue(dancer1, value)) {
+			nextSearchParams.delete("dancer1");
+		} else if (isSameFilterValue(dancer2, value)) {
+			nextSearchParams.delete("dancer2");
+		} else if (dancer1 === ANY_FILTER_VALUE && dancer2 === ANY_FILTER_VALUE) {
+			nextSearchParams.set("dancer1", value);
+		} else if (dancer1 !== ANY_FILTER_VALUE && dancer2 === ANY_FILTER_VALUE) {
+			nextSearchParams.set("dancer2", value);
+		} else if (dancer1 === ANY_FILTER_VALUE && dancer2 !== ANY_FILTER_VALUE) {
+			nextSearchParams.set("dancer1", value);
+		}
+	} else if (type === "orchestra") {
+		if (isSameFilterValue(orchestra, value)) {
+			nextSearchParams.delete("orchestra");
+		} else {
+			nextSearchParams.set("orchestra", value);
+		}
+	} else {
+		const currentValue = type === "song" ? song : singer;
+		if (isSameFilterValue(currentValue, value)) {
+			nextSearchParams.delete(type);
+		} else {
+			nextSearchParams.set(type, value);
+		}
+	}
+
+	nextSearchParams.delete("page");
+	return nextSearchParams;
 }
 
 export function parseSearchParams(searchParams: URLSearchParams): SearchState {
