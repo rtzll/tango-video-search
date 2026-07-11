@@ -51,19 +51,7 @@ export async function loader({ context, url }: Route.LoaderArgs) {
 }
 
 export default function SearchInterface({ loaderData }: Route.ComponentProps) {
-	const {
-		dancerOneOptions,
-		dancerTwoOptions,
-		eventOptions,
-		orchestraOptions,
-		songOptions,
-		singerOptions,
-		initialVideos,
-		formattedLastUpdate,
-		page,
-		totalPages,
-		totalVideos,
-	} = loaderData;
+	const { initialVideos, formattedLastUpdate, options, page, totalPages, totalVideos } = loaderData;
 
 	const [searchParams, setSearchParams] = useSearchParams();
 	const { filters } = parseSearchParams(searchParams);
@@ -92,15 +80,10 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 			<div className="flex flex-col gap-3">
 				<div>
 					<SearchControls
-						dancerOneOptions={dancerOneOptions}
-						dancerTwoOptions={dancerTwoOptions}
-						eventOptions={eventOptions}
 						filters={filters}
 						onFilterChange={updateSearchParam}
 						onReset={resetSearchParams}
-						orchestraOptions={orchestraOptions}
-						singerOptions={singerOptions}
-						songOptions={songOptions}
+						options={options}
 					/>
 					<div className="mt-2">
 						<ResultsNavigation

@@ -325,15 +325,17 @@ export async function loadSearchPage(
 	const initialVideos = await getFilteredVideos(db, filters, safePage, pageSize);
 
 	return {
-		dancerOneOptions,
-		dancerTwoOptions,
-		eventOptions,
 		initialVideos,
 		lastUpdateTime,
-		orchestraOptions,
+		options: {
+			dancer1: dancerOneOptions,
+			dancer2: dancerTwoOptions,
+			event: eventOptions,
+			orchestra: orchestraOptions,
+			singer: singerOptions,
+			song: songOptions,
+		},
 		page: safePage,
-		singerOptions,
-		songOptions,
 		totalPages,
 		totalVideos,
 	};

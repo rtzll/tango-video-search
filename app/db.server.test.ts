@@ -117,28 +117,28 @@ describe("loadSearchPage", () => {
 		expect(result.totalPages).toBe(2);
 		expect(result.page).toBe(1);
 		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1", "video-2"]);
-		expect(result.dancerOneOptions).toEqual([
+		expect(result.options.dancer1).toEqual([
 			{ count: 2, id: 1, name: "Alice" },
 			{ count: 2, id: 2, name: "Bob" },
 			{ count: 2, id: 3, name: "Carol" },
 		]);
-		expect(result.orchestraOptions).toEqual([
+		expect(result.options.orchestra).toEqual([
 			{ count: 2, id: 1, name: "Orchestra One" },
 			{ count: 1, id: 2, name: "Orchestra Two" },
 		]);
 		expect(
-			result.eventOptions
+			result.options.event
 				.map(({ count, name }) => ({ count, name }))
 				.toSorted((left, right) => left.name.localeCompare(right.name)),
 		).toEqual([
 			{ count: 1, name: "Event One" },
 			{ count: 1, name: "Event Two" },
 		]);
-		expect(result.singerOptions).toEqual([
+		expect(result.options.singer).toEqual([
 			{ count: 1, id: 1, name: "Singer One" },
 			{ count: 1, id: 2, name: "Singer Two" },
 		]);
-		expect(result.songOptions).toEqual([
+		expect(result.options.song).toEqual([
 			{ count: 2, id: 1, name: "Song One" },
 			{ count: 1, id: 2, name: "Song Two" },
 		]);
@@ -154,19 +154,19 @@ describe("loadSearchPage", () => {
 
 		expect(result.totalVideos).toBe(2);
 		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1", "video-2"]);
-		expect(result.dancerTwoOptions).toEqual([
+		expect(result.options.dancer2).toEqual([
 			{ count: 1, id: 2, name: "Bob" },
 			{ count: 1, id: 3, name: "Carol" },
 		]);
-		expect(result.orchestraOptions).toEqual([{ count: 2, id: 1, name: "Orchestra One" }]);
-		expect(result.eventOptions.map(({ count, name }) => ({ count, name }))).toEqual(
+		expect(result.options.orchestra).toEqual([{ count: 2, id: 1, name: "Orchestra One" }]);
+		expect(result.options.event.map(({ count, name }) => ({ count, name }))).toEqual(
 			expect.arrayContaining([
 				{ count: 1, name: "Event One" },
 				{ count: 1, name: "Event Two" },
 			]),
 		);
-		expect(result.singerOptions).toEqual([{ count: 1, id: 1, name: "Singer One" }]);
-		expect(result.songOptions).toEqual([
+		expect(result.options.singer).toEqual([{ count: 1, id: 1, name: "Singer One" }]);
+		expect(result.options.song).toEqual([
 			{ count: 1, id: 1, name: "Song One" },
 			{ count: 1, id: 2, name: "Song Two" },
 		]);

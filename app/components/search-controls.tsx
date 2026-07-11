@@ -1,20 +1,15 @@
 import { Cross1Icon, ResetIcon } from "@radix-ui/react-icons";
 
-import type { SearchFilters, SearchOption } from "~/search";
+import type { SearchFilters, SearchOption, SearchOptions } from "~/search";
 import { ANY_FILTER_VALUE } from "~/utils/filters";
 
 import { Combobox } from "./combobox";
 
 interface SearchControlsProps {
-	dancerOneOptions: SearchOption[];
-	dancerTwoOptions: SearchOption[];
-	eventOptions: SearchOption[];
 	filters: SearchFilters;
 	onFilterChange: (filter: keyof SearchFilters, value: string) => void;
 	onReset: () => void;
-	orchestraOptions: SearchOption[];
-	singerOptions: SearchOption[];
-	songOptions: SearchOption[];
+	options: SearchOptions;
 }
 
 function OptionalFilter({
@@ -61,18 +56,16 @@ function OptionalFilter({
 	);
 }
 
-function SearchControls({
-	dancerOneOptions,
-	dancerTwoOptions,
-	eventOptions,
-	filters,
-	onFilterChange,
-	onReset,
-	orchestraOptions,
-	singerOptions,
-	songOptions,
-}: SearchControlsProps) {
+function SearchControls({ filters, onFilterChange, onReset, options }: SearchControlsProps) {
 	const { dancer1, dancer2, event, orchestra, singer, song } = filters;
+	const {
+		dancer1: dancerOneOptions,
+		dancer2: dancerTwoOptions,
+		event: eventOptions,
+		orchestra: orchestraOptions,
+		singer: singerOptions,
+		song: songOptions,
+	} = options;
 	const hasAnyFilters = Object.values(filters).some((value) => value !== ANY_FILTER_VALUE);
 	const canAddSong = songOptions.length > 0;
 	const canAddSinger = singerOptions.length > 0;

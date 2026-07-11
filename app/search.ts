@@ -9,6 +9,15 @@ export interface SearchOption {
 	name: string;
 }
 
+export interface SearchOptions {
+	dancer1: SearchOption[];
+	dancer2: SearchOption[];
+	event: SearchOption[];
+	orchestra: SearchOption[];
+	singer: SearchOption[];
+	song: SearchOption[];
+}
+
 export interface SearchVideo {
 	channelId: string;
 	channelTitle: string;
