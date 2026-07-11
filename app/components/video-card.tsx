@@ -54,6 +54,9 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 			>
 				<img src={thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
 				<span className="bg-accent/45 pointer-events-none absolute inset-0 mix-blend-color transition-opacity duration-200 group-hover:opacity-0 group-focus-visible:opacity-0" />
+				<span className="border-border bg-bg text-accent-text group-hover:bg-accent-soft group-focus-visible:bg-accent-soft pointer-events-none absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-sm border transition-colors">
+					<ArrowTopRightIcon aria-hidden />
+				</span>
 			</a>
 
 			<div className="flex flex-1 flex-col p-4">
