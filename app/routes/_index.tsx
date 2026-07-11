@@ -119,7 +119,7 @@ function ResultsNavigation({
 					<button
 						type="button"
 						disabled
-						className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 border px-2 py-1 text-xs opacity-50"
+						className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 rounded-sm border px-2 py-1 text-xs opacity-50"
 					>
 						<ChevronLeftIcon width={14} height={14} />
 						Previous
@@ -127,7 +127,7 @@ function ResultsNavigation({
 				) : (
 					<RouterLink
 						to={getPageHref(page - 1)}
-						className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 border px-2 py-1 text-xs"
+						className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs"
 					>
 						<ChevronLeftIcon width={14} height={14} />
 						Previous
@@ -140,7 +140,7 @@ function ResultsNavigation({
 					<button
 						type="button"
 						disabled
-						className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 border px-2 py-1 text-xs opacity-50"
+						className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 rounded-sm border px-2 py-1 text-xs opacity-50"
 					>
 						Next
 						<ChevronRightIcon width={14} height={14} />
@@ -148,7 +148,7 @@ function ResultsNavigation({
 				) : (
 					<RouterLink
 						to={getPageHref(page + 1)}
-						className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 border px-2 py-1 text-xs"
+						className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs"
 					>
 						Next
 						<ChevronRightIcon width={14} height={14} />
@@ -299,7 +299,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								type="button"
 								onClick={resetSearchParams}
 								aria-label="Reset filters"
-								className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 w-6 cursor-pointer items-center justify-center"
+								className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-sm"
 							>
 								<ResetIcon width={12} height={12} />
 							</button>
@@ -324,7 +324,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								<button
 									type="button"
 									onClick={() => updateSearchParam("song", ANY_FILTER_VALUE)}
-									className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs"
+									className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-1 text-xs"
 								>
 									Song: {song}
 									<Cross1Icon />
@@ -347,7 +347,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								<button
 									type="button"
 									onClick={() => updateSearchParam("singer", ANY_FILTER_VALUE)}
-									className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs"
+									className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-1 text-xs"
 								>
 									Singer: {singer}
 									<Cross1Icon />

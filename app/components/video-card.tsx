@@ -42,7 +42,7 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	};
 
 	return (
-		<article className="border-border bg-panel flex flex-col overflow-hidden border">
+		<article className="border-border bg-panel flex flex-col overflow-hidden rounded-md border">
 			<a
 				href={`https://youtube.com/watch?v=${video.id}`}
 				target="_blank"
