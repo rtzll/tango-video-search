@@ -185,6 +185,10 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		orchestra !== ANY_FILTER_VALUE ||
 		song !== ANY_FILTER_VALUE ||
 		singer !== ANY_FILTER_VALUE;
+	const canAddSong = songOptions.length > 0;
+	const canAddSinger = singerOptions.length > 0;
+	const showOptionalFilters =
+		canAddSong || canAddSinger || song !== ANY_FILTER_VALUE || singer !== ANY_FILTER_VALUE;
 
 	const updateSearchParam = (param: string, value: string) => {
 		const newParams = new URLSearchParams(searchParams);
@@ -301,48 +305,54 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 							</button>
 						)}
 					</div>
-					<div className="relative mt-2 flex flex-wrap items-center gap-2">
-						{song === ANY_FILTER_VALUE ? (
-							<Combobox
-								value={ANY_FILTER_VALUE}
-								onValueChange={(value) => updateSearchParam("song", value)}
-								options={songOptions}
-								placeholder="+ song"
-								searchLabel="song"
-								ariaLabel="Add a song filter"
-								showCaret={false}
-							/>
-						) : (
-							<button
-								type="button"
-								onClick={() => updateSearchParam("song", ANY_FILTER_VALUE)}
-								className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs"
-							>
-								Song: {song}
-								<Cross1Icon />
-							</button>
-						)}
-						{singer === ANY_FILTER_VALUE ? (
-							<Combobox
-								value={ANY_FILTER_VALUE}
-								onValueChange={(value) => updateSearchParam("singer", value)}
-								options={singerOptions}
-								placeholder="+ singer"
-								searchLabel="singer"
-								ariaLabel="Add a singer filter"
-								showCaret={false}
-							/>
-						) : (
-							<button
-								type="button"
-								onClick={() => updateSearchParam("singer", ANY_FILTER_VALUE)}
-								className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs"
-							>
-								Singer: {singer}
-								<Cross1Icon />
-							</button>
-						)}
-					</div>
+					{showOptionalFilters && (
+						<div className="relative mt-2 flex flex-wrap items-center gap-2">
+							{song === ANY_FILTER_VALUE ? (
+								canAddSong ? (
+									<Combobox
+										value={ANY_FILTER_VALUE}
+										onValueChange={(value) => updateSearchParam("song", value)}
+										options={songOptions}
+										placeholder="+ song"
+										searchLabel="song"
+										ariaLabel="Add a song filter"
+										showCaret={false}
+									/>
+								) : null
+							) : (
+								<button
+									type="button"
+									onClick={() => updateSearchParam("song", ANY_FILTER_VALUE)}
+									className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs"
+								>
+									Song: {song}
+									<Cross1Icon />
+								</button>
+							)}
+							{singer === ANY_FILTER_VALUE ? (
+								canAddSinger ? (
+									<Combobox
+										value={ANY_FILTER_VALUE}
+										onValueChange={(value) => updateSearchParam("singer", value)}
+										options={singerOptions}
+										placeholder="+ singer"
+										searchLabel="singer"
+										ariaLabel="Add a singer filter"
+										showCaret={false}
+									/>
+								) : null
+							) : (
+								<button
+									type="button"
+									onClick={() => updateSearchParam("singer", ANY_FILTER_VALUE)}
+									className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex cursor-pointer items-center gap-1 px-2 py-1 text-xs"
+								>
+									Singer: {singer}
+									<Cross1Icon />
+								</button>
+							)}
+						</div>
+					)}
 					<div className="mt-2">
 						<ResultsNavigation
 							announce
