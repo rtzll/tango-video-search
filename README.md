@@ -22,8 +22,8 @@ looking for.
 
 - **Framework**: [React Router](https://reactrouter.com/) v8 (started as a Remix
   project)
-- **UI**: [Radix UI](https://www.radix-ui.com/) +
-  [Tailwind CSS](https://tailwindcss.com/)
+- **UI**: [Tailwind CSS](https://tailwindcss.com/) +
+  [Radix Icons](https://www.radix-ui.com/icons)
 - **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) with
   [Drizzle ORM](https://orm.drizzle.team/)
 - **Runtime**: [Cloudflare Workers](https://developers.cloudflare.com/workers/)
