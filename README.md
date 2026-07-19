@@ -4,7 +4,7 @@
 buried due to YouTube's algorithmic sorting and inconsistent metadata.
 
 **Solution:** Tango Video Search provides a streamlined interface to filter by
-dancer or orchestra with minimal friction.
+dancers, orchestra, song, singer, event, or year with minimal friction.
 
 **How it works:** It’s powered by an LLM-curated index built from YouTube
 metadata. That means faster, more accurate retrieval of the performances you're
@@ -12,8 +12,8 @@ looking for.
 
 ## Features
 
-- Filter videos by dancer combinations
-- Filter videos by orchestras
+- Filter videos by dancer combinations and orchestras
+- Refine results by song, singer, event, or year
 - Responsive video grid layout
 - Quick filtering through video cards
 - Video metadata display
@@ -31,7 +31,8 @@ looking for.
 
 ## Development
 
-Requires Node.js 24 and the Vite+ `vp` CLI.
+Requires Node.js 24.11 or newer and the Vite+ `vp` CLI. Database update commands
+also require the `sqlite3` CLI.
 
 Install dependencies:
 
