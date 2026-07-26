@@ -99,7 +99,7 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 				)}
 				<div className="min-h-5 flex-1" />
 
-				<div className="text-muted flex items-end justify-between gap-3 text-xs">
+				<div className="text-muted grid grid-cols-2 items-end gap-3 text-xs">
 					<a
 						href={`https://youtube.com/channel/${video.channelId}`}
 						target="_blank"
@@ -111,25 +111,29 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 					</a>
 					{eventMetadata && (
 						<span
-							className="flex min-w-0 max-w-3/5 shrink-0 items-baseline justify-end gap-1"
+							className="flex min-w-0 items-baseline justify-end gap-1"
 							title={eventMetadata.label}
 						>
 							{eventMetadata.event && eventMetadata.eventValue && (
-								<FilterButton
-									active={isActive("event", eventMetadata.eventValue)}
-									onClick={() => onFilterClick("event", eventMetadata.eventValue || "")}
-								>
-									<span className="block max-w-60 truncate">{eventMetadata.event}</span>
-								</FilterButton>
+								<span className="min-w-0 [&>button]:block [&>button]:max-w-full">
+									<FilterButton
+										active={isActive("event", eventMetadata.eventValue)}
+										onClick={() => onFilterClick("event", eventMetadata.eventValue || "")}
+									>
+										<span className="block truncate">{eventMetadata.event}</span>
+									</FilterButton>
+								</span>
 							)}
-							{eventMetadata.event && eventMetadata.year && <span>·</span>}
+							{eventMetadata.event && eventMetadata.year && <span className="shrink-0">·</span>}
 							{eventMetadata.year && (
-								<FilterButton
-									active={isActive("year", eventMetadata.year)}
-									onClick={() => onFilterClick("year", eventMetadata.year || "")}
-								>
-									{eventMetadata.year}
-								</FilterButton>
+								<span className="shrink-0">
+									<FilterButton
+										active={isActive("year", eventMetadata.year)}
+										onClick={() => onFilterClick("year", eventMetadata.year || "")}
+									>
+										{eventMetadata.year}
+									</FilterButton>
+								</span>
 							)}
 						</span>
 					)}
