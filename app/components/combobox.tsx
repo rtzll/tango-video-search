@@ -266,13 +266,15 @@ const OptionRow = (props: OptionRowProps) => (
 		onClick={props.onSelect}
 		role="option"
 		aria-selected={props.selected}
-		title={props.kind === "option" ? `${props.label} (${props.count})` : props.label}
+		title={props.kind === "option" ? `${props.label} · ${props.count}` : props.label}
 		className={`hover:bg-panel-hover flex min-h-10 w-full cursor-pointer items-center justify-between rounded-sm px-3 py-2 text-left text-sm ${
 			props.active ? "bg-panel-hover" : ""
 		} ${props.selected ? "bg-accent-soft text-accent-text font-medium" : "text-text"}`}
 	>
 		<span className="max-w-60 truncate">{props.label}</span>
-		{props.kind === "option" && <span className="text-muted shrink-0">({props.count})</span>}
+		{props.kind === "option" && (
+			<span className="text-muted shrink-0 text-xs tabular-nums">{props.count}</span>
+		)}
 	</button>
 );
 
