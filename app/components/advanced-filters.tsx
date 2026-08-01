@@ -1,4 +1,4 @@
-import { Cross1Icon, MagnifyingGlassIcon, PlusIcon } from "@radix-ui/react-icons";
+import { Cross1Icon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { FilterOption, SearchFilters, SearchOptions } from "~/search";
@@ -55,6 +55,7 @@ function AdvancedFilterPicker({ filters, onFilterChange, options }: AdvancedFilt
 	const panelRef = useRef<HTMLDivElement>(null);
 	const activeFilter =
 		availableFilters.find(({ key }) => key === selectedKey) ?? availableFilters[0];
+	const hasActiveFilter = advancedFilters.some(({ key }) => filters[key] !== null);
 
 	const close = useCallback((restoreFocus = false) => {
 		setOpen(false);
@@ -158,9 +159,12 @@ function AdvancedFilterPicker({ filters, onFilterChange, options }: AdvancedFilt
 				onClick={() => (open ? close() : setOpen(true))}
 				aria-expanded={open}
 				aria-haspopup="dialog"
+				aria-label={
+					hasActiveFilter ? "Add another performance detail" : "Choose performance details"
+				}
 				className="border-border hover:bg-accent-soft text-accent-text inline-flex h-6 cursor-pointer items-center gap-1 rounded-sm border border-dashed px-2 text-xs"
 			>
-				<PlusIcon /> condition
+				{hasActiveFilter ? "and…" : "where…"}
 			</button>
 
 			{open && (
