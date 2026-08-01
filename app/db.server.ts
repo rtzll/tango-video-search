@@ -310,12 +310,16 @@ async function getFilteredVideos(
 			channelId: videos.channelId,
 			channelTitle: videos.channelTitle,
 			id: videos.id,
+			orchestra: orchestras.name,
 			performance: performances,
+			songTitle: songs.title,
 			title: videos.title,
 		})
 		.from(curations)
 		.innerJoin(performances, eq(curations.performanceId, performances.id))
 		.innerJoin(videos, eq(performances.videoId, videos.id))
+		.innerJoin(orchestras, eq(curations.orchestraId, orchestras.id))
+		.innerJoin(songs, eq(curations.songId, songs.id))
 		.where(whereClause)
 		.orderBy(desc(performances.performanceYear), desc(videos.publishedAt))
 		.limit(pageSize)
@@ -327,9 +331,9 @@ async function getFilteredVideos(
 		dancers: video.performance?.dancers?.split(",").map((d) => d.trim()) || [],
 		event: video.performance?.event?.trim() || null,
 		id: video.id,
-		orchestra: video.performance?.orchestra || "Unknown",
+		orchestra: video.orchestra,
 		singers: (video.performance?.singers?.split(",") || []).filter(Boolean),
-		songTitle: video.performance?.songTitle || "Unknown",
+		songTitle: video.songTitle,
 		title: video.title,
 		year: video.performance?.performanceYear ?? null,
 	})) satisfies SearchVideo[];

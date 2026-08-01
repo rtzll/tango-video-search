@@ -153,6 +153,25 @@ describe("loadSearchPage", () => {
 		expect(result.lastUpdateTime).toEqual(new Date("2026-07-11T00:00:00.000Z"));
 	});
 
+	it("uses canonical curated song and orchestra values for result cards", async () => {
+		await executeStatements(`
+			UPDATE performances
+			SET orchestra = NULL, song_title = 'Uncurated song title'
+			WHERE id = 'performance-1';
+		`);
+
+		const result = await loadSearchPage(createDatabase(database), {
+			filters: emptyFilters,
+			page: 1,
+			pageSize: 18,
+		});
+
+		expect(result.initialVideos.find((video) => video.id === "video-1")).toMatchObject({
+			orchestra: "Orchestra One",
+			songTitle: "Song One",
+		});
+	});
+
 	it("scopes every option list to the other active filters", async () => {
 		const result = await loadSearchPage(createDatabase(database), {
 			filters: { ...emptyFilters, dancer1: "Alice" },
