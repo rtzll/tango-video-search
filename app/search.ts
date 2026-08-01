@@ -15,16 +15,24 @@ export interface FilterOption<Value extends string = string> {
 	readonly value: Value;
 }
 
-export interface SearchOptions {
-	channel: FilterOption[];
-	dancer1: FilterOption[];
-	dancer2: FilterOption[];
-	event: FilterOption[];
-	orchestra: FilterOption[];
-	singer: FilterOption[];
-	song: FilterOption[];
-	year: FilterOption[];
+interface FilterValues {
+	channel: string;
+	dancer1: string;
+	dancer2: string;
+	event: string;
+	orchestra: string;
+	singer: string;
+	song: string;
+	year: string;
 }
+
+export type SearchFilters = {
+	readonly [Key in keyof FilterValues]: FilterValues[Key] | null;
+};
+
+export type SearchOptions = {
+	readonly [Key in keyof FilterValues]: readonly FilterOption<FilterValues[Key]>[];
+};
 
 export interface SearchVideo {
 	channelId: string;
@@ -37,17 +45,6 @@ export interface SearchVideo {
 	songTitle: string;
 	title: string;
 	year: number | null;
-}
-
-export interface SearchFilters {
-	channel: string | null;
-	dancer1: string | null;
-	dancer2: string | null;
-	event: string | null;
-	orchestra: string | null;
-	singer: string | null;
-	song: string | null;
-	year: string | null;
 }
 
 interface SearchState {
