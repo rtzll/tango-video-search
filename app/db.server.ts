@@ -15,7 +15,6 @@ import {
 	videos,
 } from "../schema";
 import type { SearchFilters, SearchVideo } from "./search";
-import { ANY_FILTER_VALUE } from "./utils/filters";
 import { normalizeName } from "./utils/normalize";
 
 export function createDatabase(database: D1Database) {
@@ -42,7 +41,7 @@ async function getLastDatabaseUpdateTime(db: AppDatabase) {
 type DancerFilterKey = "dancer1" | "dancer2";
 
 function withoutFilter(filters: SearchFilters, key: keyof SearchFilters): SearchFilters {
-	return { ...filters, [key]: ANY_FILTER_VALUE };
+	return { ...filters, [key]: null };
 }
 
 function curationHasDancer(db: AppDatabase, normalizedDancer: string) {
@@ -58,18 +57,16 @@ function curationHasDancer(db: AppDatabase, normalizedDancer: string) {
 	return exists(curationQuery);
 }
 
-function buildDancerFilterClause(db: AppDatabase, dancer1: string, dancer2: string) {
-	const dancer1Normalized =
-		dancer1 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer1);
-	const dancer2Normalized =
-		dancer2 === ANY_FILTER_VALUE ? ANY_FILTER_VALUE : normalizeName(dancer2);
+function buildDancerFilterClause(db: AppDatabase, dancer1: string | null, dancer2: string | null) {
+	const dancer1Normalized = dancer1 === null ? null : normalizeName(dancer1);
+	const dancer2Normalized = dancer2 === null ? null : normalizeName(dancer2);
 
-	if (dancer1Normalized !== ANY_FILTER_VALUE && dancer2Normalized !== ANY_FILTER_VALUE) {
+	if (dancer1Normalized !== null && dancer2Normalized !== null) {
 		return and(curationHasDancer(db, dancer1Normalized), curationHasDancer(db, dancer2Normalized));
 	}
 
-	const active = dancer1Normalized !== ANY_FILTER_VALUE ? dancer1Normalized : dancer2Normalized;
-	return active === ANY_FILTER_VALUE ? undefined : curationHasDancer(db, active);
+	const active = dancer1Normalized ?? dancer2Normalized;
+	return active === null ? undefined : curationHasDancer(db, active);
 }
 
 function curationHasSinger(db: AppDatabase, normalizedSinger: string) {
@@ -120,6 +117,16 @@ function curationHasEvent(db: AppDatabase, event: string) {
 	return exists(curationQuery);
 }
 
+function curationHasChannel(db: AppDatabase, channelId: string) {
+	const curationQuery = db
+		.select({ id: videos.id })
+		.from(performances)
+		.innerJoin(videos, eq(performances.videoId, videos.id))
+		.where(and(eq(performances.id, curations.performanceId), eq(videos.channelId, channelId)));
+
+	return exists(curationQuery);
+}
+
 function curationHasYear(db: AppDatabase, year: string) {
 	const parsedYear = Number(year);
 	if (!Number.isInteger(parsedYear)) {
@@ -142,17 +149,14 @@ function curationHasYear(db: AppDatabase, year: string) {
 function buildWhereClause(db: AppDatabase, filters: SearchFilters) {
 	return and(
 		buildDancerFilterClause(db, filters.dancer1, filters.dancer2),
-		filters.event === ANY_FILTER_VALUE ? undefined : curationHasEvent(db, filters.event.trim()),
-		filters.orchestra === ANY_FILTER_VALUE
+		filters.channel === null ? undefined : curationHasChannel(db, filters.channel),
+		filters.event === null ? undefined : curationHasEvent(db, filters.event.trim()),
+		filters.orchestra === null
 			? undefined
 			: curationHasOrchestra(db, normalizeName(filters.orchestra)),
-		filters.song === ANY_FILTER_VALUE
-			? undefined
-			: curationHasSong(db, normalizeName(filters.song)),
-		filters.singer === ANY_FILTER_VALUE
-			? undefined
-			: curationHasSinger(db, normalizeName(filters.singer)),
-		filters.year === ANY_FILTER_VALUE ? undefined : curationHasYear(db, filters.year),
+		filters.song === null ? undefined : curationHasSong(db, normalizeName(filters.song)),
+		filters.singer === null ? undefined : curationHasSinger(db, normalizeName(filters.singer)),
+		filters.year === null ? undefined : curationHasYear(db, filters.year),
 	);
 }
 
@@ -165,13 +169,31 @@ async function getEventOptions(db: AppDatabase, filters: SearchFilters) {
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			id: sql<number>`min(${curations.id})`,
-			name: eventName,
+			label: eventName,
+			value: eventName,
 		})
 		.from(performances)
 		.innerJoin(curations, eq(performances.id, curations.performanceId))
 		.where(and(scopedWhereClause, sql`${performances.event} is not null`, ne(eventName, "")))
 		.groupBy(eventName)
+		.having(gt(performanceCount, 0))
+		.orderBy(desc(performanceCount));
+}
+
+async function getChannelOptions(db: AppDatabase, filters: SearchFilters) {
+	const performanceCount = countDistinct(curations.id);
+
+	return db
+		.select({
+			count: performanceCount.as("performanceCount"),
+			label: sql<string>`max(${videos.channelTitle})`,
+			value: videos.channelId,
+		})
+		.from(videos)
+		.innerJoin(performances, eq(videos.id, performances.videoId))
+		.innerJoin(curations, eq(performances.id, curations.performanceId))
+		.where(buildWhereClause(db, withoutFilter(filters, "channel")))
+		.groupBy(videos.channelId)
 		.having(gt(performanceCount, 0))
 		.orderBy(desc(performanceCount));
 }
@@ -185,16 +207,14 @@ async function getDancerOptions(
 	const performanceCount = countDistinct(curations.id);
 	const scopedWhereClause = buildWhereClause(db, withoutFilter(filters, filterKey));
 	const otherDancerFilter =
-		otherDancer === ANY_FILTER_VALUE
-			? undefined
-			: ne(dancers.normalized, normalizeName(otherDancer));
+		otherDancer === null ? undefined : ne(dancers.normalized, normalizeName(otherDancer));
 	const whereClause = and(scopedWhereClause, otherDancerFilter);
 
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			id: dancers.id,
-			name: dancers.name,
+			label: dancers.name,
+			value: dancers.name,
 		})
 		.from(dancers)
 		.innerJoin(dancersToCurations, eq(dancers.id, dancersToCurations.dancerId))
@@ -211,8 +231,8 @@ async function getOrchestraOptions(db: AppDatabase, filters: SearchFilters) {
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			id: orchestras.id,
-			name: orchestras.name,
+			label: orchestras.name,
+			value: orchestras.name,
 		})
 		.from(orchestras)
 		.innerJoin(curations, eq(orchestras.id, curations.orchestraId))
@@ -228,8 +248,8 @@ async function getSongOptions(db: AppDatabase, filters: SearchFilters) {
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			id: songs.id,
-			name: songs.title,
+			label: songs.title,
+			value: songs.title,
 		})
 		.from(songs)
 		.innerJoin(curations, eq(songs.id, curations.songId))
@@ -245,8 +265,8 @@ async function getSingerOptions(db: AppDatabase, filters: SearchFilters) {
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			id: singers.id,
-			name: singers.name,
+			label: singers.name,
+			value: singers.name,
 		})
 		.from(singers)
 		.innerJoin(singersToCurations, eq(singers.id, singersToCurations.singerId))
@@ -261,22 +281,16 @@ async function getYearOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 	const scopedFilters = withoutFilter(filters, "year");
 	const scopedWhereClause = buildWhereClause(db, scopedFilters);
-	const year = sql<number>`${performances.performanceYear}`;
 
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			id: year,
-			name: sql<string>`cast(${performances.performanceYear} as text)`,
+			label: sql<string>`cast(${performances.performanceYear} as text)`,
+			value: sql<string>`cast(${performances.performanceYear} as text)`,
 		})
 		.from(performances)
 		.innerJoin(curations, eq(performances.id, curations.performanceId))
-		.where(
-			and(
-				scopedWhereClause,
-				sql`${performances.performanceYear} is not null`,
-			),
-		)
+		.where(and(scopedWhereClause, sql`${performances.performanceYear} is not null`))
 		.groupBy(performances.performanceYear)
 		.having(gt(performanceCount, 0))
 		.orderBy(desc(performances.performanceYear));
@@ -347,6 +361,7 @@ export async function loadSearchPage(
 	},
 ) {
 	const [
+		channelOptions,
 		dancerOneOptions,
 		dancerTwoOptions,
 		eventOptions,
@@ -357,6 +372,7 @@ export async function loadSearchPage(
 		totalVideos,
 		lastUpdateTime,
 	] = await Promise.all([
+		getChannelOptions(db, filters),
 		getDancerOptions(db, filters, "dancer1"),
 		getDancerOptions(db, filters, "dancer2"),
 		getEventOptions(db, filters),
@@ -375,6 +391,7 @@ export async function loadSearchPage(
 		initialVideos,
 		lastUpdateTime,
 		options: {
+			channel: channelOptions,
 			dancer1: dancerOneOptions,
 			dancer2: dancerTwoOptions,
 			event: eventOptions,

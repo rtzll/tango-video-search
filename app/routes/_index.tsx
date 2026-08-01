@@ -55,9 +55,12 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 
 	const [searchParams, setSearchParams] = useSearchParams();
 	const { filters } = parseSearchParams(searchParams);
-	const { dancer1, dancer2, event, orchestra, singer, song, year } = filters;
+	const { channel, dancer1, dancer2, event, orchestra, singer, song, year } = filters;
 
-	const updateSearchParam = (param: keyof SearchFilters, value: string) => {
+	const updateSearchParam = <Key extends keyof SearchFilters>(
+		param: Key,
+		value: SearchFilters[Key],
+	) => {
 		setSearchParams(updateFilterSearchParams(searchParams, param, value));
 	};
 	const resetSearchParams = () => setSearchParams(new URLSearchParams());
@@ -108,6 +111,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								key={video.id}
 								onFilterClick={handleFilterClick}
 								activeFilters={{
+									channel,
 									dancers: [dancer1, dancer2],
 									event,
 									orchestra,

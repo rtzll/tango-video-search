@@ -1,22 +1,29 @@
-import { ANY_FILTER_VALUE } from "./utils/filters";
 import { normalizeName } from "./utils/normalize";
 
-export type ResultFilter = "dancer" | "event" | "orchestra" | "singer" | "song" | "year";
+export type ResultFilter =
+	| "channel"
+	| "dancer"
+	| "event"
+	| "orchestra"
+	| "singer"
+	| "song"
+	| "year";
 
-export interface SearchOption {
-	count: number;
-	id: number;
-	name: string;
+export interface FilterOption<Value extends string = string> {
+	readonly count: number;
+	readonly label: string;
+	readonly value: Value;
 }
 
 export interface SearchOptions {
-	dancer1: SearchOption[];
-	dancer2: SearchOption[];
-	event: SearchOption[];
-	orchestra: SearchOption[];
-	singer: SearchOption[];
-	song: SearchOption[];
-	year: SearchOption[];
+	channel: FilterOption[];
+	dancer1: FilterOption[];
+	dancer2: FilterOption[];
+	event: FilterOption[];
+	orchestra: FilterOption[];
+	singer: FilterOption[];
+	song: FilterOption[];
+	year: FilterOption[];
 }
 
 export interface SearchVideo {
@@ -33,13 +40,14 @@ export interface SearchVideo {
 }
 
 export interface SearchFilters {
-	dancer1: string;
-	dancer2: string;
-	event: string;
-	orchestra: string;
-	singer: string;
-	song: string;
-	year: string;
+	channel: string | null;
+	dancer1: string | null;
+	dancer2: string | null;
+	event: string | null;
+	orchestra: string | null;
+	singer: string | null;
+	song: string | null;
+	year: string | null;
 }
 
 interface SearchState {
@@ -48,20 +56,29 @@ interface SearchState {
 }
 
 function getFilter(searchParams: URLSearchParams, key: keyof SearchFilters) {
-	return searchParams.get(key) || ANY_FILTER_VALUE;
+	return searchParams.get(key) || null;
 }
 
-function isSameFilterValue(current: string, candidate: string) {
-	return current !== ANY_FILTER_VALUE && normalizeName(current) === normalizeName(candidate);
+export function isSameResultFilterValue(
+	type: ResultFilter,
+	current: string | null,
+	candidate: string,
+) {
+	if (current === null) {
+		return false;
+	}
+	return type === "channel"
+		? current === candidate
+		: normalizeName(current) === normalizeName(candidate);
 }
 
-export function updateFilterSearchParams(
+export function updateFilterSearchParams<Key extends keyof SearchFilters>(
 	searchParams: URLSearchParams,
-	key: keyof SearchFilters,
-	value: string,
+	key: Key,
+	value: SearchFilters[Key],
 ) {
 	const nextSearchParams = new URLSearchParams(searchParams);
-	if (value === ANY_FILTER_VALUE) {
+	if (value === null) {
 		nextSearchParams.delete(key);
 	} else {
 		nextSearchParams.set(key, value);
@@ -91,20 +108,20 @@ export function toggleResultFilterSearchParams(
 	const { dancer1, dancer2 } = filters;
 
 	if (type === "dancer") {
-		if (isSameFilterValue(dancer1, value)) {
+		if (isSameResultFilterValue(type, dancer1, value)) {
 			nextSearchParams.delete("dancer1");
-		} else if (isSameFilterValue(dancer2, value)) {
+		} else if (isSameResultFilterValue(type, dancer2, value)) {
 			nextSearchParams.delete("dancer2");
-		} else if (dancer1 === ANY_FILTER_VALUE && dancer2 === ANY_FILTER_VALUE) {
+		} else if (dancer1 === null && dancer2 === null) {
 			nextSearchParams.set("dancer1", value);
-		} else if (dancer1 !== ANY_FILTER_VALUE && dancer2 === ANY_FILTER_VALUE) {
+		} else if (dancer1 !== null && dancer2 === null) {
 			nextSearchParams.set("dancer2", value);
-		} else if (dancer1 === ANY_FILTER_VALUE && dancer2 !== ANY_FILTER_VALUE) {
+		} else if (dancer1 === null && dancer2 !== null) {
 			nextSearchParams.set("dancer1", value);
 		}
 	} else {
 		const currentValue = filters[type];
-		if (isSameFilterValue(currentValue, value)) {
+		if (isSameResultFilterValue(type, currentValue, value)) {
 			nextSearchParams.delete(type);
 		} else {
 			nextSearchParams.set(type, value);
@@ -120,6 +137,7 @@ export function parseSearchParams(searchParams: URLSearchParams): SearchState {
 
 	return {
 		filters: {
+			channel: getFilter(searchParams, "channel"),
 			dancer1: getFilter(searchParams, "dancer1"),
 			dancer2: getFilter(searchParams, "dancer2"),
 			event: getFilter(searchParams, "event"),

@@ -4,7 +4,8 @@
 buried due to YouTube's algorithmic sorting and inconsistent metadata.
 
 **Solution:** Tango Video Search provides a streamlined interface to filter by
-dancers, orchestra, song, singer, event, or year with minimal friction.
+dancers, orchestra, song, singer, event, year, or YouTube channel with minimal
+friction.
 
 **How it works:** It’s powered by an LLM-curated index built from YouTube
 metadata. That means faster, more accurate retrieval of the performances you're
@@ -13,7 +14,7 @@ looking for.
 ## Features
 
 - Filter videos by dancer combinations and orchestras
-- Refine results by song, singer, event, or year
+- Refine results by song, singer, event, year, or YouTube channel
 - Responsive video grid layout
 - Quick filtering through video cards
 - Video metadata display

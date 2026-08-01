@@ -2,17 +2,17 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createDatabase, loadSearchPage } from "./db.server";
-import { ANY_FILTER_VALUE } from "./utils/filters";
 
 const database = (env as unknown as { DB: D1Database }).DB;
 const emptyFilters = {
-	dancer1: ANY_FILTER_VALUE,
-	dancer2: ANY_FILTER_VALUE,
-	event: ANY_FILTER_VALUE,
-	orchestra: ANY_FILTER_VALUE,
-	singer: ANY_FILTER_VALUE,
-	song: ANY_FILTER_VALUE,
-	year: ANY_FILTER_VALUE,
+	channel: null,
+	dancer1: null,
+	dancer2: null,
+	event: null,
+	orchestra: null,
+	singer: null,
+	song: null,
+	year: null,
 };
 
 async function executeStatements(sql: string) {
@@ -91,7 +91,7 @@ beforeEach(async () => {
 		INSERT INTO singers VALUES (1, 'Singer One', 'singer one'), (2, 'Singer Two', 'singer two');
 		INSERT INTO videos VALUES
 			('video-1', 'channel-1', 'Channel One', 'Video One', '2024-01-01'),
-			('video-2', 'channel-1', 'Channel One', 'Video Two', '2023-01-01'),
+			('video-2', 'channel-1', 'Channel One Renamed', 'Video Two', '2023-01-01'),
 			('video-3', 'channel-2', 'Channel Two', 'Video Three', '2022-01-01');
 		INSERT INTO performances VALUES
 			('performance-1', 'video-1', 'Alice, Bob', 'Event One', 'Orchestra One', 2024, 'Singer One', 'Song One'),
@@ -118,35 +118,37 @@ describe("loadSearchPage", () => {
 		expect(result.totalPages).toBe(2);
 		expect(result.page).toBe(1);
 		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1", "video-2"]);
+		expect(result.options.channel).toEqual([
+			{ count: 2, label: "Channel One Renamed", value: "channel-1" },
+			{ count: 1, label: "Channel Two", value: "channel-2" },
+		]);
 		expect(result.options.dancer1).toEqual([
-			{ count: 2, id: 1, name: "Alice" },
-			{ count: 2, id: 2, name: "Bob" },
-			{ count: 2, id: 3, name: "Carol" },
+			{ count: 2, label: "Alice", value: "Alice" },
+			{ count: 2, label: "Bob", value: "Bob" },
+			{ count: 2, label: "Carol", value: "Carol" },
 		]);
 		expect(result.options.orchestra).toEqual([
-			{ count: 2, id: 1, name: "Orchestra One" },
-			{ count: 1, id: 2, name: "Orchestra Two" },
+			{ count: 2, label: "Orchestra One", value: "Orchestra One" },
+			{ count: 1, label: "Orchestra Two", value: "Orchestra Two" },
 		]);
 		expect(
-			result.options.event
-				.map(({ count, name }) => ({ count, name }))
-				.toSorted((left, right) => left.name.localeCompare(right.name)),
+			result.options.event.toSorted((left, right) => left.label.localeCompare(right.label)),
 		).toEqual([
-			{ count: 1, name: "Event One" },
-			{ count: 1, name: "Event Two" },
+			{ count: 1, label: "Event One", value: "Event One" },
+			{ count: 1, label: "Event Two", value: "Event Two" },
 		]);
 		expect(result.options.singer).toEqual([
-			{ count: 1, id: 1, name: "Singer One" },
-			{ count: 1, id: 2, name: "Singer Two" },
+			{ count: 1, label: "Singer One", value: "Singer One" },
+			{ count: 1, label: "Singer Two", value: "Singer Two" },
 		]);
 		expect(result.options.song).toEqual([
-			{ count: 2, id: 1, name: "Song One" },
-			{ count: 1, id: 2, name: "Song Two" },
+			{ count: 2, label: "Song One", value: "Song One" },
+			{ count: 1, label: "Song Two", value: "Song Two" },
 		]);
 		expect(result.options.year).toEqual([
-			{ count: 1, id: 2024, name: "2024" },
-			{ count: 1, id: 2023, name: "2023" },
-			{ count: 1, id: 2022, name: "2022" },
+			{ count: 1, label: "2024", value: "2024" },
+			{ count: 1, label: "2023", value: "2023" },
+			{ count: 1, label: "2022", value: "2022" },
 		]);
 		expect(result.lastUpdateTime).toEqual(new Date("2026-07-11T00:00:00.000Z"));
 	});
@@ -161,24 +163,26 @@ describe("loadSearchPage", () => {
 		expect(result.totalVideos).toBe(2);
 		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1", "video-2"]);
 		expect(result.options.dancer2).toEqual([
-			{ count: 1, id: 2, name: "Bob" },
-			{ count: 1, id: 3, name: "Carol" },
+			{ count: 1, label: "Bob", value: "Bob" },
+			{ count: 1, label: "Carol", value: "Carol" },
 		]);
-		expect(result.options.orchestra).toEqual([{ count: 2, id: 1, name: "Orchestra One" }]);
-		expect(result.options.event.map(({ count, name }) => ({ count, name }))).toEqual(
+		expect(result.options.orchestra).toEqual([
+			{ count: 2, label: "Orchestra One", value: "Orchestra One" },
+		]);
+		expect(result.options.event).toEqual(
 			expect.arrayContaining([
-				{ count: 1, name: "Event One" },
-				{ count: 1, name: "Event Two" },
+				{ count: 1, label: "Event One", value: "Event One" },
+				{ count: 1, label: "Event Two", value: "Event Two" },
 			]),
 		);
-		expect(result.options.singer).toEqual([{ count: 1, id: 1, name: "Singer One" }]);
+		expect(result.options.singer).toEqual([{ count: 1, label: "Singer One", value: "Singer One" }]);
 		expect(result.options.song).toEqual([
-			{ count: 1, id: 1, name: "Song One" },
-			{ count: 1, id: 2, name: "Song Two" },
+			{ count: 1, label: "Song One", value: "Song One" },
+			{ count: 1, label: "Song Two", value: "Song Two" },
 		]);
 		expect(result.options.year).toEqual([
-			{ count: 1, id: 2024, name: "2024" },
-			{ count: 1, id: 2023, name: "2023" },
+			{ count: 1, label: "2024", value: "2024" },
+			{ count: 1, label: "2023", value: "2023" },
 		]);
 	});
 
@@ -191,13 +195,29 @@ describe("loadSearchPage", () => {
 
 		expect(result.totalVideos).toBe(1);
 		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1"]);
-		expect(result.options.event.map(({ count, name }) => ({ count, name }))).toEqual([
-			{ count: 1, name: "Event One" },
-		]);
+		expect(result.options.event).toEqual([{ count: 1, label: "Event One", value: "Event One" }]);
 		expect(result.options.year).toEqual([
-			{ count: 1, id: 2024, name: "2024" },
-			{ count: 1, id: 2023, name: "2023" },
-			{ count: 1, id: 2022, name: "2022" },
+			{ count: 1, label: "2024", value: "2024" },
+			{ count: 1, label: "2023", value: "2023" },
+			{ count: 1, label: "2022", value: "2022" },
+		]);
+	});
+
+	it("filters performances by channel ID and keeps channel options available", async () => {
+		const result = await loadSearchPage(createDatabase(database), {
+			filters: { ...emptyFilters, channel: "channel-1" },
+			page: 1,
+			pageSize: 18,
+		});
+
+		expect(result.totalVideos).toBe(2);
+		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1", "video-2"]);
+		expect(result.options.channel).toEqual([
+			{ count: 2, label: "Channel One Renamed", value: "channel-1" },
+			{ count: 1, label: "Channel Two", value: "channel-2" },
+		]);
+		expect(result.options.orchestra).toEqual([
+			{ count: 2, label: "Orchestra One", value: "Orchestra One" },
 		]);
 	});
 

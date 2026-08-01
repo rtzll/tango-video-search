@@ -1,19 +1,18 @@
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
 
-import type { ResultFilter, SearchVideo } from "~/search";
-import { ANY_FILTER_VALUE } from "~/utils/filters";
-import { normalizeName } from "~/utils/normalize";
+import { isSameResultFilterValue, type ResultFilter, type SearchVideo } from "~/search";
 
 interface VideoCardProps {
 	video: SearchVideo;
 	onFilterClick: (type: ResultFilter, value: string) => void;
 	activeFilters: {
-		dancers: string[];
-		event: string;
-		orchestra: string;
-		singer: string;
-		song: string;
-		year: string;
+		channel: string | null;
+		dancers: readonly [string | null, string | null];
+		event: string | null;
+		orchestra: string | null;
+		singer: string | null;
+		song: string | null;
+		year: string | null;
 	};
 }
 
@@ -23,14 +22,10 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 	const eventMetadata = getEventMetadata(video.event, video.year);
 
 	const isActive = (type: ResultFilter, value: string) => {
-		const normalizedValue = normalizeName(value);
 		if (type === "dancer") {
-			return activeFilters.dancers.some(
-				(dancer) => dancer !== ANY_FILTER_VALUE && normalizeName(dancer) === normalizedValue,
-			);
+			return activeFilters.dancers.some((dancer) => isSameResultFilterValue(type, dancer, value));
 		}
-		const currentValue = activeFilters[type];
-		return currentValue !== ANY_FILTER_VALUE && normalizeName(currentValue) === normalizedValue;
+		return isSameResultFilterValue(type, activeFilters[type], value);
 	};
 
 	return (
@@ -100,15 +95,17 @@ function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
 				<div className="min-h-5 flex-1" />
 
 				<div className="text-muted grid grid-cols-2 items-end gap-3 text-xs">
-					<a
-						href={`https://youtube.com/channel/${video.channelId}`}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="hover:text-accent-text inline-flex min-w-0 items-end gap-1 hover:underline"
-					>
-						<span className="truncate">via {video.channelTitle}</span>
-						<ArrowTopRightIcon className="shrink-0" />
-					</a>
+					<div className="inline-flex min-w-0 items-baseline gap-1">
+						<span className="shrink-0">via</span>
+						<span className="min-w-0 [&>button]:block [&>button]:max-w-full">
+							<FilterButton
+								active={isActive("channel", video.channelId)}
+								onClick={() => onFilterClick("channel", video.channelId)}
+							>
+								<span className="block truncate">{video.channelTitle}</span>
+							</FilterButton>
+						</span>
+					</div>
 					{eventMetadata && (
 						<span
 							className="flex min-w-0 items-baseline justify-end gap-1"

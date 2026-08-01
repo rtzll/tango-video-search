@@ -6,19 +6,19 @@ import {
 	toggleResultFilterSearchParams,
 	updateFilterSearchParams,
 } from "./search";
-import { ANY_FILTER_VALUE } from "./utils/filters";
 
 describe("parseSearchParams", () => {
 	it("uses empty filters and the first page when the query is empty", () => {
 		expect(parseSearchParams(new URLSearchParams())).toEqual({
 			filters: {
-				dancer1: ANY_FILTER_VALUE,
-				dancer2: ANY_FILTER_VALUE,
-				event: ANY_FILTER_VALUE,
-				orchestra: ANY_FILTER_VALUE,
-				singer: ANY_FILTER_VALUE,
-				song: ANY_FILTER_VALUE,
-				year: ANY_FILTER_VALUE,
+				channel: null,
+				dancer1: null,
+				dancer2: null,
+				event: null,
+				orchestra: null,
+				singer: null,
+				song: null,
+				year: null,
 			},
 			page: 1,
 		});
@@ -26,6 +26,7 @@ describe("parseSearchParams", () => {
 
 	it("reads every filter and the requested page", () => {
 		const searchParams = new URLSearchParams({
+			channel: "channel-1",
 			dancer1: "Carlitos Espinoza",
 			dancer2: "Agustina Piaggio",
 			event: "Embrace Berlin Tango Festival",
@@ -38,6 +39,7 @@ describe("parseSearchParams", () => {
 
 		expect(parseSearchParams(searchParams)).toEqual({
 			filters: {
+				channel: "channel-1",
 				dancer1: "Carlitos Espinoza",
 				dancer2: "Agustina Piaggio",
 				event: "Embrace Berlin Tango Festival",
@@ -67,7 +69,7 @@ describe("updateFilterSearchParams", () => {
 			singer: "Roberto Rufino",
 		});
 
-		expect(updateFilterSearchParams(current, "event", ANY_FILTER_VALUE).toString()).toBe(
+		expect(updateFilterSearchParams(current, "event", null).toString()).toBe(
 			"singer=Roberto+Rufino",
 		);
 	});
@@ -102,6 +104,27 @@ describe("toggleResultFilterSearchParams", () => {
 	});
 
 	it("toggles single-value card filters and resets pagination", () => {
+		const channelSelected = toggleResultFilterSearchParams(
+			new URLSearchParams({ page: "3" }),
+			"channel",
+			"channel-1",
+		);
+		expect(channelSelected.toString()).toBe("channel=channel-1");
+
+		const channelToggledOff = toggleResultFilterSearchParams(
+			channelSelected,
+			"channel",
+			"channel-1",
+		);
+		expect(channelToggledOff.toString()).toBe("");
+
+		const differentlyCasedChannel = toggleResultFilterSearchParams(
+			channelSelected,
+			"channel",
+			"CHANNEL-1",
+		);
+		expect(differentlyCasedChannel.toString()).toBe("channel=CHANNEL-1");
+
 		const selected = toggleResultFilterSearchParams(
 			new URLSearchParams({ page: "3" }),
 			"orchestra",
