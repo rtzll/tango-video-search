@@ -53,17 +53,19 @@ const APP_METADATA_SCHEMA = `CREATE TABLE IF NOT EXISTS app_metadata (
   value text NOT NULL
 );`;
 
-interface Options {
+interface BaseOptions {
 	dataDir: string;
 	database: string;
 	dryRun: boolean;
 	noLocalSymlink: boolean;
 	outDir: string;
-	persistTo: string;
-	remote: boolean;
 	reset: boolean;
 	sqlOnly: boolean;
 }
+
+type ImportTarget = { kind: "local"; persistTo: string } | { kind: "remote" };
+
+type Options = BaseOptions & { target: ImportTarget };
 
 interface LatestDatabaseFile {
 	date: string;
@@ -106,17 +108,17 @@ function readOptionValue(args: string[], index: number, optionName: string) {
 
 function parseArgs(): Options {
 	const args = process.argv.slice(2);
-	const options: Options = {
+	const options: BaseOptions = {
 		dataDir: "data",
 		database: DEFAULT_DATABASE,
 		dryRun: false,
 		noLocalSymlink: false,
 		outDir: ".cache/cloudflare-db",
-		persistTo: ".wrangler/state",
-		remote: false,
 		reset: false,
 		sqlOnly: false,
 	};
+	let targetKind: ImportTarget["kind"] = "local";
+	let persistTo = ".wrangler/state";
 
 	for (let index = 0; index < args.length; index++) {
 		const arg = args[index];
@@ -137,15 +139,15 @@ function parseArgs(): Options {
 				break;
 			}
 			case "--remote": {
-				options.remote = true;
+				targetKind = "remote";
 				break;
 			}
 			case "--local": {
-				options.remote = false;
+				targetKind = "local";
 				break;
 			}
 			case "--persist-to": {
-				options.persistTo = readOptionValue(args, index, arg);
+				persistTo = readOptionValue(args, index, arg);
 				index += 1;
 				break;
 			}
@@ -176,7 +178,10 @@ function parseArgs(): Options {
 		}
 	}
 
-	return options;
+	return {
+		...options,
+		target: targetKind === "remote" ? { kind: "remote" } : { kind: "local", persistTo },
+	};
 }
 
 function getLatestDatabaseFile(dataDir: string): LatestDatabaseFile {
@@ -395,10 +400,10 @@ INSERT OR REPLACE INTO app_metadata (key, value) VALUES
 }
 
 async function importSql(sqlPath: string, options: Options) {
-	const target = options.remote ? "--remote" : "--local";
+	const target = options.target.kind === "remote" ? "--remote" : "--local";
 	const wranglerBaseArgs = ["d1", "execute", options.database, target];
-	if (!options.remote && options.persistTo) {
-		wranglerBaseArgs.push("--persist-to", options.persistTo);
+	if (options.target.kind === "local") {
+		wranglerBaseArgs.push("--persist-to", options.target.persistTo);
 	}
 
 	await run("wrangler", [...wranglerBaseArgs, "--file", sqlPath], options);
@@ -414,7 +419,7 @@ async function main() {
 	const updatedAt = new Date(`${latest.date}T00:00:00.000Z`).toISOString();
 
 	console.log(`Latest database file: ${databasePath}`);
-	console.log(`D1 database: ${options.database} (${options.remote ? "remote" : "local"})`);
+	console.log(`D1 database: ${options.database} (${options.target.kind})`);
 
 	if (!options.dryRun) {
 		mkdirSync(outDir, { recursive: true });
