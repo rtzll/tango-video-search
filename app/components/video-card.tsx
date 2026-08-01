@@ -1,31 +1,30 @@
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
 
-import { isSameResultFilterValue, type ResultFilter, type SearchVideo } from "~/search";
+import {
+	isSameResultFilterValue,
+	type ResultFilter,
+	type SearchFilters,
+	type SearchVideo,
+} from "~/search";
 
 interface VideoCardProps {
 	video: SearchVideo;
 	onFilterClick: (type: ResultFilter, value: string) => void;
-	activeFilters: {
-		channel: string | null;
-		dancers: readonly [string | null, string | null];
-		event: string | null;
-		orchestra: string | null;
-		singer: string | null;
-		song: string | null;
-		year: string | null;
-	};
+	filters: SearchFilters;
 }
 
-function VideoCard({ video, onFilterClick, activeFilters }: VideoCardProps) {
+function VideoCard({ video, onFilterClick, filters }: VideoCardProps) {
 	const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
 	const videoLinkLabel = `Watch ${video.dancers.join(" and ")} dance to ${video.songTitle} by ${video.orchestra} on YouTube`;
 	const eventMetadata = getEventMetadata(video.event, video.year);
 
 	const isActive = (type: ResultFilter, value: string) => {
 		if (type === "dancer") {
-			return activeFilters.dancers.some((dancer) => isSameResultFilterValue(type, dancer, value));
+			return [filters.dancer1, filters.dancer2].some((dancer) =>
+				isSameResultFilterValue(type, dancer, value),
+			);
 		}
-		return isSameResultFilterValue(type, activeFilters[type], value);
+		return isSameResultFilterValue(type, filters[type], value);
 	};
 
 	return (

@@ -55,7 +55,6 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 
 	const [searchParams, setSearchParams] = useSearchParams();
 	const { filters } = parseSearchParams(searchParams);
-	const { channel, dancer1, dancer2, event, orchestra, singer, song, year } = filters;
 
 	const updateSearchParam = <Key extends keyof SearchFilters>(
 		param: Key,
@@ -110,15 +109,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 								video={video}
 								key={video.id}
 								onFilterClick={handleFilterClick}
-								activeFilters={{
-									channel,
-									dancers: [dancer1, dancer2],
-									event,
-									orchestra,
-									singer,
-									song,
-									year,
-								}}
+								filters={filters}
 							/>
 						))}
 					</div>
