@@ -9,6 +9,7 @@
 		".react-router/types/**/*"
 	],
 	"compilerOptions": {
+		"allowImportingTsExtensions": true,
 		"lib": ["DOM", "DOM.Iterable", "ES2023"],
 		"types": ["@cloudflare/vitest-pool-workers/types", "@cloudflare/workers-types", "vite/client"],
 		"isolatedModules": true,

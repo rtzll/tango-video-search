@@ -17,6 +17,8 @@ import {
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
 
+import { parseNamedRows } from "./sqlite-json.ts";
+
 const DEFAULT_DATABASE = process.env.CLOUDFLARE_D1_DATABASE ?? "tango-video-search";
 const DATA_FILE_PATTERN = /^sqlite-(?<date>\d{4}-\d{2}-\d{2})\.db$/;
 const EXPORT_TABLES = [
@@ -71,14 +73,6 @@ interface LatestDatabaseFile {
 interface Metadata {
 	fileName: string;
 	updatedAt: string;
-}
-
-interface SqliteTableRow {
-	name: string;
-}
-
-interface TableInfoRow {
-	name: string;
 }
 
 function printHelp() {
@@ -247,13 +241,12 @@ function sqlite(databasePath: string, args: string[]) {
 	return result.stdout;
 }
 
-function sqliteJson<T>(databasePath: string, sql: string) {
-	const output = sqlite(databasePath, ["-json", sql]).trim();
-	return output ? (JSON.parse(output) as T[]) : [];
+function sqliteNamedRows(databasePath: string, sql: string) {
+	return parseNamedRows(sqlite(databasePath, ["-json", sql]));
 }
 
 function getExportTables(databasePath: string) {
-	const tables = sqliteJson<SqliteTableRow>(
+	const tables = sqliteNamedRows(
 		databasePath,
 		"SELECT name FROM sqlite_schema WHERE type = 'table' AND sql IS NOT NULL ORDER BY name;",
 	)
@@ -267,10 +260,9 @@ function getExportTables(databasePath: string) {
 }
 
 function getTableColumns(databasePath: string, table: string) {
-	return sqliteJson<TableInfoRow>(
-		databasePath,
-		`PRAGMA table_info(${quoteSqlIdentifier(table)});`,
-	).map((row) => row.name);
+	return sqliteNamedRows(databasePath, `PRAGMA table_info(${quoteSqlIdentifier(table)});`).map(
+		(row) => row.name,
+	);
 }
 
 function buildInsertSelect(table: string, columns: string[]) {
