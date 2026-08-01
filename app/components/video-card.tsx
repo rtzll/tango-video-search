@@ -17,6 +17,7 @@ function VideoCard({ video, onFilterClick, filters }: VideoCardProps) {
 	const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
 	const videoLinkLabel = `Watch ${video.dancers.join(" and ")} dance to ${video.songTitle} by ${video.orchestra} on YouTube`;
 	const eventMetadata = getEventMetadata(video.event, video.year);
+	const eventYear = eventMetadata?.year ?? null;
 
 	const isActive = (type: ResultFilter, value: string) => {
 		if (type === "dancer") {
@@ -110,24 +111,24 @@ function VideoCard({ video, onFilterClick, filters }: VideoCardProps) {
 							className="flex min-w-0 items-baseline justify-end gap-1"
 							title={eventMetadata.label}
 						>
-							{eventMetadata.event && eventMetadata.eventValue && (
+							{eventMetadata.kind === "event" && (
 								<span className="min-w-0 [&>button]:block [&>button]:max-w-full">
 									<FilterButton
-										active={isActive("event", eventMetadata.eventValue)}
-										onClick={() => onFilterClick("event", eventMetadata.eventValue || "")}
+										active={isActive("event", eventMetadata.event.value)}
+										onClick={() => onFilterClick("event", eventMetadata.event.value)}
 									>
-										<span className="block truncate">{eventMetadata.event}</span>
+										<span className="block truncate">{eventMetadata.event.label}</span>
 									</FilterButton>
 								</span>
 							)}
-							{eventMetadata.event && eventMetadata.year && <span className="shrink-0">·</span>}
-							{eventMetadata.year && (
+							{eventMetadata.kind === "event" && eventYear && <span className="shrink-0">·</span>}
+							{eventYear && (
 								<span className="shrink-0">
 									<FilterButton
-										active={isActive("year", eventMetadata.year)}
-										onClick={() => onFilterClick("year", eventMetadata.year || "")}
+										active={isActive("year", eventYear)}
+										onClick={() => onFilterClick("year", eventYear)}
 									>
-										{eventMetadata.year}
+										{eventYear}
 									</FilterButton>
 								</span>
 							)}
@@ -139,7 +140,16 @@ function VideoCard({ video, onFilterClick, filters }: VideoCardProps) {
 	);
 }
 
-function getEventMetadata(event: string | null, year: number | null) {
+type EventMetadata =
+	| {
+			kind: "event";
+			event: { label: string; value: string };
+			label: string;
+			year: string | null;
+	  }
+	| { kind: "year"; label: string; year: string };
+
+function getEventMetadata(event: string | null, year: number | null): EventMetadata | null {
 	const cleanEvent = event?.trim() || null;
 	const cleanYear = year ? String(year) : null;
 	if (!cleanEvent && !cleanYear) {
@@ -149,9 +159,12 @@ function getEventMetadata(event: string | null, year: number | null) {
 		cleanEvent && cleanYear
 			? cleanEvent.replace(new RegExp(`(?:\\s*[·–—-]?\\s*)${cleanYear}\\s*$`), "").trim() || null
 			: cleanEvent;
+	if (!displayEvent || !cleanEvent) {
+		return cleanYear ? { kind: "year", label: cleanYear, year: cleanYear } : null;
+	}
 	return {
-		event: displayEvent,
-		eventValue: cleanEvent,
+		event: { label: displayEvent, value: cleanEvent },
+		kind: "event",
 		label: [displayEvent, cleanYear].filter(Boolean).join(" · "),
 		year: cleanYear,
 	};
