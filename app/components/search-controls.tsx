@@ -63,7 +63,7 @@ function SearchControls({ filters, onFilterChange, onReset, options }: SearchCon
 				)}
 			</div>
 			<AdvancedFilters
-				className="mt-2"
+				className="mt-3 sm:mt-2"
 				filters={filters}
 				onFilterChange={onFilterChange}
 				options={options}

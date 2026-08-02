@@ -87,7 +87,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						onReset={resetSearchParams}
 						options={options}
 					/>
-					<div className="mt-2">
+					<div className="mt-4 sm:mt-2">
 						<ResultsNavigation
 							announce
 							ariaLabel="Results pages, top"
