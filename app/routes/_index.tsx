@@ -1,4 +1,5 @@
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import * as stylex from "@stylexjs/stylex";
 import { useSearchParams } from "react-router";
 
 import { ResultsNavigation } from "~/components/results-navigation";
@@ -15,6 +16,7 @@ import {
 	updateFilterSearchParams,
 } from "~/search";
 
+import { colors } from "../styles/tokens.stylex";
 import type { Route } from "./+types/_index";
 
 const PAGE_SIZE = 18;
@@ -78,8 +80,8 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 			: `Showing ${startIndex}–${endIndex} of ${formattedTotalVideos} performances`;
 
 	return (
-		<div className="mx-auto flex min-h-screen max-w-350 flex-col gap-6 p-6">
-			<div className="flex flex-col gap-3">
+		<div {...stylex.props(styles.page)}>
+			<div {...stylex.props(styles.section)}>
 				<div>
 					<SearchControls
 						filters={filters}
@@ -87,7 +89,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						onReset={resetSearchParams}
 						options={options}
 					/>
-					<div className="mt-4 sm:mt-2">
+					<div {...stylex.props(styles.topNavigation)}>
 						<ResultsNavigation
 							announce
 							ariaLabel="Results pages, top"
@@ -99,11 +101,8 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 					</div>
 				</div>
 
-				<div className="flex flex-col gap-3">
-					<div
-						className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-						key={searchParams.toString()}
-					>
+				<div {...stylex.props(styles.section)}>
+					<div {...stylex.props(styles.videoGrid)} key={searchParams.toString()}>
 						{initialVideos.map((video) => (
 							<VideoCard
 								video={video}
@@ -124,14 +123,14 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 				</div>
 			</div>
 
-			<div className="mt-auto pt-4">
-				<div className="flex items-baseline justify-between flex-wrap">
-					<span className="text-muted text-xs">Data refreshed: {formattedLastUpdate}</span>
+			<div {...stylex.props(styles.footer)}>
+				<div {...stylex.props(styles.footerRow)}>
+					<span {...stylex.props(styles.updatedAt)}>Data refreshed: {formattedLastUpdate}</span>
 					<a
 						href="https://github.com/rtzll/tango-video-search"
 						target="_blank"
 						rel="noopener noreferrer"
-						className="text-muted inline-flex items-center gap-1 text-xs hover:underline"
+						{...stylex.props(styles.sourceLink)}
 					>
 						Source code
 						<GitHubLogoIcon width={12} height={12} />
@@ -141,3 +140,43 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 		</div>
 	);
 }
+
+const styles = stylex.create({
+	footer: { marginTop: "auto", paddingTop: "1rem" },
+	footerRow: {
+		alignItems: "baseline",
+		display: "flex",
+		flexWrap: "wrap",
+		justifyContent: "space-between",
+	},
+	page: {
+		display: "flex",
+		flexDirection: "column",
+		gap: "1.5rem",
+		marginInline: "auto",
+		maxWidth: "87.5rem",
+		minHeight: "100vh",
+		padding: "1.5rem",
+	},
+	section: { display: "flex", flexDirection: "column", gap: "0.75rem" },
+	sourceLink: {
+		alignItems: "center",
+		color: colors.muted,
+		display: "inline-flex",
+		fontSize: "0.75rem",
+		gap: "0.25rem",
+		lineHeight: "1rem",
+		textDecorationLine: { "@media (hover: hover)": { ":hover": "underline" }, default: "none" },
+	},
+	topNavigation: { marginTop: { "@media (min-width: 40rem)": "0.5rem", default: "1rem" } },
+	updatedAt: { color: colors.muted, fontSize: "0.75rem", lineHeight: "1rem" },
+	videoGrid: {
+		display: "grid",
+		gap: "1rem",
+		gridTemplateColumns: {
+			"@media (min-width: 40rem)": "repeat(2, minmax(0, 1fr))",
+			"@media (min-width: 64rem)": "repeat(3, minmax(0, 1fr))",
+			default: "minmax(0, 1fr)",
+		},
+	},
+});

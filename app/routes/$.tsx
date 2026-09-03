@@ -1,13 +1,14 @@
+import * as stylex from "@stylexjs/stylex";
 import { Link } from "react-router";
+
+import { colors } from "../styles/tokens.stylex";
 
 function NotFoundContent() {
 	return (
-		<div className="p-6">
-			<h1 className="text-2xl font-semibold">Not found</h1>
-			<p className="text-muted mt-2 text-sm">
-				The page you requested does not exist.
-			</p>
-			<Link className="mt-4 inline-block underline" to="/">
+		<div {...stylex.props(styles.page)}>
+			<h1 {...stylex.props(styles.heading)}>Not found</h1>
+			<p {...stylex.props(styles.message)}>The page you requested does not exist.</p>
+			<Link {...stylex.props(styles.homeLink)} to="/">
 				Go back home
 			</Link>
 		</div>
@@ -25,3 +26,15 @@ export function loader() {
 export function ErrorBoundary() {
 	return <NotFoundContent />;
 }
+
+const styles = stylex.create({
+	heading: { fontSize: "1.5rem", fontWeight: 600, lineHeight: "2rem" },
+	homeLink: { display: "inline-block", marginTop: "1rem", textDecorationLine: "underline" },
+	message: {
+		color: colors.muted,
+		fontSize: "0.875rem",
+		lineHeight: "1.25rem",
+		marginTop: "0.5rem",
+	},
+	page: { padding: "1.5rem" },
+});

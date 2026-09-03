@@ -1,8 +1,12 @@
 import { Cross1Icon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
-import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import * as stylex from "@stylexjs/stylex";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import type { FilterOption, SearchFilters, SearchOptions } from "~/search";
 import { normalizeName } from "~/utils/normalize";
+
+import { pickerStyles } from "../styles/picker";
+import { colors } from "../styles/tokens.stylex";
 
 const advancedFilters = [
 	{ key: "song", label: "Song" },
@@ -21,7 +25,7 @@ interface AdvancedFilterStateProps {
 }
 
 interface AdvancedFiltersProps extends AdvancedFilterStateProps {
-	className?: string;
+	xstyle?: stylex.StyleXStyles;
 }
 
 interface PopoverPosition {
@@ -147,12 +151,9 @@ function AdvancedFilterPicker({ filters, onFilterChange, options }: AdvancedFilt
 	}
 
 	const matchingOptions = getMatchingOptions(options[activeFilter.key], query);
-	const panelStyle: CSSProperties = position
-		? { left: position.left, top: position.top }
-		: { left: VIEWPORT_MARGIN, top: VIEWPORT_MARGIN, visibility: "hidden" };
 
 	return (
-		<div ref={containerRef} className="inline-flex">
+		<div ref={containerRef} {...stylex.props(styles.picker)}>
 			<button
 				ref={triggerRef}
 				type="button"
@@ -162,7 +163,7 @@ function AdvancedFilterPicker({ filters, onFilterChange, options }: AdvancedFilt
 				aria-label={
 					hasActiveFilter ? "Add another performance detail" : "Choose performance details"
 				}
-				className="border-border hover:bg-accent-soft text-accent-text inline-flex h-6 cursor-pointer items-center gap-1 rounded-sm border border-dashed px-2 text-xs"
+				{...stylex.props(styles.trigger)}
 			>
 				{hasActiveFilter ? "and…" : "where…"}
 			</button>
@@ -172,10 +173,17 @@ function AdvancedFilterPicker({ filters, onFilterChange, options }: AdvancedFilt
 					ref={panelRef}
 					role="dialog"
 					aria-label="Add a filter condition"
-					style={panelStyle}
-					className="border-border bg-panel fixed z-30 flex max-h-[min(20rem,calc(100dvh-2rem))] w-[min(20rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-md border p-1 shadow-xl"
+					{...stylex.props(
+						pickerStyles.panel,
+						styles.panel,
+						styles.panelPosition(
+							position?.left ?? VIEWPORT_MARGIN,
+							position?.top ?? VIEWPORT_MARGIN,
+						),
+						!position && styles.hiddenPanel,
+					)}
 				>
-					<div className="flex shrink-0 gap-1 overflow-x-auto px-1 pt-1" role="tablist">
+					<div {...stylex.props(styles.tabs)} role="tablist">
 						{availableFilters.map((filter) => (
 							<button
 								type="button"
@@ -186,32 +194,31 @@ function AdvancedFilterPicker({ filters, onFilterChange, options }: AdvancedFilt
 									setQuery("");
 								}}
 								aria-selected={filter.key === activeFilter.key}
-								className={`shrink-0 cursor-pointer rounded-sm px-2 py-1.5 text-xs ${
-									filter.key === activeFilter.key
-										? "bg-accent-soft text-accent-text font-medium"
-										: "text-muted hover:bg-panel-hover hover:text-text"
-								}`}
+								{...stylex.props(
+									styles.tab,
+									filter.key === activeFilter.key ? styles.selectedTab : styles.unselectedTab,
+								)}
 							>
 								{filter.label}
 							</button>
 						))}
 					</div>
 
-					<div className="relative flex shrink-0 items-center gap-2 px-2 py-2">
-						<MagnifyingGlassIcon className="text-muted shrink-0" />
+					<div {...stylex.props(pickerStyles.search, styles.noShrink)}>
+						<MagnifyingGlassIcon {...stylex.props(pickerStyles.searchIcon)} />
 						<input
 							autoFocus
 							value={query}
 							onChange={(event) => setQuery(event.target.value)}
 							placeholder={`Search ${activeFilter.label.toLowerCase()}`}
 							aria-label={`Search ${activeFilter.label.toLowerCase()}`}
-							className="placeholder:text-muted min-w-0 flex-1 bg-transparent py-1 text-base outline-none"
+							{...stylex.props(pickerStyles.input)}
 						/>
 					</div>
 
-					<div className="flex min-h-0 flex-col gap-1 overflow-y-auto px-1 pb-1" role="listbox">
+					<div {...stylex.props(styles.options)} role="listbox">
 						{matchingOptions.length === 0 ? (
-							<p className="text-muted py-3 text-center text-sm">No matches</p>
+							<p {...stylex.props(pickerStyles.empty)}>No matches</p>
 						) : (
 							matchingOptions.map((option) => (
 								<button
@@ -223,10 +230,10 @@ function AdvancedFilterPicker({ filters, onFilterChange, options }: AdvancedFilt
 										onFilterChange(activeFilter.key, option.value);
 										close();
 									}}
-									className="hover:bg-panel-hover text-text flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-3 py-2 text-left text-sm"
+									{...stylex.props(pickerStyles.option, styles.option)}
 								>
-									<span className="max-w-60 truncate">{option.label}</span>
-									<span className="text-muted shrink-0 text-xs tabular-nums">{option.count}</span>
+									<span {...stylex.props(pickerStyles.optionLabel)}>{option.label}</span>
+									<span {...stylex.props(pickerStyles.count)}>{option.count}</span>
 								</button>
 							))
 						)}
@@ -237,7 +244,7 @@ function AdvancedFilterPicker({ filters, onFilterChange, options }: AdvancedFilt
 	);
 }
 
-function AdvancedFilters({ className, filters, onFilterChange, options }: AdvancedFiltersProps) {
+function AdvancedFilters({ xstyle, filters, onFilterChange, options }: AdvancedFiltersProps) {
 	const activeFilters = advancedFilters.filter(({ key }) => filters[key] !== null);
 	const hasAvailableFilter = advancedFilters.some(
 		({ key }) => filters[key] === null && options[key].length > 0,
@@ -248,9 +255,7 @@ function AdvancedFilters({ className, filters, onFilterChange, options }: Advanc
 	}
 
 	return (
-		<div
-			className={`text-muted relative flex flex-wrap items-center gap-2 text-sm leading-7 ${className ?? ""}`}
-		>
+		<div {...stylex.props(styles.container, xstyle)}>
 			<span>Only show performances</span>
 			{activeFilters.length > 0 && <span>where</span>}
 			{activeFilters.map(({ key, label }, index) => {
@@ -267,12 +272,12 @@ function AdvancedFilters({ className, filters, onFilterChange, options }: Advanc
 							type="button"
 							onClick={() => onFilterChange(key, null)}
 							aria-label={`Remove ${label.toLowerCase()} condition`}
-							className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 max-w-full cursor-pointer items-center gap-1 rounded-sm px-2 text-xs"
+							{...stylex.props(styles.condition)}
 						>
-							<span className="max-w-64 truncate">
+							<span {...stylex.props(styles.conditionLabel)}>
 								{label.toLowerCase()} is {selectedLabel}
 							</span>
-							<Cross1Icon width={10} height={10} className="shrink-0" />
+							<Cross1Icon width={10} height={10} {...stylex.props(styles.noShrink)} />
 						</button>
 					</Fragment>
 				);
@@ -283,3 +288,106 @@ function AdvancedFilters({ className, filters, onFilterChange, options }: Advanc
 }
 
 export { AdvancedFilters };
+
+const styles = stylex.create({
+	condition: {
+		alignItems: "center",
+		backgroundColor: {
+			"@media (hover: hover)": { ":hover": colors.accentSoftHover },
+			default: colors.accentSoft,
+		},
+		borderRadius: "0.25rem",
+		color: colors.accentText,
+		cursor: "pointer",
+		display: "inline-flex",
+		fontSize: "0.75rem",
+		gap: "0.25rem",
+		height: "1.5rem",
+		lineHeight: "1rem",
+		maxWidth: "100%",
+		paddingInline: "0.5rem",
+	},
+	conditionLabel: {
+		maxWidth: "16rem",
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap",
+	},
+	container: {
+		alignItems: "center",
+		color: colors.muted,
+		display: "flex",
+		flexWrap: "wrap",
+		fontSize: "0.875rem",
+		gap: "0.5rem",
+		lineHeight: "1.75rem",
+		position: "relative",
+	},
+	hiddenPanel: { visibility: "hidden" },
+	noShrink: { flexShrink: 0 },
+	option: { gap: "0.75rem" },
+	options: {
+		display: "flex",
+		flexDirection: "column",
+		gap: "0.25rem",
+		minHeight: 0,
+		overflowY: "auto",
+		paddingBottom: "0.25rem",
+		paddingInline: "0.25rem",
+	},
+	panel: {
+		display: "flex",
+		flexDirection: "column",
+		maxHeight: "min(20rem, calc(100dvh - 2rem))",
+		overflow: "hidden",
+		position: "fixed",
+		width: "min(20rem, calc(100vw - 2rem))",
+		zIndex: 30,
+	},
+	panelPosition: (left: number, top: number) => ({ left, top }),
+	picker: { display: "inline-flex" },
+	selectedTab: { backgroundColor: colors.accentSoft, color: colors.accentText, fontWeight: 500 },
+	tab: {
+		borderRadius: "0.25rem",
+		cursor: "pointer",
+		flexShrink: 0,
+		fontSize: "0.75rem",
+		lineHeight: "1rem",
+		paddingBlock: "0.375rem",
+		paddingInline: "0.5rem",
+	},
+	tabs: {
+		display: "flex",
+		flexShrink: 0,
+		gap: "0.25rem",
+		overflowX: "auto",
+		paddingInline: "0.25rem",
+		paddingTop: "0.25rem",
+	},
+	trigger: {
+		alignItems: "center",
+		backgroundColor: {
+			"@media (hover: hover)": { ":hover": colors.accentSoft },
+			default: "transparent",
+		},
+		borderColor: colors.border,
+		borderRadius: "0.25rem",
+		borderStyle: "dashed",
+		borderWidth: 1,
+		color: colors.accentText,
+		cursor: "pointer",
+		display: "inline-flex",
+		fontSize: "0.75rem",
+		gap: "0.25rem",
+		height: "1.5rem",
+		lineHeight: "1rem",
+		paddingInline: "0.5rem",
+	},
+	unselectedTab: {
+		backgroundColor: {
+			"@media (hover: hover)": { ":hover": colors.panelHover },
+			default: "transparent",
+		},
+		color: { "@media (hover: hover)": { ":hover": colors.text }, default: colors.muted },
+	},
+});

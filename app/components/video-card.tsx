@@ -1,4 +1,5 @@
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
+import * as stylex from "@stylexjs/stylex";
 
 import {
 	isSameResultFilterValue,
@@ -6,6 +7,8 @@ import {
 	type SearchFilters,
 	type SearchVideo,
 } from "~/search";
+
+import { colors } from "../styles/tokens.stylex";
 
 interface VideoCardProps {
 	video: SearchVideo;
@@ -29,23 +32,23 @@ function VideoCard({ video, onFilterClick, filters }: VideoCardProps) {
 	};
 
 	return (
-		<article className="border-border bg-panel flex flex-col overflow-hidden rounded-md border">
+		<article {...stylex.props(styles.card)}>
 			<a
 				href={`https://youtube.com/watch?v=${video.id}`}
 				target="_blank"
 				rel="noopener noreferrer"
 				aria-label={videoLinkLabel}
-				className="bg-panel-hover group relative aspect-video overflow-hidden"
+				{...stylex.props(styles.thumbnailLink, stylex.defaultMarker())}
 			>
-				<img src={thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-				<span className="bg-accent/45 pointer-events-none absolute inset-0 mix-blend-color transition-opacity duration-200 group-hover:opacity-0 group-focus-visible:opacity-0" />
-				<span className="border-border bg-bg text-accent-text group-hover:bg-accent-soft group-focus-visible:bg-accent-soft pointer-events-none absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-sm border transition-colors">
+				<img src={thumbnailUrl} alt="" loading="lazy" {...stylex.props(styles.thumbnail)} />
+				<span {...stylex.props(styles.tint)} />
+				<span {...stylex.props(styles.watchIcon)}>
 					<ArrowTopRightIcon aria-hidden />
 				</span>
 			</a>
 
-			<div className="flex flex-1 flex-col p-4">
-				<h2 className="flex flex-wrap text-lg leading-snug font-normal">
+			<div {...stylex.props(styles.content)}>
+				<h2 {...stylex.props(styles.dancers)}>
 					{video.dancers.map((dancer, index) => (
 						<span key={`${video.id}-${dancer}`}>
 							<FilterButton
@@ -54,12 +57,16 @@ function VideoCard({ video, onFilterClick, filters }: VideoCardProps) {
 							>
 								{dancer}
 							</FilterButton>
-							{index < video.dancers.length - 1 ? <span className="mr-1">{" and "}</span> : ""}
+							{index < video.dancers.length - 1 ? (
+								<span {...stylex.props(styles.conjunction)}>{" and "}</span>
+							) : (
+								""
+							)}
 						</span>
 					))}
 				</h2>
 
-				<p className="text-muted mt-1 text-sm">
+				<p {...stylex.props(styles.description)}>
 					dancing to{" "}
 					<FilterButton
 						onClick={() => onFilterClick("song", video.songTitle)}
@@ -77,7 +84,7 @@ function VideoCard({ video, onFilterClick, filters }: VideoCardProps) {
 				</p>
 
 				{video.singers.length > 0 && (
-					<p className="text-muted mt-1 text-sm">
+					<p {...stylex.props(styles.description)}>
 						with vocals by{" "}
 						{video.singers.map((singer, index) => (
 							<span key={`${video.id}-${singer}`}>
@@ -92,38 +99,41 @@ function VideoCard({ video, onFilterClick, filters }: VideoCardProps) {
 						))}
 					</p>
 				)}
-				<div className="min-h-5 flex-1" />
+				<div {...stylex.props(styles.spacer)} />
 
-				<div className="text-muted grid grid-cols-2 items-end gap-3 text-xs">
-					<div className="inline-flex min-w-0 items-baseline gap-1">
-						<span className="shrink-0">via</span>
-						<span className="min-w-0 [&>button]:block [&>button]:max-w-full">
+				<div {...stylex.props(styles.metadata)}>
+					<div {...stylex.props(styles.channel)}>
+						<span {...stylex.props(styles.noShrink)}>via</span>
+						<span {...stylex.props(styles.metadataValue)}>
 							<FilterButton
+								xstyle={styles.metadataButton}
 								active={isActive("channel", video.channelId)}
 								onClick={() => onFilterClick("channel", video.channelId)}
 							>
-								<span className="block truncate">{video.channelTitle}</span>
+								<span {...stylex.props(styles.truncatedLabel)}>{video.channelTitle}</span>
 							</FilterButton>
 						</span>
 					</div>
 					{eventMetadata && (
-						<span
-							className="flex min-w-0 items-baseline justify-end gap-1"
-							title={eventMetadata.label}
-						>
+						<span {...stylex.props(styles.event)} title={eventMetadata.label}>
 							{eventMetadata.kind === "event" && (
-								<span className="min-w-0 [&>button]:block [&>button]:max-w-full">
+								<span {...stylex.props(styles.metadataValue)}>
 									<FilterButton
+										xstyle={styles.metadataButton}
 										active={isActive("event", eventMetadata.event.value)}
 										onClick={() => onFilterClick("event", eventMetadata.event.value)}
 									>
-										<span className="block truncate">{eventMetadata.event.label}</span>
+										<span {...stylex.props(styles.truncatedLabel)}>
+											{eventMetadata.event.label}
+										</span>
 									</FilterButton>
 								</span>
 							)}
-							{eventMetadata.kind === "event" && eventYear && <span className="shrink-0">·</span>}
+							{eventMetadata.kind === "event" && eventYear && (
+								<span {...stylex.props(styles.noShrink)}>·</span>
+							)}
 							{eventYear && (
-								<span className="shrink-0">
+								<span {...stylex.props(styles.noShrink)}>
 									<FilterButton
 										active={isActive("year", eventYear)}
 										onClick={() => onFilterClick("year", eventYear)}
@@ -171,6 +181,7 @@ function getEventMetadata(event: string | null, year: number | null): EventMetad
 }
 
 function FilterButton({
+	xstyle,
 	onClick,
 	active,
 	children,
@@ -178,24 +189,153 @@ function FilterButton({
 	onClick: () => void;
 	active: boolean;
 	children: React.ReactNode;
+	xstyle?: stylex.StyleXStyles;
 }) {
 	return (
 		<button
 			type="button"
 			onClick={onClick}
-			className={`group relative cursor-pointer leading-tight font-normal ${
-				active ? "text-accent-text" : "text-text"
-			}`}
-		>
-			{!active && (
-				<span
-					aria-hidden
-					className="bg-panel-active group-hover:bg-accent-soft pointer-events-none absolute inset-y-0 -inset-x-0.5 z-0 rounded-sm transition-colors"
-				/>
+			{...stylex.props(
+				styles.filter,
+				active && styles.activeFilter,
+				xstyle,
+				stylex.defaultMarker(),
 			)}
-			<span className="relative z-10">{children}</span>
+		>
+			{!active && <span aria-hidden {...stylex.props(styles.filterBackground)} />}
+			<span {...stylex.props(styles.filterLabel)}>{children}</span>
 		</button>
 	);
 }
 
 export { VideoCard };
+
+const styles = stylex.create({
+	activeFilter: { color: colors.accentText },
+	card: {
+		backgroundColor: colors.panel,
+		borderColor: colors.border,
+		borderRadius: "0.375rem",
+		borderStyle: "solid",
+		borderWidth: 1,
+		display: "flex",
+		flexDirection: "column",
+		overflow: "hidden",
+	},
+	channel: { alignItems: "baseline", display: "inline-flex", gap: "0.25rem", minWidth: 0 },
+	conjunction: { marginRight: "0.25rem" },
+	content: { display: "flex", flex: 1, flexDirection: "column", padding: "1rem" },
+	dancers: {
+		display: "flex",
+		flexWrap: "wrap",
+		fontSize: "1.125rem",
+		fontWeight: 400,
+		lineHeight: 1.375,
+	},
+	description: {
+		color: colors.muted,
+		fontSize: "0.875rem",
+		lineHeight: "1.25rem",
+		marginTop: "0.25rem",
+	},
+	event: {
+		alignItems: "baseline",
+		display: "flex",
+		gap: "0.25rem",
+		justifyContent: "flex-end",
+		minWidth: 0,
+	},
+	filter: {
+		color: colors.text,
+		cursor: "pointer",
+		fontWeight: 400,
+		lineHeight: 1.25,
+		position: "relative",
+	},
+	filterBackground: {
+		backgroundColor: {
+			"@media (hover: hover)": { [stylex.when.ancestor(":hover")]: colors.accentSoft },
+			default: colors.panelActive,
+		},
+		borderRadius: "0.25rem",
+		bottom: 0,
+		left: "-0.125rem",
+		pointerEvents: "none",
+		position: "absolute",
+		right: "-0.125rem",
+		top: 0,
+		transitionDuration: "150ms",
+		transitionProperty:
+			"color, background-color, border-color, text-decoration-color, fill, stroke",
+		transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+		zIndex: 0,
+	},
+	filterLabel: { position: "relative", zIndex: 10 },
+	metadata: {
+		alignItems: "end",
+		color: colors.muted,
+		display: "grid",
+		fontSize: "0.75rem",
+		gap: "0.75rem",
+		gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+		lineHeight: "1rem",
+	},
+	metadataButton: { display: "block", maxWidth: "100%" },
+	metadataValue: { minWidth: 0 },
+	noShrink: { flexShrink: 0 },
+	spacer: { flex: 1, minHeight: "1.25rem" },
+	thumbnail: { height: "100%", objectFit: "cover", width: "100%" },
+	thumbnailLink: {
+		aspectRatio: "16 / 9",
+		backgroundColor: colors.panelHover,
+		overflow: "hidden",
+		position: "relative",
+	},
+	tint: {
+		backgroundColor: `color-mix(in oklab, ${colors.accent} 45%, transparent)`,
+		inset: 0,
+		mixBlendMode: "color",
+		opacity: {
+			"@media (hover: hover)": { [stylex.when.ancestor(":hover")]: 0 },
+			default: 1,
+			[stylex.when.ancestor(":focus-visible")]: 0,
+		},
+		pointerEvents: "none",
+		position: "absolute",
+		transitionDuration: "200ms",
+		transitionProperty: "opacity",
+		transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+	},
+	truncatedLabel: {
+		display: "block",
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap",
+	},
+	watchIcon: {
+		alignItems: "center",
+		backgroundColor: {
+			"@media (hover: hover)": { [stylex.when.ancestor(":hover")]: colors.accentSoft },
+			default: colors.background,
+			[stylex.when.ancestor(":focus-visible")]: colors.accentSoft,
+		},
+		borderColor: colors.border,
+		borderRadius: "0.25rem",
+		borderStyle: "solid",
+		borderWidth: 1,
+		color: colors.accentText,
+		display: "inline-flex",
+		height: "1.75rem",
+		justifyContent: "center",
+		pointerEvents: "none",
+		position: "absolute",
+		right: "0.5rem",
+		top: "0.5rem",
+		transitionDuration: "150ms",
+		transitionProperty:
+			"color, background-color, border-color, text-decoration-color, fill, stroke",
+		transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+		width: "1.75rem",
+		zIndex: 10,
+	},
+});

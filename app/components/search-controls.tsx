@@ -1,7 +1,9 @@
 import { ResetIcon } from "@radix-ui/react-icons";
+import * as stylex from "@stylexjs/stylex";
 
 import type { SearchFilters, SearchOptions } from "~/search";
 
+import { colors } from "../styles/tokens.stylex";
 import { AdvancedFilters } from "./advanced-filters";
 import { Combobox } from "./combobox";
 
@@ -23,7 +25,7 @@ function SearchControls({ filters, onFilterChange, onReset, options }: SearchCon
 
 	return (
 		<>
-			<div className="relative flex flex-wrap items-baseline gap-2">
+			<div {...stylex.props(styles.controls)}>
 				<span>I want to see</span>
 				<Combobox
 					value={dancer1}
@@ -56,14 +58,14 @@ function SearchControls({ filters, onFilterChange, onReset, options }: SearchCon
 						type="button"
 						onClick={onReset}
 						aria-label="Reset filters"
-						className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-sm"
+						{...stylex.props(styles.reset)}
 					>
 						<ResetIcon width={12} height={12} />
 					</button>
 				)}
 			</div>
 			<AdvancedFilters
-				className="mt-3 sm:mt-2"
+				xstyle={styles.advancedFilters}
 				filters={filters}
 				onFilterChange={onFilterChange}
 				options={options}
@@ -73,3 +75,28 @@ function SearchControls({ filters, onFilterChange, onReset, options }: SearchCon
 }
 
 export { SearchControls };
+
+const styles = stylex.create({
+	advancedFilters: { marginTop: { "@media (min-width: 40rem)": "0.5rem", default: "0.75rem" } },
+	controls: {
+		alignItems: "baseline",
+		display: "flex",
+		flexWrap: "wrap",
+		gap: "0.5rem",
+		position: "relative",
+	},
+	reset: {
+		alignItems: "center",
+		backgroundColor: {
+			"@media (hover: hover)": { ":hover": colors.accentSoftHover },
+			default: colors.accentSoft,
+		},
+		borderRadius: "0.25rem",
+		color: colors.accentText,
+		cursor: "pointer",
+		display: "inline-flex",
+		height: "1.5rem",
+		justifyContent: "center",
+		width: "1.5rem",
+	},
+});

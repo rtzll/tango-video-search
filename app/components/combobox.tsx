@@ -1,8 +1,12 @@
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
+import * as stylex from "@stylexjs/stylex";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { FilterOption } from "~/search";
 import { normalizeName } from "~/utils/normalize";
+
+import { pickerStyles } from "../styles/picker";
+import { colors } from "../styles/tokens.stylex";
 
 type ListItem<Value extends string> =
 	| { kind: "empty"; label: string }
@@ -127,10 +131,9 @@ const Combobox = <Value extends string>({
 	const selectedOption = options.find((option) => option.value === value);
 	const selectedLabel = value === null ? placeholder : (selectedOption?.label ?? value);
 	const activeOptionId = listOptions.length > 0 ? `${listId}-option-${activeIndex}` : undefined;
-	const panelPosition = openAbove ? "bottom-full mb-1.5" : "top-full mt-1.5";
 
 	return (
-		<div ref={containerRef} className="static inline-block sm:relative">
+		<div ref={containerRef} {...stylex.props(styles.container)}>
 			<button
 				type="button"
 				ref={triggerRef}
@@ -138,22 +141,26 @@ const Combobox = <Value extends string>({
 				aria-label={ariaLabel ?? selectedLabel}
 				aria-haspopup="listbox"
 				aria-expanded={open}
-				className="decoration-accent/60 hover:decoration-accent focus-visible:decoration-accent relative inline-flex cursor-pointer items-center gap-1 px-0 py-0 text-accent-text underline decoration-dotted underline-offset-4 after:absolute after:-inset-y-2 after:inset-x-0 after:content-[''] hover:decoration-solid focus-visible:outline-none focus-visible:decoration-solid"
+				{...stylex.props(styles.trigger)}
 			>
-				<span className="truncate text-base">{selectedLabel}</span>
+				<span {...stylex.props(styles.label)}>{selectedLabel}</span>
 				{showCaret && value === null && (
-					<ChevronDownIcon className="opacity-50" width={12} height={12} />
+					<ChevronDownIcon {...stylex.props(styles.caret)} width={12} height={12} />
 				)}
 			</button>
 
 			{open && (
 				<div
 					ref={panelRef}
-					className={`border-border bg-panel absolute inset-x-0 z-20 min-w-0 rounded-md border p-1 shadow-xl sm:right-auto sm:min-w-70 ${panelPosition}`}
+					{...stylex.props(
+						pickerStyles.panel,
+						styles.panel,
+						openAbove ? styles.panelAbove : styles.panelBelow,
+					)}
 				>
-					<div className="flex flex-col gap-2">
-						<div className="relative flex items-center gap-2 px-2 py-2">
-							<MagnifyingGlassIcon className="text-muted shrink-0" />
+					<div {...stylex.props(styles.panelContent)}>
+						<div {...stylex.props(pickerStyles.search)}>
+							<MagnifyingGlassIcon {...stylex.props(pickerStyles.searchIcon)} />
 							<input
 								ref={inputRef}
 								type="text"
@@ -170,7 +177,7 @@ const Combobox = <Value extends string>({
 								aria-expanded={open}
 								aria-controls={listId}
 								aria-activedescendant={activeOptionId}
-								className="placeholder:text-muted min-w-0 flex-1 bg-transparent py-1 text-base outline-none"
+								{...stylex.props(pickerStyles.input)}
 								onKeyDown={(event) => {
 									if (event.key === "ArrowDown") {
 										event.preventDefault();
@@ -198,8 +205,8 @@ const Combobox = <Value extends string>({
 							/>
 						</div>
 
-						<div className="max-h-80 overflow-y-auto px-1 pb-1">
-							<div className="flex flex-col gap-1" role="listbox" id={listId}>
+						<div {...stylex.props(styles.scrollArea)}>
+							<div {...stylex.props(styles.options)} role="listbox" id={listId}>
 								{includeEmptyOption && (
 									<OptionRow
 										kind="empty"
@@ -214,10 +221,10 @@ const Combobox = <Value extends string>({
 									/>
 								)}
 								{includeEmptyOption && filteredOptions.length > 0 && (
-									<div className="border-border mx-2 my-1 border-t" />
+									<div {...stylex.props(styles.separator)} />
 								)}
 								{filteredOptions.length === 0 ? (
-									<p className="text-muted py-3 text-center text-sm">No matches</p>
+									<p {...stylex.props(pickerStyles.empty)}>No matches</p>
 								) : (
 									filteredOptions.map((option, index) => {
 										const optionIndex = index + (includeEmptyOption ? 1 : 0);
@@ -267,15 +274,83 @@ const OptionRow = (props: OptionRowProps) => (
 		role="option"
 		aria-selected={props.selected}
 		title={props.kind === "option" ? `${props.label} · ${props.count}` : props.label}
-		className={`hover:bg-panel-hover flex min-h-10 w-full cursor-pointer items-center justify-between rounded-sm px-3 py-2 text-left text-sm ${
-			props.active ? "bg-panel-hover" : ""
-		} ${props.selected ? "bg-accent-soft text-accent-text font-medium" : "text-text"}`}
-	>
-		<span className="max-w-60 truncate">{props.label}</span>
-		{props.kind === "option" && (
-			<span className="text-muted shrink-0 text-xs tabular-nums">{props.count}</span>
+		{...stylex.props(
+			pickerStyles.option,
+			props.active && pickerStyles.activeOption,
+			props.selected && pickerStyles.selectedOption,
 		)}
+	>
+		<span {...stylex.props(pickerStyles.optionLabel)}>{props.label}</span>
+		{props.kind === "option" && <span {...stylex.props(pickerStyles.count)}>{props.count}</span>}
 	</button>
 );
 
 export { Combobox };
+
+const styles = stylex.create({
+	caret: { opacity: 0.5 },
+	container: {
+		display: "inline-block",
+		position: { "@media (min-width: 40rem)": "relative", default: "static" },
+	},
+	label: {
+		fontSize: "1rem",
+		lineHeight: "1.5rem",
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap",
+	},
+	options: { display: "flex", flexDirection: "column", gap: "0.25rem" },
+	panel: {
+		left: 0,
+		minWidth: { "@media (min-width: 40rem)": "17.5rem", default: 0 },
+		position: "absolute",
+		right: { "@media (min-width: 40rem)": "auto", default: 0 },
+		zIndex: 20,
+	},
+	panelAbove: { bottom: "100%", marginBottom: "0.375rem" },
+	panelBelow: { marginTop: "0.375rem", top: "100%" },
+	panelContent: { display: "flex", flexDirection: "column", gap: "0.5rem" },
+	scrollArea: {
+		maxHeight: "20rem",
+		overflowY: "auto",
+		paddingBottom: "0.25rem",
+		paddingInline: "0.25rem",
+	},
+	separator: {
+		borderColor: colors.border,
+		borderTopStyle: "solid",
+		borderTopWidth: 1,
+		marginBlock: "0.25rem",
+		marginInline: "0.5rem",
+	},
+	trigger: {
+		"::after": {
+			bottom: "-0.5rem",
+			content: "''",
+			insetInline: 0,
+			position: "absolute",
+			top: "-0.5rem",
+		},
+		alignItems: "center",
+		color: colors.accentText,
+		cursor: "pointer",
+		display: "inline-flex",
+		gap: "0.25rem",
+		outlineStyle: { ":focus-visible": "none", default: null },
+		padding: 0,
+		position: "relative",
+		textDecorationColor: {
+			":focus-visible": colors.accent,
+			"@media (hover: hover)": { ":hover": colors.accent },
+			default: `color-mix(in oklab, ${colors.accent} 60%, transparent)`,
+		},
+		textDecorationLine: "underline",
+		textDecorationStyle: {
+			":focus-visible": "solid",
+			"@media (hover: hover)": { ":hover": "solid" },
+			default: "dotted",
+		},
+		textUnderlineOffset: 4,
+	},
+});
