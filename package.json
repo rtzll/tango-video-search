@@ -38,25 +38,25 @@
 		"isbot": "^5.2.2",
 		"react": "^19.2.8",
 		"react-dom": "^19.2.8",
-		"react-router": "^8.3.0"
+		"react-router": "^8.3.1"
 	},
 	"devDependencies": {
-		"@cloudflare/vite-plugin": "^1.54.1",
+		"@cloudflare/vite-plugin": "^1.54.3",
 		"@cloudflare/vitest-pool-workers": "^0.18.8",
-		"@cloudflare/workers-types": "^5.20260828.1",
-		"@react-router/dev": "^8.3.0",
+		"@cloudflare/workers-types": "^5.20260903.1",
+		"@react-router/dev": "^8.3.1",
 		"@types/node": "^24.13.3",
 		"@types/react": "^19.2.18",
 		"@types/react-dom": "^19.2.5",
 		"knip": "^5.88.1",
 		"oxfmt": "^0.46.0",
-		"oxlint": "^1.80.0",
+		"oxlint": "^1.81.0",
 		"tailwindcss": "^4.3.3",
 		"typescript": "^6.0.3",
 		"vite": "^7.3.6",
 		"vite-plus": "^0.2.9",
 		"vitest": "4.1.10",
-		"wrangler": "^4.127.0"
+		"wrangler": "^4.128.0"
 	},
 	"packageManager": "pnpm@11.21.0"
 }
