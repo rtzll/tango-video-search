@@ -80,6 +80,16 @@ vp run db:update --local --reset
 vp run db:update --remote
 ```
 
+### Updating dependencies
+
+Update to the latest stable versions, keeping Node.js types on 24.x:
+
+```sh
+vp update --latest '!@types/node'
+vp update @types/node
+vp run check
+```
+
 ## Deployment
 
 Cloudflare deployment is handled by Cloudflare Workers Builds after the GitHub
