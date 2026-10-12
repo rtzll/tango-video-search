@@ -1,3 +1,4 @@
+import { SELF } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -181,6 +182,9 @@ describe("loadSearchPage", () => {
 
 		expect(result.totalVideos).toBe(2);
 		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1", "video-2"]);
+		expect(result.options.channel).toEqual([
+			{ count: 2, label: "Channel One Renamed", value: "channel-1" },
+		]);
 		expect(result.options.dancer2).toEqual([
 			{ count: 1, label: "Bob", value: "Bob" },
 			{ count: 1, label: "Carol", value: "Carol" },
@@ -260,5 +264,79 @@ describe("loadSearchPage", () => {
 
 		expect(result.page).toBe(1);
 		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1", "video-2"]);
+	});
+});
+
+describe("search route", () => {
+	it("returns method-not-allowed responses through the Remix router", async () => {
+		const unsupportedMethod = await SELF.fetch("https://tango.test/", { method: "POST" });
+		expect(unsupportedMethod.status).toBe(405);
+		expect(unsupportedMethod.headers.get("Allow")).toContain("GET");
+		expect(unsupportedMethod.headers.get("Allow")).toContain("HEAD");
+	});
+
+	it.each(["/missing", "/nested/missing"])(
+		"renders a styled not-found page for %s",
+		async (path) => {
+			const response = await SELF.fetch(`https://tango.test${path}`);
+
+			expect(response.status).toBe(404);
+			expect(response.headers.get("Content-Type")).toContain("text/html");
+			const html = await response.text();
+			expect(html).toContain("<title>Tango Video Search</title>");
+			expect(html).toContain("<h1>Not found</h1>");
+			expect(html).toContain("The page you requested does not exist.");
+			expect(html).toContain('<a href="/">Go back home</a>');
+			expect(html).toMatch(/color-scheme:\s*dark/);
+		},
+	);
+
+	it("serves not-found requests through HEAD without a response body", async () => {
+		const response = await SELF.fetch("https://tango.test/missing", { method: "HEAD" });
+
+		expect(response.status).toBe(404);
+		expect(response.headers.get("Content-Type")).toContain("text/html");
+		expect(await response.text()).toBe("");
+	});
+
+	it("renders a filtered search page from D1 through GET", async () => {
+		const response = await SELF.fetch("https://tango.test/?year=2024");
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Type")).toContain("text/html");
+
+		const html = await response.text();
+		expect(html).toContain("<title>Tango Video Search</title>");
+		expect(html).toContain(
+			"@media (scripting: none) { [data-enhanced-search] { display: none !important; } }",
+		);
+		expect(html).toContain('data-enhanced-search=""');
+		expect(html).toContain('method="get"');
+		expect(html).toContain('name="year"');
+		expect(html).toContain('value="2024" selected');
+		expect(html).toContain('name="channel"');
+		expect(html).toContain("Showing 1–1 of 1 performances");
+		expect(html).toContain("https://i.ytimg.com/vi/video-1/hqdefault.jpg");
+		expect(html).not.toContain("https://i.ytimg.com/vi/video-2/hqdefault.jpg");
+		expect(html).toContain('href="/?year=2024&amp;song=Song+One"');
+		expect(html).toContain('href="/?year=2024&amp;channel=channel-1"');
+	});
+
+	it("serves the root route through HEAD without a response body", async () => {
+		const response = await SELF.fetch("https://tango.test/", { method: "HEAD" });
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Type")).toContain("text/html");
+		expect(await response.text()).toBe("");
+	});
+
+	it("redirects empty native form values to the canonical search URL", async () => {
+		const response = await SELF.fetch(
+			"https://tango.test/?dancer1=&dancer2=&orchestra=Orchestra+One&song=",
+			{ redirect: "manual" },
+		);
+
+		expect(response.status).toBe(302);
+		expect(response.headers.get("Location")).toBe("/?orchestra=Orchestra+One");
 	});
 });

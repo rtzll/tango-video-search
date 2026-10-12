@@ -1,33 +1,30 @@
 {
 	"include": [
-		"**/*.ts",
-		"**/*.tsx",
-		"**/.server/**/*.ts",
-		"**/.server/**/*.tsx",
-		"**/.client/**/*.ts",
-		"**/.client/**/*.tsx",
-		".react-router/types/**/*"
+		"app/**/*.ts",
+		"app/**/*.tsx",
+		"workers/**/*.ts",
+		"scripts/**/*.ts",
+		"schema.ts",
+		"vite.config.ts",
+		"vitest.config.ts",
+		"worker-configuration.d.ts"
 	],
 	"compilerOptions": {
-		"allowImportingTsExtensions": true,
-		"lib": ["DOM", "DOM.Iterable", "ES2023"],
+		"lib": ["DOM", "DOM.Iterable", "ES2024"],
 		"types": ["@cloudflare/vitest-pool-workers/types", "@cloudflare/workers-types", "vite/client"],
+		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
 		"isolatedModules": true,
 		"esModuleInterop": true,
 		"jsx": "react-jsx",
+		"jsxImportSource": "remix/component",
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"resolveJsonModule": true,
-		"target": "ES2022",
+		"target": "ESNext",
 		"strict": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"paths": {
-			"~/*": ["./app/*"]
-		},
-
-		// Vite takes care of building everything, not tsc.
-		"noEmit": true,
-		"rootDirs": [".", "./.react-router/types"]
+		"noEmit": true
 	}
 }

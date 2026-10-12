@@ -1,21 +1,21 @@
-import { RouterContextProvider, createRequestHandler } from "react-router";
-
-import { cloudflareContext, type AppEnv } from "../app/context.server";
-
-const requestHandler = createRequestHandler(
-	() => import("virtual:react-router/server-build"),
-	import.meta.env.MODE,
-);
+import { router } from "../app/router.ts";
 
 export default {
-	async fetch(request, env, ctx) {
-		const routerContext = new RouterContextProvider();
-		routerContext.set(cloudflareContext, {
-			cf: request.cf,
-			ctx,
-			env,
-		});
+	async fetch(request): Promise<Response> {
+		try {
+			return await router.fetch(request);
+		} catch (error) {
+			if (!(request.signal.aborted && error === request.signal.reason)) {
+				console.error(
+					JSON.stringify({
+						error: error instanceof Error ? error.message : String(error),
+						message: "Unhandled Tango Video Search request error",
+						path: new URL(request.url).pathname,
+					}),
+				);
+			}
 
-		return requestHandler(request, routerContext);
+			return new Response("Internal Server Error", { status: 500 });
+		}
 	},
-} satisfies ExportedHandler<AppEnv>;
+} satisfies ExportedHandler<Env>;

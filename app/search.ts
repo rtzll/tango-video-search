@@ -1,4 +1,4 @@
-import { normalizeName } from "./utils/normalize";
+import { normalizeName } from "./utils/normalize.ts";
 
 export type ResultFilter =
 	| "channel"
@@ -9,11 +9,13 @@ export type ResultFilter =
 	| "song"
 	| "year";
 
-export interface FilterOption<Value extends string = string> {
+// This alias remains structurally serializable for Remix client-entry props.
+// eslint-disable-next-line typescript/consistent-type-definitions
+export type FilterOption<Value extends string = string> = {
 	readonly count: number;
 	readonly label: string;
 	readonly value: Value;
-}
+};
 
 interface FilterValues {
 	channel: string;
@@ -31,7 +33,7 @@ export type SearchFilters = {
 };
 
 export type SearchOptions = {
-	readonly [Key in keyof FilterValues]: readonly FilterOption<FilterValues[Key]>[];
+	readonly [Key in keyof FilterValues]: FilterOption<FilterValues[Key]>[];
 };
 
 export interface SearchVideo {
@@ -52,6 +54,17 @@ interface SearchState {
 	page: number;
 }
 
+const searchFilterKeys: (keyof SearchFilters)[] = [
+	"channel",
+	"dancer1",
+	"dancer2",
+	"event",
+	"orchestra",
+	"singer",
+	"song",
+	"year",
+];
+
 function getFilter(searchParams: URLSearchParams, key: keyof SearchFilters) {
 	return searchParams.get(key) || null;
 }
@@ -61,12 +74,26 @@ export function isSameResultFilterValue(
 	current: string | null,
 	candidate: string,
 ) {
-	if (current === null) {
-		return false;
+	return current !== null && areFilterValuesEqual(type, current, candidate);
+}
+
+export function areFilterValuesEqual(
+	filter: ResultFilter | keyof SearchFilters,
+	left: string,
+	right: string,
+) {
+	return filter === "channel" ? left === right : normalizeName(left) === normalizeName(right);
+}
+
+export function removeInactiveFilterSearchParams(searchParams: URLSearchParams) {
+	const nextSearchParams = new URLSearchParams(searchParams);
+	for (const key of searchFilterKeys) {
+		const value = nextSearchParams.get(key);
+		if (value === "" || value === "any") {
+			nextSearchParams.delete(key);
+		}
 	}
-	return type === "channel"
-		? current === candidate
-		: normalizeName(current) === normalizeName(candidate);
+	return nextSearchParams;
 }
 
 export function updateFilterSearchParams<Key extends keyof SearchFilters>(

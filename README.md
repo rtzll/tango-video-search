@@ -21,10 +21,8 @@ looking for.
 
 ## Tech Stack
 
-- **Framework**: [React Router](https://reactrouter.com/) v8 (started as a Remix
-  project)
-- **UI**: [Tailwind CSS](https://tailwindcss.com/) +
-  [Radix Icons](https://www.radix-ui.com/icons)
+- **Framework**: [Remix](https://remix.run/) 3 (`3.0.0`)
+- **UI**: Server-rendered `remix/component` components and CSS mixins
 - **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) with
   [Drizzle ORM](https://orm.drizzle.team/)
 - **Runtime**: [Cloudflare Workers](https://developers.cloudflare.com/workers/)
@@ -41,19 +39,28 @@ Install dependencies:
 vp install --frozen-lockfile
 ```
 
+Install Chromium for the browser tests (with system dependencies on Linux/CI):
+
+```sh
+vp exec playwright install --with-deps chromium
+```
+
+`vp run test` runs the D1 and server tests; `vp run test:remix` runs the
+browser tests configured in `remix.json`.
+
 Load the latest local SQLite snapshot into local D1:
 
 ```sh
 vp run db:update --local --reset
 ```
 
-Run the React Router development server:
+Run the Vite development server:
 
 ```sh
 vp run dev
 ```
 
-Run the built Worker locally through Wrangler:
+Run the production build locally through the Cloudflare Vite integration:
 
 ```sh
 vp run preview

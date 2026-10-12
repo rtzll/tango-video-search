@@ -21,7 +21,7 @@ export function createDatabase(database: D1Database) {
 	return drizzle(database, { schema });
 }
 
-type AppDatabase = ReturnType<typeof createDatabase>;
+export type AppDatabase = ReturnType<typeof createDatabase>;
 
 async function getLastDatabaseUpdateTime(db: AppDatabase) {
 	try {
@@ -281,7 +281,6 @@ async function getYearOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 	const scopedFilters = withoutFilter(filters, "year");
 	const scopedWhereClause = buildWhereClause(db, scopedFilters);
-
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),

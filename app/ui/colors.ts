@@ -1,0 +1,18 @@
+export const colors = {
+	background: "#111113",
+	panel: "#18191b",
+	panelHover: "#212225",
+	panelActive: "#2a2b2e",
+	border: "#34363a",
+	borderStrong: "#43464b",
+	muted: "#b0b4ba",
+	text: "#ededee",
+	accent: "#e93d82",
+	accentHover: "#ee518a",
+	accentText: "#ff92ad",
+	accentSoft: "rgba(233, 61, 130, 0.16)",
+	accentSoftHover: "rgba(233, 61, 130, 0.24)",
+	accentUnderline: "rgba(233, 61, 130, 0.6)",
+	thumbnailTint: "rgba(233, 61, 130, 0.45)",
+	shadow: "rgb(0 0 0 / 0.1)",
+} as const;
