@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
 	getPageHref,
+	isSameResultFilterValue,
 	parseSearchParams,
+	removeInactiveFilterSearchParams,
 	toggleResultFilterSearchParams,
 	updateFilterSearchParams,
 } from "./search";
@@ -26,7 +28,7 @@ describe("parseSearchParams", () => {
 
 	it("reads every filter and the requested page", () => {
 		const searchParams = new URLSearchParams({
-			channel: "channel-1",
+			channel: "UC-channel",
 			dancer1: "Carlitos Espinoza",
 			dancer2: "Agustina Piaggio",
 			event: "Embrace Berlin Tango Festival",
@@ -39,7 +41,7 @@ describe("parseSearchParams", () => {
 
 		expect(parseSearchParams(searchParams)).toEqual({
 			filters: {
-				channel: "channel-1",
+				channel: "UC-channel",
 				dancer1: "Carlitos Espinoza",
 				dancer2: "Agustina Piaggio",
 				event: "Embrace Berlin Tango Festival",
@@ -71,6 +73,25 @@ describe("updateFilterSearchParams", () => {
 
 		expect(updateFilterSearchParams(current, "event", null).toString()).toBe(
 			"singer=Roberto+Rufino",
+		);
+	});
+});
+
+describe("removeInactiveFilterSearchParams", () => {
+	it("removes empty and legacy native-form values without disturbing active parameters", () => {
+		const current = new URLSearchParams({
+			dancer1: "",
+			orchestra: "Carlos Di Sarli",
+			page: "2",
+			ref: "shared",
+			song: "any",
+		});
+
+		expect(removeInactiveFilterSearchParams(current).toString()).toBe(
+			"orchestra=Carlos+Di+Sarli&page=2&ref=shared",
+		);
+		expect(current.toString()).toBe(
+			"dancer1=&orchestra=Carlos+Di+Sarli&page=2&ref=shared&song=any",
 		);
 	});
 });
@@ -144,5 +165,13 @@ describe("toggleResultFilterSearchParams", () => {
 
 		const yearToggledOff = toggleResultFilterSearchParams(eventAndYear, "year", "2024");
 		expect(yearToggledOff.toString()).toBe("event=Festival+One");
+	});
+});
+
+describe("isSameResultFilterValue", () => {
+	it("matches channel IDs exactly and human-readable values by normalized name", () => {
+		expect(isSameResultFilterValue("channel", "UC-AbC", "UC-AbC")).toBe(true);
+		expect(isSameResultFilterValue("channel", "UC-AbC", "uc-abc")).toBe(false);
+		expect(isSameResultFilterValue("song", "La Cumparsita", "la cumparsita")).toBe(true);
 	});
 });

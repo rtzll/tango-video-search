@@ -5,6 +5,7 @@ node_modules
 /build
 .env
 /data
+/dist
 .pnpm-store/
 .react-router/
 .wrangler/

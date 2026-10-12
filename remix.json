@@ -1,0 +1,13 @@
+{
+	"$schema": "./node_modules/remix/schema/remix.json",
+	"test": {
+		"browserFiles": ["app/**/*.test.browser.{ts,tsx}"],
+		"concurrency": 2,
+		"files": ["app/**/*.test.browser.{ts,tsx}"],
+		"playwright": {
+			"projects": ["chromium"]
+		},
+		"pool": "forks",
+		"type": ["browser"]
+	}
+}

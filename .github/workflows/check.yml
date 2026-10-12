@@ -16,4 +16,5 @@ jobs:
           node-version: "24"
           cache: true
       - run: vp install --frozen-lockfile
+      - run: vp exec playwright install --with-deps chromium
       - run: vp run check
