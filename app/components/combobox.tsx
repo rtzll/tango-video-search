@@ -74,9 +74,10 @@ const Combobox = <Value extends string>({
 	}, [options, query]);
 
 	const listOptions = useMemo<ListItem<Value>[]>(() => {
-		const optionItems = filteredOptions.map(
-			(option): ListItem<Value> => ({ kind: "option", option }),
-		);
+		const optionItems = filteredOptions.map((option): ListItem<Value> => ({
+			kind: "option",
+			option,
+		}));
 		return includeEmptyOption
 			? [{ kind: "empty", label: placeholder }, ...optionItems]
 			: optionItems;
