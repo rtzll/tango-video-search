@@ -1,5 +1,16 @@
 # Remix 3 port assessment
 
+## Update: October 28, 2026
+
+The port now uses `remix@3.1.0`, the latest stable npm release verified on
+October 28. The release is additive: mixins can opt out of server setup with
+`createMixin(setup, { ssr: false })`, frames gain `reload()` and prefetching,
+navigation focus resets can be manual, uploads can stream, and server rendering
+is faster. No application code changes were required.
+
+Validation: 33 server/database/pure tests and 7 Chromium browser tests pass,
+along with lint, TypeScript, Knip, and the production build.
+
 ## Update: October 12, 2026
 
 The port now uses `remix@3.0.0`, the latest stable npm release verified on

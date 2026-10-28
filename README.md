@@ -21,7 +21,7 @@ looking for.
 
 ## Tech Stack
 
-- **Framework**: [Remix](https://remix.run/) 3 (`3.0.0`)
+- **Framework**: [Remix](https://remix.run/) 3 (`3.1.0`)
 - **UI**: Server-rendered `remix/component` components and CSS mixins
 - **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) with
   [Drizzle ORM](https://orm.drizzle.team/)
