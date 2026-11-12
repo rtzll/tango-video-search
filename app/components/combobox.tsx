@@ -56,13 +56,13 @@ const Combobox = <Value extends string>({
 		if (!open) {
 			return;
 		}
-		const handlePointerDown = (event: MouseEvent) => {
+		const handlePointerDown = (event: PointerEvent) => {
 			if (!containerRef.current?.contains(event.target as Node)) {
 				closeCombobox();
 			}
 		};
-		document.addEventListener("mousedown", handlePointerDown);
-		return () => document.removeEventListener("mousedown", handlePointerDown);
+		document.addEventListener("pointerdown", handlePointerDown);
+		return () => document.removeEventListener("pointerdown", handlePointerDown);
 	}, [closeCombobox, open]);
 
 	const filteredOptions = useMemo(() => {
