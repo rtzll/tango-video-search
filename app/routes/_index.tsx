@@ -120,13 +120,15 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 						))}
 					</div>
 
-					<ResultsNavigation
-						ariaLabel="Results pages, bottom"
-						getPageHref={getPageHref}
-						page={page}
-						resultText={resultText}
-						totalPages={totalPages}
-					/>
+					{totalVideos > 0 && (
+						<ResultsNavigation
+							ariaLabel="Results pages, bottom"
+							getPageHref={getPageHref}
+							page={page}
+							resultText={resultText}
+							totalPages={totalPages}
+						/>
+					)}
 				</div>
 			</div>
 
