@@ -162,7 +162,7 @@ function AdvancedFilterPicker({ filters, onFilterChange, options }: AdvancedFilt
 				aria-label={
 					hasActiveFilter ? "Add another performance detail" : "Choose performance details"
 				}
-				className="border-border hover:bg-accent-soft text-accent-text inline-flex h-6 cursor-pointer items-center gap-1 rounded-sm border border-dashed px-2 text-xs"
+				className="border-border hover:bg-accent-soft text-accent-text inline-flex h-6 cursor-pointer items-center gap-1 rounded-sm border border-dashed px-2 text-xs relative pointer-coarse:after:absolute pointer-coarse:after:-inset-1.5 pointer-coarse:after:content-['']"
 			>
 				{hasActiveFilter ? "and…" : "where…"}
 			</button>
@@ -267,7 +267,7 @@ function AdvancedFilters({ className, filters, onFilterChange, options }: Advanc
 							type="button"
 							onClick={() => onFilterChange(key, null)}
 							aria-label={`Remove ${label.toLowerCase()} condition`}
-							className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 max-w-full cursor-pointer items-center gap-1 rounded-sm px-2 text-xs"
+							className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 max-w-full cursor-pointer items-center gap-1 rounded-sm px-2 text-xs relative pointer-coarse:after:absolute pointer-coarse:after:-inset-1.5 pointer-coarse:after:content-['']"
 						>
 							<span className="max-w-64 truncate">
 								{label.toLowerCase()} is {selectedLabel}

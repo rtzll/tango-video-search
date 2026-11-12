@@ -29,7 +29,7 @@ function ResultsNavigation({
 						<button
 							type="button"
 							disabled
-							className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 rounded-sm border px-2 py-1 text-xs opacity-50"
+							className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 rounded-sm border px-2 py-1 text-xs pointer-coarse:px-3 pointer-coarse:py-2 opacity-50"
 						>
 							<ChevronLeftIcon width={14} height={14} />
 							Previous
@@ -37,7 +37,7 @@ function ResultsNavigation({
 					) : (
 						<RouterLink
 							to={getPageHref(page - 1)}
-							className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs"
+							className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs pointer-coarse:px-3 pointer-coarse:py-2"
 						>
 							<ChevronLeftIcon width={14} height={14} />
 							Previous
@@ -50,7 +50,7 @@ function ResultsNavigation({
 						<button
 							type="button"
 							disabled
-							className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 rounded-sm border px-2 py-1 text-xs opacity-50"
+							className="border-border text-accent-text inline-flex cursor-not-allowed items-center gap-1 rounded-sm border px-2 py-1 text-xs pointer-coarse:px-3 pointer-coarse:py-2 opacity-50"
 						>
 							Next
 							<ChevronRightIcon width={14} height={14} />
@@ -58,7 +58,7 @@ function ResultsNavigation({
 					) : (
 						<RouterLink
 							to={getPageHref(page + 1)}
-							className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs"
+							className="border-border text-accent-text hover:bg-accent-soft inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs pointer-coarse:px-3 pointer-coarse:py-2"
 						>
 							Next
 							<ChevronRightIcon width={14} height={14} />

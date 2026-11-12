@@ -56,7 +56,7 @@ function SearchControls({ filters, onFilterChange, onReset, options }: SearchCon
 						type="button"
 						onClick={onReset}
 						aria-label="Reset filters"
-						className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-sm"
+						className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-sm relative pointer-coarse:after:absolute pointer-coarse:after:-inset-1.5 pointer-coarse:after:content-['']"
 					>
 						<ResetIcon width={12} height={12} />
 					</button>

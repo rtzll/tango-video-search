@@ -183,7 +183,7 @@ function FilterButton({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`group relative cursor-pointer leading-tight font-normal ${
+			className={`group relative cursor-pointer leading-tight font-normal pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1 pointer-coarse:after:-inset-y-1.5 pointer-coarse:after:content-[''] ${
 				active ? "text-accent-text" : "text-text"
 			}`}
 		>
