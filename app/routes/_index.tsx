@@ -1,5 +1,5 @@
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
-import { useSearchParams } from "react-router";
+import { useNavigation, useSearchParams } from "react-router";
 
 import { ResultsNavigation } from "~/components/results-navigation";
 import { SearchControls } from "~/components/search-controls";
@@ -54,6 +54,7 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 	const { initialVideos, formattedLastUpdate, options, page, totalPages, totalVideos } = loaderData;
 
 	const [searchParams, setSearchParams] = useSearchParams();
+	const isLoading = useNavigation().state !== "idle";
 	const { filters } = parseSearchParams(searchParams);
 
 	const updateSearchParam = <Key extends keyof SearchFilters>(
@@ -99,7 +100,12 @@ export default function SearchInterface({ loaderData }: Route.ComponentProps) {
 					</div>
 				</div>
 
-				<div className="flex flex-col gap-3">
+				<div
+					aria-busy={isLoading}
+					className={`flex flex-col gap-3 transition-opacity duration-200 ${
+						isLoading ? "opacity-40 delay-150" : ""
+					}`}
+				>
 					<div
 						className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
 						key={searchParams.toString()}
