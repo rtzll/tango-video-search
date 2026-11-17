@@ -14,10 +14,10 @@
 		"deploy": "react-router build && wrangler deploy",
 		"dev": "react-router dev",
 		"preview": "react-router build && wrangler dev --local --config build/server/wrangler.json --persist-to .wrangler/state",
-		"lint": "vp lint .",
-		"lint:fix": "vp lint --fix .",
+		"lint": "oxlint .",
+		"lint:fix": "oxlint --fix .",
 		"format": "vp fmt --write .",
-		"check": "vp lint . && vp test run && react-router typegen && tsc && knip && react-router build",
+		"check": "oxlint . && vp test run && react-router typegen && tsc && knip && react-router build",
 		"typecheck": "react-router typegen && tsc",
 		"knip": "knip",
 		"test": "vp test run",
@@ -33,20 +33,21 @@
 		"react-router": "^8.5.1"
 	},
 	"devDependencies": {
-		"@cloudflare/vite-plugin": "^1.69.1",
-		"@cloudflare/vitest-plugin": "^1.8.2",
-		"@cloudflare/workers-types": "^5.20261113.1",
+		"@cloudflare/vite-plugin": "^1.70.0",
+		"@cloudflare/vitest-plugin": "^1.8.4",
+		"@cloudflare/workers-types": "^5.20261117.1",
 		"@react-router/dev": "^8.5.1",
 		"@types/node": "^24.19.2",
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
 		"knip": "^6.45.1",
+		"oxlint": "1.94.0",
 		"tailwindcss": "^4.3.5",
 		"typescript": "^7.0.2",
 		"vite": "catalog:",
 		"vite-plus": "catalog:",
 		"vitest": "catalog:",
-		"wrangler": "^4.162.0"
+		"wrangler": "^4.164.0"
 	},
 	"engines": {
 		"node": ">=24.11.0"
@@ -62,9 +63,9 @@
 	},
 	"workspaces": {
 		"catalog": {
-			"vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
-			"vitest": "5.0.5",
-			"vite-plus": "1.4.0"
+			"vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
+			"vitest": "5.1.0",
+			"vite-plus": "1.7.0"
 		}
 	},
 	"overrides": {
