@@ -6,6 +6,13 @@
 		"type": "git",
 		"url": "https://github.com/rtzll/tango-video-search.git"
 	},
+	"workspaces": {
+		"catalog": {
+			"vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
+			"vitest": "5.1.0",
+			"vite-plus": "1.7.0"
+		}
+	},
 	"type": "module",
 	"sideEffects": false,
 	"scripts": {
@@ -16,8 +23,9 @@
 		"preview": "react-router build && wrangler dev --local --config build/server/wrangler.json --persist-to .wrangler/state",
 		"lint": "vp lint -c .oxlintrc.json .",
 		"lint:fix": "vp lint -c .oxlintrc.json --fix .",
-		"format": "vp fmt --write .",
-		"check": "vp run lint && vp test run && react-router typegen && tsc && knip && react-router build",
+		"format": "vp fmt -c .oxfmtrc.json --write .",
+		"format:check": "vp fmt -c .oxfmtrc.json --check .",
+		"check": "vp run format:check && vp run lint && vp test run && react-router typegen && tsc && knip && react-router build",
 		"typecheck": "react-router typegen && tsc",
 		"knip": "knip",
 		"test": "vp test run",
@@ -48,6 +56,10 @@
 		"vitest": "catalog:",
 		"wrangler": "^4.164.0"
 	},
+	"overrides": {
+		"vite@*": "catalog:",
+		"vitest@*": "catalog:"
+	},
 	"engines": {
 		"node": ">=24.11.0"
 	},
@@ -59,16 +71,5 @@
 		"ignoreDependencies": [
 			"cloudflare"
 		]
-	},
-	"workspaces": {
-		"catalog": {
-			"vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
-			"vitest": "5.1.0",
-			"vite-plus": "1.7.0"
-		}
-	},
-	"overrides": {
-		"vite@*": "catalog:",
-		"vitest@*": "catalog:"
 	}
 }
