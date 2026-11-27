@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 
 import { App, appProps } from "./root";
 import { AppRoute } from "./routes";
-import { SearchFacetsQuery, SearchResultsQuery } from "./search-page-data";
+import { SearchFacetsQuery, SearchQueryError, SearchResultsQuery } from "./search-page-data";
 
 const noopHtmlHost = Layer.succeed(Html.Host, {
 	blur: () => undefined,
@@ -240,5 +240,48 @@ describe("SearchPage and App interactions", () => {
 		);
 		expect(filtered.head).toContain('rel="canonical"');
 		expect(filtered.head).not.toContain("utm_source");
+	});
+
+	it("recovers from failed results and facets queries via retry buttons", async () => {
+		let resultsAttempts = 0;
+		let facetsAttempts = 0;
+		const fetchResults = vi.fn(({ page }: { readonly page: number }) => {
+			resultsAttempts += 1;
+			return resultsAttempts === 1
+				? Effect.fail(new SearchQueryError({ reason: "unavailable" }))
+				: Effect.succeed(makePageResults(page));
+		});
+		const fetchFacets = vi.fn(() => {
+			facetsAttempts += 1;
+			return facetsAttempts === 1
+				? Effect.fail(new SearchQueryError({ reason: "unavailable" }))
+				: Effect.succeed(sampleFacets);
+		});
+
+		const layers = Layer.mergeAll(
+			TestHost.layer(),
+			noopHtmlHost,
+			Router.memory({ routes: AppRoute, url: "/" }),
+			SearchResultsQuery.toLayer(fetchResults),
+			SearchFacetsQuery.toLayer(fetchFacets),
+		);
+
+		await Effect.runPromise(
+			Effect.gen(function* () {
+				const play = yield* HtmlPlay.make(App, appProps);
+
+				yield* play.expect(Locator.text("The search failed.")).toExist();
+				yield* play.expect(Locator.text("Filter options could not be loaded.")).toExist();
+
+				yield* play.click(HtmlLocator.role("button", { name: "Retry search" }));
+				yield* play.expect(Locator.text("Agustina Piaggio")).toExist();
+				expect(fetchResults).toHaveBeenCalledTimes(2);
+
+				yield* play.click(HtmlLocator.role("button", { name: "Retry loading filter options" }));
+				yield* play.expect(Locator.text("Filter options could not be loaded.")).toBeAbsent();
+				yield* play.expect(Locator.text("Data refreshed: November 27, 2026")).toExist();
+				expect(fetchFacets).toHaveBeenCalledTimes(2);
+			}).pipe(Effect.scoped, Effect.provide(layers)),
+		);
 	});
 });

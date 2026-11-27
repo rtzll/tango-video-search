@@ -1,6 +1,6 @@
-import { Command, Head, Router, UiSchema } from "@effect/ui";
+import { Command, Component, Head, Router, UiSchema } from "@effect/ui";
 import { Html, HtmlHead } from "@effect/ui/html";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { AsyncResult } from "effect/reactivity";
 
 import { Icon } from "./components/icons";
@@ -18,7 +18,7 @@ import {
 import {
 	FilterKey,
 	ResultFilter,
-	type SearchFilters,
+	SearchFilters,
 	type SearchOptions,
 	type SearchParamKey,
 	type SearchVideo,
@@ -31,8 +31,25 @@ const Message = UiSchema.TaggedEnum({
 	ChangedFilter: { key: FilterKey, value: Schema.NullOr(Schema.String) },
 	ToggledCardFilter: { key: ResultFilter, value: Schema.String },
 	ResetFilters: {},
+	RetriedResults: {},
+	RetriedFacets: {},
 });
 type PageMessage = typeof Message.Type;
+
+const RetrySearchResults = Command.make(
+	"RetrySearchResults",
+	{ args: { filters: SearchFilters, page: Schema.Number } },
+	(args) => SearchResultsQuery.invalidate(args).pipe(Effect.as(Component.noop)),
+);
+
+const RetrySearchFacets = Command.make(
+	"RetrySearchFacets",
+	{ args: { filters: SearchFilters } },
+	(args) => SearchFacetsQuery.invalidate(args).pipe(Effect.as(Component.noop)),
+);
+
+const retryButtonClass =
+	"border-border hover:bg-accent-soft text-accent-text inline-flex cursor-pointer items-center rounded-sm border px-2 py-0.5 text-xs";
 
 const toggleCardFilter = (key: ResultFilter, value: string) =>
 	Message.ToggledCardFilter({ key, value });
@@ -148,17 +165,21 @@ export const SearchPage = Html.component({
 	init: () => ({}),
 	update: ($, message) => {
 		const { route } = $.props;
-		const { filters } = parseSearchRoute(route);
-		const patch = Message.match(message, {
-			ChangedFilter: ({ key, value }) => searchPatch({ [key]: value }),
-			ToggledCardFilter: ({ key, value }) => searchPatch(toggleResultFilter(filters, key, value)),
-			ResetFilters: () => resetSearchPatch,
+		const { filters, page } = parseSearchRoute(route);
+		const navigate = (patch: ReturnType<typeof searchPatch>) =>
+			$.run(
+				Router.patchSearch(AppRoute, route, patch, { history: "push", scroll: true }).pipe(
+					Command.asNoop,
+				),
+			);
+		return Message.match(message, {
+			ChangedFilter: ({ key, value }) => navigate(searchPatch({ [key]: value })),
+			ToggledCardFilter: ({ key, value }) =>
+				navigate(searchPatch(toggleResultFilter(filters, key, value))),
+			ResetFilters: () => navigate(resetSearchPatch),
+			RetriedResults: () => $.run(RetrySearchResults.make({ filters, page })),
+			RetriedFacets: () => $.run(RetrySearchFacets.make({ filters })),
 		});
-		return $.run(
-			Router.patchSearch(AppRoute, route, patch, { history: "push", scroll: true }).pipe(
-				Command.asNoop,
-			),
-		);
 	},
 	head: ({ props, queries }) => {
 		const { route } = props;
@@ -227,7 +248,17 @@ export const SearchPage = Html.component({
 			onInitial: () =>
 				h.p.class("text-muted text-sm").attr("role", "status").children("Loading performances…"),
 			onFailure: () =>
-				h.p.class("text-muted text-sm").attr("role", "alert").children("The search failed."),
+				h.div
+					.class("text-muted flex items-center gap-3 text-sm")
+					.attr("role", "alert")
+					.children(
+						h.span("The search failed."),
+						h.button
+							.attrs({ type: "button", "aria-label": "Retry search" })
+							.class(retryButtonClass)
+							.on("click", Message.RetriedResults())
+							.children("Retry"),
+					),
 			onSuccess: ({ value }) =>
 				h.div
 					.class("grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3")
@@ -255,10 +286,17 @@ export const SearchPage = Html.component({
 				h.div(
 					controls,
 					AsyncResult.isFailure(h.queries.facets) &&
-						h.p
-							.class("text-muted mt-2 text-sm")
+						h.div
+							.class("text-muted mt-2 flex items-center gap-3 text-sm")
 							.attr("role", "alert")
-							.children("Filter options could not be loaded."),
+							.children(
+								h.span("Filter options could not be loaded."),
+								h.button
+									.attrs({ type: "button", "aria-label": "Retry loading filter options" })
+									.class(retryButtonClass)
+									.on("click", Message.RetriedFacets())
+									.children("Retry"),
+							),
 					navigation &&
 						h.div.class("mt-4 sm:mt-2").children(
 							ResultsNavigation(h, {
