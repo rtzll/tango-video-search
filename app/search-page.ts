@@ -15,7 +15,13 @@ import {
 	resetSearchPatch,
 	searchPatch,
 } from "./routes";
-import { FilterKey, ResultFilter, type SearchOptions, toggleResultFilter } from "./search";
+import {
+	FilterKey,
+	ResultFilter,
+	type SearchOptions,
+	type SearchVideo,
+	toggleResultFilter,
+} from "./search";
 import { PAGE_SIZE, SearchFacetsQuery, SearchResultsQuery } from "./search-page-data";
 
 const Message = UiSchema.TaggedEnum({
@@ -23,6 +29,43 @@ const Message = UiSchema.TaggedEnum({
 	ToggledCardFilter: { key: ResultFilter, value: Schema.String },
 	ResetFilters: {},
 });
+type PageMessage = typeof Message.Type;
+
+const toggleCardFilter = (key: ResultFilter, value: string) =>
+	Message.ToggledCardFilter({ key, value });
+
+const renderVideoCard = (
+	h: Html.H<PageMessage>,
+	video: SearchVideo,
+	channel: string | null,
+	dancer1: string | null,
+	dancer2: string | null,
+	event: string | null,
+	orchestra: string | null,
+	singer: string | null,
+	song: string | null,
+	year: string | null,
+) =>
+	VideoCard(h, {
+		video,
+		filters: { channel, dancer1, dancer2, event, orchestra, singer, song, year },
+		onFilterClick: toggleCardFilter,
+	});
+
+const renderFooter = (h: Html.H<PageMessage>, formattedLastUpdate: string) =>
+	h.div.class("mt-auto pt-4").children(
+		h.div.class("flex items-baseline justify-between flex-wrap").children(
+			h.span.class("text-muted text-xs").children(`Data refreshed: ${formattedLastUpdate}`),
+			h.a
+				.attrs({
+					href: "https://github.com/rtzll/tango-video-search",
+					target: "_blank",
+					rel: "noopener noreferrer",
+				})
+				.class("text-muted inline-flex items-center gap-1 text-xs hover:underline")
+				.children("Source code", Icon(h, "GitHubLogo", 12)),
+		),
+	);
 
 const emptyOptions: SearchOptions = {
 	channel: [],
@@ -101,15 +144,24 @@ export const SearchPage = Html.component({
 			onFailure: () =>
 				h.p.class("text-muted text-sm").attr("role", "alert").children("The search failed."),
 			onSuccess: ({ value }) =>
-				h.div.class("grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3").children(
-					value.initialVideos.map((video) =>
-						VideoCard(h, {
-							video,
-							filters,
-							onFilterClick: (key, value) => Message.ToggledCardFilter({ key, value }),
-						}),
+				h.div
+					.class("grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3")
+					.children(
+						value.initialVideos.map((video) =>
+							h.lazy(
+								renderVideoCard,
+								video,
+								filters.channel,
+								filters.dancer1,
+								filters.dancer2,
+								filters.event,
+								filters.orchestra,
+								filters.singer,
+								filters.song,
+								filters.year,
+							),
+						),
 					),
-				),
 		});
 
 		return h.div.class("mx-auto flex min-h-screen max-w-350 flex-col gap-6 p-6").children(
@@ -143,21 +195,7 @@ export const SearchPage = Html.component({
 							ResultsNavigation(h, { ...navigation, ariaLabel: "Results pages, bottom" }),
 					),
 			),
-			h.div.class("mt-auto pt-4").children(
-				h.div.class("flex items-baseline justify-between flex-wrap").children(
-					h.span
-						.class("text-muted text-xs")
-						.children(`Data refreshed: ${facets?.formattedLastUpdate ?? "Unknown"}`),
-					h.a
-						.attrs({
-							href: "https://github.com/rtzll/tango-video-search",
-							target: "_blank",
-							rel: "noopener noreferrer",
-						})
-						.class("text-muted inline-flex items-center gap-1 text-xs hover:underline")
-						.children("Source code", Icon(h, "GitHubLogo", 12)),
-				),
-			),
+			h.lazy(renderFooter, facets?.formattedLastUpdate ?? "Unknown"),
 		);
 	},
 });

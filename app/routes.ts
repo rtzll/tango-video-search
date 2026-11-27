@@ -21,8 +21,15 @@ type SearchRoute = typeof SearchRoute.Type;
 type SearchPatch = Partial<Record<SearchParamKey, readonly string[] | undefined>>;
 const knownParams = new Set<string>([...filterKeys, "page"]);
 
+const parsedSearchRoutes = new WeakMap<SearchRoute, ReturnType<typeof readSearch>>();
+
 export function parseSearchRoute(route: SearchRoute) {
-	return readSearch((key) => route.search[key]?.[0]);
+	let parsed = parsedSearchRoutes.get(route);
+	if (parsed === undefined) {
+		parsed = readSearch((key) => route.search[key]?.[0]);
+		parsedSearchRoutes.set(route, parsed);
+	}
+	return parsed;
 }
 
 export function searchPatch(changes: FilterChanges): SearchPatch {

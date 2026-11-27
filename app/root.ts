@@ -34,6 +34,11 @@ const watchAdditionalSearch = Subscription.make(
 	),
 );
 
+const prefetchRoutes = Router.prefetch(AppRoute, {
+	Search: (route) => [Router.page(SearchPage, { route, additionalSearch: "" })],
+	NotFound: () => [],
+});
+
 export const App = Html.component({
 	name: "App",
 	props: Schema.Struct({
@@ -55,6 +60,7 @@ export const App = Html.component({
 	subscriptions: ({ model }) => [
 		Router.subscription(AppRoute, model.route, (route) => Message.ChangedRoute({ route })),
 		watchAdditionalSearch,
+		prefetchRoutes,
 	],
 	head: ({ model: { route } }) => [
 		HtmlHead.lang("en"),
