@@ -53,7 +53,10 @@ export const App = Html.component({
 		additionalSearch: props.additionalSearch ?? "",
 	}),
 	update: {
-		ChangedRoute: ($, { route }) => $.evolve({ route }),
+		ChangedRoute: ($, { route }) =>
+			$.model.route._tag === "Search" && route._tag === "Search"
+				? $.evolve({ route }).viewTransition(["search-update"])
+				: $.evolve({ route }),
 		ChangedAdditionalSearch: ($, { additionalSearch: value }) =>
 			$.model.additionalSearch === value ? $.model : $.evolve({ additionalSearch: value }),
 	},
