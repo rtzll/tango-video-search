@@ -6,31 +6,27 @@ class SearchNetworkError extends Data.TaggedError("SearchNetworkError")<{ cause:
 class SearchHttpError extends Data.TaggedError("SearchHttpError")<{ status: number }> {}
 class InvalidSearchResponse extends Data.TaggedError("InvalidSearchResponse")<{ cause: unknown }> {}
 
-export function fetchSearch<A>(url: URL, schema: Schema.Codec<A, unknown>) {
-	const request = Effect.tryPromise({
-		try: async (signal): Promise<unknown> => {
-			const response = await fetch(url, { signal });
-			if (!response.ok) {
-				void response.body?.cancel().catch(() => undefined);
-				throw new SearchHttpError({ status: response.status });
-			}
-			return await response.json();
-		},
-		catch: (cause) => {
-			if (cause instanceof SearchHttpError) {
-				return cause;
-			}
-			return cause instanceof SyntaxError
-				? new InvalidSearchResponse({ cause })
-				: new SearchNetworkError({ cause });
-		},
-	}).pipe(
-		Effect.flatMap((body) =>
-			Schema.decodeUnknownEffect(schema)(body).pipe(
-				Effect.mapError((cause) => new InvalidSearchResponse({ cause })),
-			),
-		),
-	);
+export function fetchSearch<A>(url: URL, schema: Schema.Codec<A, any>) {
+	const request = Effect.gen(function* () {
+		const response = yield* Effect.tryPromise({
+			try: async (signal) => fetch(url, { signal }),
+			catch: (cause) => new SearchNetworkError({ cause }),
+		});
+		if (!response.ok) {
+			void response.body?.cancel().catch(() => undefined);
+			return yield* Effect.fail(new SearchHttpError({ status: response.status }));
+		}
+		const body = yield* Effect.tryPromise({
+			try: (): Promise<unknown> => response.json(),
+			catch: (cause) =>
+				cause instanceof SyntaxError
+					? new InvalidSearchResponse({ cause })
+					: new SearchNetworkError({ cause }),
+		});
+		return yield* Schema.decodeUnknownEffect(schema)(body).pipe(
+			Effect.mapError((cause) => new InvalidSearchResponse({ cause })),
+		);
+	});
 
 	// One delayed retry keeps the general scheduling machinery out of the browser bundle.
 	return request.pipe(

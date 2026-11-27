@@ -34,10 +34,32 @@ it("passes parsed filters and page to the service and reads only the requested d
 	);
 
 	expect(await response.json()).toEqual(emptyResults);
+	expect(response.headers.get("Cache-Control")).toContain("max-age=");
 	expect(search.results).toHaveBeenCalledExactlyOnceWith(
 		parseSearchParams(new URLSearchParams("year=2024&page=2")),
 	);
 	expect(search.facets).not.toHaveBeenCalled();
+});
+
+it("serves compact filter options with caching headers", async () => {
+	const search = {
+		results: vi.fn(() => Effect.succeed(emptyResults)),
+		facets: vi.fn(() => Effect.succeed(facets)),
+	};
+	const request = new Request("https://example.com/api/search/options?year=2024");
+	const response = await Effect.runPromise(
+		handleRequest(request, assets).pipe(Effect.provide(Layer.succeed(Search, search))),
+	);
+
+	expect(response.headers.get("Cache-Control")).toContain("max-age=");
+	expect(await response.json()).toMatchObject({
+		formattedLastUpdate: "November 27, 2026",
+		options: { dancer1: [["Test Dancer", 1]] },
+	});
+	expect(search.facets).toHaveBeenCalledExactlyOnceWith(
+		parseSearchParams(new URLSearchParams("year=2024")).filters,
+	);
+	expect(search.results).not.toHaveBeenCalled();
 });
 
 it("waits for filter options before rendering and serializing the initial page", async () => {
@@ -45,7 +67,7 @@ it("waits for filter options before rendering and serializing the initial page",
 		Effect.gen(function* () {
 			const resultsStarted = yield* Deferred.make<void>();
 			const facetsStarted = yield* Deferred.make<void>();
-			const ready = yield* Deferred.make<typeof SearchFacets.Type>();
+			const ready = yield* Deferred.make<SearchFacets>();
 			const layer = Layer.succeed(Search, {
 				results: () => Deferred.succeed(resultsStarted, undefined).pipe(Effect.as(emptyResults)),
 				facets: () =>

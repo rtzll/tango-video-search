@@ -9,6 +9,7 @@ import {
 	SearchFacetsQuery,
 	SearchQueryError,
 	SearchResultsQuery,
+	encodeSearchFacetsPayload,
 	facetsPath,
 	resultsPath,
 } from "../app/search-page-data";
@@ -50,19 +51,36 @@ function withWorkerSpan<A, E, R>(
 	);
 }
 
-async function getDocument(url: URL, assets: Fetcher) {
+const apiCacheControl = "public, max-age=300, stale-while-revalidate=3600";
+const htmlCacheControl = "public, max-age=60, stale-while-revalidate=300";
+
+let cachedDocument: Promise<string> | undefined;
+
+function getDocument(url: URL, assets: Fetcher) {
 	if (import.meta.env.DEV) {
-		return developmentTemplate.replace(
-			"</head>",
-			'<script type="module" src="/@vite/client"></script></head>',
+		return Promise.resolve(
+			developmentTemplate.replace(
+				"</head>",
+				'<script type="module" src="/@vite/client"></script></head>',
+			),
 		);
 	}
 
-	const response = await assets.fetch(new URL("/index.html", url));
-	if (!response.ok) {
-		throw new Error(`Unable to load the built HTML template (${response.status})`);
+	if (!cachedDocument) {
+		cachedDocument = assets
+			.fetch(new URL("/index.html", url))
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error(`Unable to load the built HTML template (${response.status})`);
+				}
+				return response.text();
+			})
+			.catch((error) => {
+				cachedDocument = undefined;
+				throw error;
+			});
 	}
-	return response.text();
+	return cachedDocument;
 }
 
 const unavailable = () => new SearchQueryError({ reason: "unavailable" });
@@ -80,8 +98,11 @@ export function handleRequest(request: Request, assets: Fetcher, tracing?: Worke
 		const loadResults = () => withWorkerSpan(tracing, "search.results", search.results(query));
 		const loadFacets = () => withWorkerSpan(tracing, "search.facets", search.facets(query.filters));
 		if (isDataRequest) {
-			const data = url.pathname === resultsPath ? yield* loadResults() : yield* loadFacets();
-			const response = Response.json(data);
+			const data =
+				url.pathname === resultsPath
+					? yield* loadResults()
+					: encodeSearchFacetsPayload(yield* loadFacets());
+			const response = Response.json(data, { headers: { "Cache-Control": apiCacheControl } });
 			return request.method === "HEAD" ? new Response(null, response) : response;
 		}
 
@@ -127,7 +148,10 @@ export function handleRequest(request: Request, assets: Fetcher, tracing?: Worke
 				(page) =>
 					new Response(request.method === "HEAD" ? null : HtmlServer.document(template, page), {
 						status,
-						headers: { "Content-Type": "text/html; charset=utf-8" },
+						headers: {
+							"Content-Type": "text/html; charset=utf-8",
+							...(status === 200 ? { "Cache-Control": htmlCacheControl } : {}),
+						},
 					}),
 			),
 		);

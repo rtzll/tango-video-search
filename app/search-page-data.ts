@@ -14,12 +14,7 @@ export const SearchResults = Schema.Struct({
 	totalVideos: Schema.Number,
 });
 
-export const SearchFacets = Schema.Struct({
-	formattedLastUpdate: Schema.String,
-	options: SearchOptions,
-});
-
-// The hydration payload stores [label, count] and includes a value only when
+// The wire payload stores [label, count] and includes a value only when
 // it differs from the label, as it does for channel IDs.
 const CompactOption = Schema.Tuple([
 	Schema.String,
@@ -51,7 +46,7 @@ const FacetOptions = FacetOptionsPayload.pipe(
 		}),
 		encode: SchemaGetter.transform(({ dancer2, ...options }) => {
 			const encoded = Record.map(options, packOptions);
-			return sameOptions(options.dancer1, dancer2)
+			return options.dancer1 === dancer2 || sameOptions(options.dancer1, dancer2)
 				? encoded
 				: { ...encoded, dancer2: packOptions(dancer2) };
 		}),
@@ -59,9 +54,14 @@ const FacetOptions = FacetOptionsPayload.pipe(
 );
 
 export const SearchFacetsSnapshot = Schema.Struct({
-	...SearchFacets.fields,
+	formattedLastUpdate: Schema.String,
 	options: FacetOptions,
 });
+export type SearchFacets = typeof SearchFacetsSnapshot.Type;
+
+export const encodeSearchFacetsPayload = Schema.encodeSync(
+	Schema.toCodecJson(SearchFacetsSnapshot),
+);
 
 export class SearchQueryError extends Schema.TaggedError<SearchQueryError>()("SearchQueryError", {
 	reason: Schema.Literals(["unavailable", "http-error", "invalid-response", "timeout"]),
@@ -71,12 +71,12 @@ export class SearchResultsQuery extends Query.Service<SearchResultsQuery>()("Sea
 	args: { filters: SearchFilters, page: Schema.Number },
 	success: SearchResults,
 	error: SearchQueryError,
-	staleTime: "0 millis",
+	staleTime: "5 minutes",
 }) {}
 
 export class SearchFacetsQuery extends Query.Service<SearchFacetsQuery>()("SearchFacets", {
 	args: { filters: SearchFilters },
 	success: SearchFacetsSnapshot,
 	error: SearchQueryError,
-	staleTime: "1 minute",
+	staleTime: "5 minutes",
 }) {}

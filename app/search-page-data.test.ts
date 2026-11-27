@@ -1,10 +1,9 @@
 import { Schema } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 
-import { SearchFacets, SearchFacetsSnapshot } from "./search-page-data";
+import { SearchFacetsSnapshot, encodeSearchFacetsPayload } from "./search-page-data";
 
 const codec = Schema.toCodecJson(SearchFacetsSnapshot);
-const encode = Schema.encodeSync(codec);
 const decode = Schema.decodeUnknownSync(codec);
 const alice = { count: 3, label: "Alice", value: "Alice" };
 
@@ -22,21 +21,20 @@ const shared = {
 	},
 };
 
-describe("search facet hydration", () => {
+describe("search facet payload", () => {
 	it("stores matching dancer lists once and restores both picker lists", () => {
-		const encoded = encode(shared);
+		const encoded = encodeSearchFacetsPayload(shared);
 		expect(encoded).not.toHaveProperty("options.dancer2");
 		expect(encoded).toHaveProperty("options.dancer1", [["Alice", 3]]);
 		expect(decode(encoded)).toEqual(shared);
 	});
 
-	it("preserves distinct channel IDs and keeps the HTTP response shape", () => {
+	it("preserves distinct channel IDs in the compact payload", () => {
 		const channel = { count: 20, label: "Tango Channel", value: "channel-id" };
 		const facets = { ...shared, options: { ...shared.options, channel: [channel] } };
-		const encoded = encode(facets);
+		const encoded = encodeSearchFacetsPayload(facets);
 		expect(encoded).toHaveProperty("options.channel", [["Tango Channel", 20, "channel-id"]]);
 		expect(decode(encoded)).toEqual(facets);
-		expect(Schema.decodeUnknownSync(SearchFacets)(facets)).toEqual(facets);
 	});
 
 	it("keeps separate lists when the same dancer has different counts", () => {
@@ -44,7 +42,7 @@ describe("search facet hydration", () => {
 			...shared,
 			options: { ...shared.options, dancer2: [{ ...alice, count: 1 }] },
 		};
-		const encoded = encode(distinct);
+		const encoded = encodeSearchFacetsPayload(distinct);
 		expect(encoded).toHaveProperty("options.dancer2", [["Alice", 1]]);
 		expect(decode(encoded)).toEqual(distinct);
 	});
@@ -55,6 +53,6 @@ describe("search facet hydration", () => {
 			...shared,
 			options: { ...shared.options, dancer1: [alice, bob], dancer2: [bob, alice] },
 		};
-		expect(decode(encode(distinct))).toEqual(distinct);
+		expect(decode(encodeSearchFacetsPayload(distinct))).toEqual(distinct);
 	});
 });

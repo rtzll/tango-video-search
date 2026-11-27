@@ -31,9 +31,7 @@ export class Search extends Context.Service<
 		readonly results: (
 			input: SearchInput,
 		) => Effect.Effect<typeof SearchResults.Type, SearchReadError>;
-		readonly facets: (
-			filters: SearchFilters,
-		) => Effect.Effect<typeof SearchFacets.Type, SearchReadError>;
+		readonly facets: (filters: SearchFilters) => Effect.Effect<SearchFacets, SearchReadError>;
 	}
 >()("app/Search") {
 	static layer(database: D1Database) {

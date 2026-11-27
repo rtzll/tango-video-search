@@ -7,8 +7,8 @@ import { AppRoute, additionalSearch } from "./routes";
 import { type SearchFilters } from "./search";
 import { fetchSearch } from "./search-client";
 import {
-	SearchFacets,
 	SearchFacetsQuery,
+	SearchFacetsSnapshot,
 	SearchResults,
 	SearchResultsQuery,
 	facetsPath,
@@ -32,7 +32,7 @@ const resultsLayer = SearchResultsQuery.toLayer(({ filters, page }) =>
 	fetchSearch(searchUrl(resultsPath, filters, page), SearchResults),
 );
 const facetsLayer = SearchFacetsQuery.toLayer(({ filters }) =>
-	fetchSearch(searchUrl(facetsPath, filters), SearchFacets),
+	fetchSearch(searchUrl(facetsPath, filters), SearchFacetsSnapshot),
 );
 
 const hydrate = Effect.gen(function* () {
