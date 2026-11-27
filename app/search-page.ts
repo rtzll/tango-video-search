@@ -235,7 +235,9 @@ export const SearchPage = Html.component({
 			resultText:
 				results.totalVideos === 0
 					? "No performances match these filters."
-					: `Showing ${(results.page - 1) * PAGE_SIZE + 1}–${Math.min(results.page * PAGE_SIZE, results.totalVideos)} of ${results.totalVideos.toLocaleString("en-US")} performances`,
+					: results.totalVideos === 1
+						? "Showing 1 performance"
+						: `Showing ${(results.page - 1) * PAGE_SIZE + 1}–${Math.min(results.page * PAGE_SIZE, results.totalVideos)} of ${results.totalVideos.toLocaleString("en-US")} performances`,
 			totalPages: results.totalPages,
 		};
 
