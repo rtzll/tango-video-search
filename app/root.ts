@@ -10,14 +10,19 @@ const Message = UiSchema.TaggedEnum({
 	ChangedAdditionalSearch: { additionalSearch: Schema.String },
 });
 
-export const appProps = Effect.gen(function* () {
-	const router = yield* Router.Router;
-	const route = yield* Router.currentRoute(AppRoute);
-	return {
-		route,
-		additionalSearch: route._tag === "Search" ? additionalSearch(router.location().url) : "",
-	};
-});
+export function appPropsFor(url?: string) {
+	return Effect.gen(function* () {
+		const router = yield* Router.Router;
+		const route = yield* Router.currentRoute(AppRoute);
+		return {
+			route,
+			additionalSearch:
+				route._tag === "Search" ? additionalSearch(url ?? router.location().url) : "",
+		};
+	});
+}
+
+export const appProps = appPropsFor();
 
 const watchAdditionalSearch = Subscription.make(
 	"additionalSearch",

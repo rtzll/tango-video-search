@@ -1,11 +1,11 @@
 import { Router } from "@effect/ui";
-import { Html, HtmlServer } from "@effect/ui/html";
+import { Html, type HtmlHead, HtmlServer } from "@effect/ui/html";
 import { HtmlLocator, HtmlPlay } from "@effect/ui/html/testing";
 import { Locator, TestHost } from "@effect/ui/testing";
 import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 
-import { App, appProps } from "./root";
+import { App, appProps, appPropsFor } from "./root";
 import { AppRoute } from "./routes";
 import { SearchFacetsQuery, SearchQueryError, SearchResultsQuery } from "./search-page-data";
 
@@ -283,5 +283,67 @@ describe("SearchPage and App interactions", () => {
 				expect(fetchFacets).toHaveBeenCalledTimes(2);
 			}).pipe(Effect.scoped, Effect.provide(layers)),
 		);
+	});
+
+	it("maintains SSR state serialization and head parity with client rendering", async () => {
+		for (const url of [
+			"/",
+			"/?dancer1=Agustina+Piaggio&orchestra=Juan+D%27Arienzo&channel=ch-1&page=2&utm_source=x",
+		]) {
+			const queryLayers = Layer.mergeAll(
+				SearchResultsQuery.toLayer(({ page }) => Effect.succeed(makePageResults(page))),
+				SearchFacetsQuery.toLayer(() => Effect.succeed(sampleFacets)),
+			);
+
+			const rendered = await Effect.runPromise(
+				HtmlServer.renderToHtml(App, appPropsFor(url)).pipe(
+					Effect.provide(Layer.merge(Router.static({ routes: AppRoute, url }), queryLayers)),
+				),
+			);
+
+			const serialized = HtmlServer.serializeState(rendered.state);
+			const parsedState = JSON.parse(serialized) as Record<string, unknown>;
+			expect(parsedState["~deferred"]).toEqual([]);
+			const shippedQueries = parsedState["~query"] as Record<string, unknown> | undefined;
+			expect(shippedQueries).toBeDefined();
+			expect(Object.keys(shippedQueries ?? {})).toEqual(
+				expect.arrayContaining(["SearchResults", "SearchFacets"]),
+			);
+			expect(rendered.htmlAttributes).toContain('lang="en"');
+
+			const client = await Effect.runPromise(
+				Effect.gen(function* () {
+					const play = yield* HtmlPlay.make(App, appProps);
+					return {
+						head: play.root.head<HtmlHead.HtmlHead>(),
+						model: play.root.model(),
+					};
+				}).pipe(
+					Effect.scoped,
+					Effect.provide(
+						Layer.mergeAll(
+							TestHost.layer(),
+							noopHtmlHost,
+							Router.memory({ routes: AppRoute, url }),
+							queryLayers,
+						),
+					),
+				),
+			);
+
+			expect(client.model).toEqual(rendered.model);
+			expect(client.head.html.lang).toBe("en");
+			expect(client.head.title).toBeDefined();
+			expect(rendered.head).toContain(`<title data-eui>${client.head.title}</title>`);
+			for (const meta of client.head.meta) {
+				const keyAttr = meta.name ? `name="${meta.name}"` : `property="${meta.property}"`;
+				expect(rendered.head).toContain(`${keyAttr} content="${meta.content}"`);
+			}
+			const canonical = client.head.links.find((link) => link.attributes.rel === "canonical");
+			expect(canonical).toBeDefined();
+			expect(rendered.head).toContain(
+				`rel="canonical" href="${canonical?.attributes.href.replaceAll("&", "&amp;")}"`,
+			);
+		}
 	});
 });

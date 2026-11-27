@@ -2,7 +2,7 @@ import { Router } from "@effect/ui";
 import { HtmlServer } from "@effect/ui/html";
 import { Cause, Effect, Equal, Exit, Layer, Option, Tracer } from "effect";
 
-import { App, appProps } from "../app/root";
+import { App, appPropsFor } from "../app/root";
 import { AppRoute } from "../app/routes";
 import { parseSearchParams } from "../app/search";
 import {
@@ -167,7 +167,7 @@ export function handleRequest(request: Request, assets: Fetcher) {
 			[reads, Effect.tryPromise(() => getDocument(url, assets))],
 			{ concurrency: "unbounded" },
 		);
-		const render = HtmlServer.renderToHtml(App, appProps).pipe(
+		const render = HtmlServer.renderToHtml(App, appPropsFor(requestPath)).pipe(
 			Effect.provide([
 				SearchResultsQuery.toLayer((args) =>
 					data && Equal.equals(args, query)
