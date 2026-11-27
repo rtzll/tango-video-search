@@ -256,6 +256,95 @@ function sqlite(databasePath: string, args: string[]) {
 	}).pipe(Effect.map(({ stdout }) => stdout));
 }
 
+function parseJsonArray(output: string): Record<string, unknown>[] {
+	if (!output.trim()) {
+		return [];
+	}
+	const parsed: unknown = JSON.parse(output);
+	if (!Array.isArray(parsed)) {
+		throw new Error("Invalid SQLite JSON output");
+	}
+	return parsed as Record<string, unknown>[];
+}
+
+function packRows(rows: Record<string, unknown>[], distinctValue = false) {
+	return rows.map((row) => {
+		const label = String(row.label ?? row.value);
+		const count = Number(row.count);
+		if (distinctValue) {
+			const value = String(row.value);
+			return label === value ? [label, count] : [label, count, value];
+		}
+		return [label, count];
+	});
+}
+
+const computeDefaultFacetsJson = Effect.fnUntraced(function* (databasePath: string) {
+	const read = (sql: string) => Effect.map(sqlite(databasePath, ["-json", sql]), parseJsonArray);
+	const [channel, dancer1, event, orchestra, singer, song, year] = yield* Effect.all(
+		[
+			read(`SELECT videos.channel_id AS value, max(videos.channel_title) AS label, count(DISTINCT curations.id) AS count
+				FROM videos
+				INNER JOIN performances ON videos.id = performances.video_id
+				INNER JOIN curations ON performances.id = curations.performance_id
+				GROUP BY videos.channel_id
+				HAVING count > 0
+				ORDER BY count DESC;`),
+			read(`SELECT dancers.name AS value, count(DISTINCT curations.id) AS count
+				FROM dancers
+				INNER JOIN dancers_to_curations ON dancers.id = dancers_to_curations.dancer_id
+				INNER JOIN curations ON dancers_to_curations.curation_id = curations.id
+				GROUP BY dancers.id, dancers.name
+				HAVING count > 0
+				ORDER BY count DESC;`),
+			read(`SELECT trim(performances.event) AS value, count(DISTINCT curations.id) AS count
+				FROM performances
+				INNER JOIN curations ON performances.id = curations.performance_id
+				WHERE performances.event IS NOT NULL AND trim(performances.event) != ''
+				GROUP BY trim(performances.event)
+				HAVING count > 0
+				ORDER BY count DESC;`),
+			read(`SELECT orchestras.name AS value, count(DISTINCT curations.id) AS count
+				FROM orchestras
+				INNER JOIN curations ON orchestras.id = curations.orchestra_id
+				GROUP BY orchestras.id, orchestras.name
+				HAVING count > 0
+				ORDER BY count DESC;`),
+			read(`SELECT singers.name AS value, count(DISTINCT curations.id) AS count
+				FROM singers
+				INNER JOIN singers_to_curations ON singers.id = singers_to_curations.singer_id
+				INNER JOIN curations ON singers_to_curations.curation_id = curations.id
+				GROUP BY singers.id, singers.name
+				HAVING count > 0
+				ORDER BY count DESC;`),
+			read(`SELECT songs.title AS value, count(DISTINCT curations.id) AS count
+				FROM songs
+				INNER JOIN curations ON songs.id = curations.song_id
+				GROUP BY songs.id, songs.title
+				HAVING count > 0
+				ORDER BY count DESC;`),
+			read(`SELECT cast(performances.performance_year AS text) AS value, count(DISTINCT curations.id) AS count
+				FROM performances
+				INNER JOIN curations ON performances.id = curations.performance_id
+				WHERE performances.performance_year IS NOT NULL
+				GROUP BY performances.performance_year
+				HAVING count > 0
+				ORDER BY performances.performance_year DESC;`),
+		],
+		{ concurrency: "unbounded" },
+	);
+
+	return JSON.stringify({
+		channel: packRows(channel, true),
+		dancer1: packRows(dancer1),
+		event: packRows(event),
+		orchestra: packRows(orchestra),
+		singer: packRows(singer),
+		song: packRows(song),
+		year: packRows(year),
+	});
+});
+
 function sqliteNamedRows(databasePath: string, sql: string) {
 	return Effect.map(sqlite(databasePath, ["-json", sql]), parseNamedRows);
 }
@@ -390,6 +479,8 @@ const writeSqlDump = Effect.fnUntraced(function* (
 		}
 	}
 
+	const defaultFacetsJson = yield* computeDefaultFacetsJson(databasePath);
+
 	appendFileSync(
 		outputPath,
 		`
@@ -397,7 +488,8 @@ ${SEARCH_INDEXES_SQL}
 ${APP_METADATA_SCHEMA}
 INSERT OR REPLACE INTO app_metadata (key, value) VALUES
   ('database_file', ${quoteSqlString(metadata.fileName)}),
-  ('database_updated_at', ${quoteSqlString(metadata.updatedAt)});
+  ('database_updated_at', ${quoteSqlString(metadata.updatedAt)}),
+  ('default_facets', ${quoteSqlString(defaultFacetsJson)});
 `,
 	);
 });

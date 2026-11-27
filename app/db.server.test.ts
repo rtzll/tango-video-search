@@ -267,6 +267,40 @@ describe("loadSearchPage", () => {
 		]);
 	});
 
+	it("uses precomputed default_facets for unfiltered requests without running facet batch queries", async () => {
+		const precomputed = JSON.stringify({
+			channel: [["Precomputed Channel", 9, "ch-pre"]],
+			dancer1: [["Precomputed Dancer", 4]],
+			event: [],
+			orchestra: [["Precomputed Orchestra", 5]],
+			singer: [],
+			song: [],
+			year: [["2024", 9]],
+		});
+		await executeStatements(
+			`INSERT INTO app_metadata VALUES ('default_facets', '${precomputed}');`,
+		);
+
+		const db = createDatabase(database);
+		let batches = 0;
+		const originalBatch = db.batch.bind(db);
+		db.batch = ((queries) => {
+			batches += 1;
+			return originalBatch(queries);
+		}) as typeof db.batch;
+
+		const result = await loadSearchFacets(db, emptyFilters);
+		expect(batches).toBe(0);
+		expect(result.options.channel).toEqual([
+			{ count: 9, label: "Precomputed Channel", value: "ch-pre" },
+		]);
+		expect(result.options.dancer1).toEqual([
+			{ count: 4, label: "Precomputed Dancer", value: "Precomputed Dancer" },
+		]);
+		expect(result.options.dancer2).toBe(result.options.dancer1);
+		expect(result.lastUpdateTime).toEqual(new Date("2026-07-11T00:00:00.000Z"));
+	});
+
 	it("loads subsequent pages in a single D1 batch when the page is in range", async () => {
 		const db = createDatabase(database);
 		let batches = 0;

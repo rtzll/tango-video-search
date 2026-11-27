@@ -14,7 +14,8 @@ import {
 	songs,
 	videos,
 } from "../schema";
-import type { SearchFilters, SearchVideo } from "./search";
+import { filterKeys, type SearchFilters, type SearchVideo } from "./search";
+import { decodeCompactFacetOptions } from "./search-page-data";
 import { normalizeName } from "./utils/normalize";
 
 export function createDatabase(database: D1Database) {
@@ -34,6 +35,17 @@ function selectLastDatabaseUpdateTime(db: AppDatabase) {
 		.from(appMetadata)
 		.where(eq(appMetadata.key, "database_updated_at"))
 		.limit(1);
+}
+
+function selectUnfilteredMetadata(db: AppDatabase) {
+	return db
+		.select({ key: appMetadata.key, value: appMetadata.value })
+		.from(appMetadata)
+		.where(inArray(appMetadata.key, ["database_updated_at", "default_facets"]));
+}
+
+function hasNoActiveFilters(filters: SearchFilters) {
+	return filterKeys.every((key) => filters[key] === null);
 }
 
 type DancerFilterKey = "dancer1" | "dancer2";
@@ -329,6 +341,25 @@ function namedOptions(rows: readonly { count: number; value: string }[]) {
 }
 
 export async function loadSearchFacets(db: AppDatabase, filters: SearchFilters) {
+	if (hasNoActiveFilters(filters)) {
+		const metadataRows = await selectUnfilteredMetadata(db);
+		const byKey = new Map(metadataRows.map((row) => [row.key, row.value]));
+		const precomputed = byKey.get("default_facets");
+		if (precomputed) {
+			try {
+				const decoded = decodeCompactFacetOptions(JSON.parse(precomputed));
+				const options = { ...decoded, dancer2: decoded.dancer1 };
+				const updatedAt = byKey.get("database_updated_at");
+				return {
+					lastUpdateTime: updatedAt ? new Date(updatedAt) : null,
+					options,
+				};
+			} catch {
+				// Fall back to live facet aggregation if precomputed metadata is malformed.
+			}
+		}
+	}
+
 	const statements = [
 		selectChannelOptions(db, filters),
 		selectDancerOptions(db, filters, "dancer1"),

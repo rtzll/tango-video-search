@@ -63,6 +63,8 @@ export const encodeSearchFacetsPayload = Schema.encodeSync(
 	Schema.toCodecJson(SearchFacetsSnapshot),
 );
 
+export const decodeCompactFacetOptions = Schema.decodeUnknownSync(Schema.toCodecJson(FacetOptions));
+
 export class SearchQueryError extends Schema.TaggedError<SearchQueryError>()("SearchQueryError", {
 	reason: Schema.Literals(["unavailable", "http-error", "invalid-response", "timeout"]),
 }) {}
