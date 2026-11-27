@@ -1,11 +1,12 @@
 import { UiSchema } from "@effect/ui";
-import { Combobox, Popover } from "@effect/ui-kit";
+import { Combobox, type ComboboxItem, Popover } from "@effect/ui-kit";
 import { makeTabs } from "@effect/ui-kit/Tabs";
 import { Html } from "@effect/ui/html";
 import { Schema } from "effect";
 
 import { SearchFilters, SearchOptions, matchFilterOptions } from "../search";
 import { Icon } from "./icons";
+import { initialPickerRows, VirtualPickerOptions } from "./virtual-picker-options";
 
 const advancedFilters = [
 	{ key: "song", label: "Song" },
@@ -25,10 +26,11 @@ const Message = UiSchema.TaggedEnum({
 	Closed: {},
 	SelectedTab: { key: AdvancedKey },
 	Typed: { query: Schema.String },
+	Navigated: {},
 	Changed: { key: AdvancedKey, value: Filter },
 });
 
-const closed = { open: false, query: "" };
+const closed = { open: false, query: "", scrollRevision: 0, resetScroll: true };
 
 export const AdvancedFilters = Html.component({
 	name: "AdvancedFilters",
@@ -37,6 +39,8 @@ export const AdvancedFilters = Html.component({
 		selectedKey: AdvancedKey,
 		query: Schema.String,
 		open: Schema.Boolean,
+		scrollRevision: Schema.Number,
+		resetScroll: Schema.Boolean,
 	}),
 	message: Message,
 	events: Event,
@@ -46,11 +50,19 @@ export const AdvancedFilters = Html.component({
 	update: {
 		Opened: ($) => $.evolve({ open: true }),
 		Closed: ($) => $.evolve(closed),
-		SelectedTab: ($, { key }) => $.evolve({ selectedKey: key, query: "" }),
-		Typed: ($, { query }) => $.evolve({ query }),
+		SelectedTab: ($, { key }) =>
+			$.evolve({
+				selectedKey: key,
+				query: "",
+				resetScroll: true,
+				scrollRevision: $.model.scrollRevision + 1,
+			}),
+		Typed: ($, { query }) =>
+			$.evolve({ query, resetScroll: true, scrollRevision: $.model.scrollRevision + 1 }),
+		Navigated: ($) => $.evolve({ resetScroll: false, scrollRevision: $.model.scrollRevision + 1 }),
 		Changed: ($, { key, value }) => $.evolve(closed).emit(Event.Changed({ key, value })),
 	},
-	view: (h, { selectedKey, query, open }) => {
+	view: (h, { selectedKey, query, open, scrollRevision, resetScroll }) => {
 		const { filters, options } = h.props;
 		const activeFilters = advancedFilters.filter(({ key }) => filters[key] !== null);
 		const available = advancedFilters.filter(
@@ -93,11 +105,13 @@ export const AdvancedFilters = Html.component({
 						.children(hasFilters ? "and…" : "where…");
 
 					function renderChoices(tab: (typeof advancedFilters)[number]) {
-						const matching = matchFilterOptions(options[tab.key], query).slice(0, 100);
+						const matching = matchFilterOptions(options[tab.key], query);
 						const counts = new Map(matching.map(({ value, count }) => [value, count]));
 						const label = `Search ${tab.label.toLowerCase()}`;
+						const virtualized = matching.length > initialPickerRows;
 
 						return Combobox(h, {
+							key: tab.key,
 							props: {
 								autoHighlight: true,
 								filter: "none",
@@ -106,6 +120,7 @@ export const AdvancedFilters = Html.component({
 								inputValue: query,
 								items: matching,
 								open: false,
+								virtualized,
 							},
 							onEmit: {
 								Picked: ({ value }) =>
@@ -113,7 +128,8 @@ export const AdvancedFilters = Html.component({
 								RequestedInputValue: ({ inputValue }) => Message.Typed({ query: inputValue }),
 								RequestedOpen: () => undefined,
 								RequestedClose: () => undefined,
-								Highlighted: () => undefined,
+								Highlighted: ({ reason }) =>
+									virtualized && reason === "keyboard" ? Message.Navigated() : undefined,
 								Settled: () => undefined,
 							},
 							view: (picker) => {
@@ -127,24 +143,37 @@ export const AdvancedFilters = Html.component({
 											"placeholder:text-muted min-w-0 flex-1 bg-transparent py-1 text-base outline-none",
 										),
 								);
+								const optionRow = ({ label, value }: ComboboxItem) =>
+									h.div
+										.class(
+											"hover:bg-panel-hover text-text flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-3 py-2 text-left text-sm",
+											virtualized
+												? "group-data-highlighted:bg-panel-hover pointer-events-auto"
+												: "data-highlighted:bg-panel-hover",
+										)
+										.children(
+											h.span.class("max-w-60 truncate").children(label),
+											h.span
+												.class("text-muted shrink-0 text-xs tabular-nums")
+												.children(String(counts.get(value))),
+										);
+								const rows = virtualized
+									? VirtualPickerOptions(h, {
+											items: picker.items,
+											highlighted: picker.highlighted,
+											query,
+											scrollRevision,
+											resetScroll,
+											row: optionRow,
+											option: (element, value) => picker.item({ element, value }),
+										})
+									: picker.items.map((item) =>
+											picker.item({ element: optionRow(item), value: item.value }),
+										);
 								const list = picker
 									.list(h.div.class("flex min-h-0 flex-col gap-1 overflow-y-auto px-1 pb-1"))
 									.children(
-										picker.items.map(({ label, value }) =>
-											picker
-												.item({
-													element: h.div.class(
-														"hover:bg-panel-hover data-highlighted:bg-panel-hover text-text flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-3 py-2 text-left text-sm",
-													),
-													value,
-												})
-												.children(
-													h.span.class("max-w-60 truncate").children(label),
-													h.span
-														.class("text-muted shrink-0 text-xs tabular-nums")
-														.children(String(counts.get(value))),
-												),
-										),
+										rows,
 										picker
 											.empty(h.div)
 											.children(

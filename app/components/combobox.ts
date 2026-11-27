@@ -1,10 +1,11 @@
 import { UiSchema } from "@effect/ui";
-import { Combobox as KitCombobox, VirtualList, VirtualListScrollTarget } from "@effect/ui-kit";
+import { Combobox as KitCombobox } from "@effect/ui-kit";
 import { Html } from "@effect/ui/html";
 import { Schema } from "effect";
 
 import { FilterOptions, matchFilterOptions } from "../search";
 import { Icon } from "./icons";
+import { initialPickerRows, VirtualPickerOptions } from "./virtual-picker-options";
 
 const Selection = Schema.NullOr(Schema.String);
 const Event = UiSchema.TaggedEnum({ Picked: { value: Selection } });
@@ -17,10 +18,6 @@ const Message = UiSchema.TaggedEnum({
 });
 
 const closed = { open: false, query: "", scrollRevision: 0, resetScroll: true };
-const rowHeight = 40;
-const rowGap = 4;
-const separatorHeight = 9;
-const initialRows = 12;
 
 export const Combobox = Html.component({
 	name: "FilterPicker",
@@ -30,7 +27,6 @@ export const Combobox = Html.component({
 		placeholder: Schema.String,
 		searchLabel: Schema.String,
 		ariaLabel: Schema.String,
-		virtualize: Schema.Boolean,
 	}),
 	model: Schema.Struct({
 		open: Schema.Boolean,
@@ -52,7 +48,7 @@ export const Combobox = Html.component({
 		Picked: ($, { value }) => $.evolve(closed).emit(Event.Picked({ value })),
 	},
 	view: (h, { open, query, scrollRevision, resetScroll }) => {
-		const { value, options, placeholder, searchLabel, ariaLabel, virtualize } = h.props;
+		const { value, options, placeholder, searchLabel, ariaLabel } = h.props;
 		const anchorId = h.id("anchor");
 		const selectedLabel =
 			value === null ? placeholder : (options.find((item) => item.value === value)?.label ?? value);
@@ -60,7 +56,7 @@ export const Combobox = Html.component({
 		const matchingOptions = matchFilterOptions(options, query);
 		const items = [emptyChoice, ...options];
 		const filteredItems = matchingOptions === options ? items : [emptyChoice, ...matchingOptions];
-		const virtualized = virtualize && filteredItems.length > initialRows;
+		const virtualized = filteredItems.length > initialPickerRows;
 
 		return KitCombobox(h, {
 			props: {
@@ -87,7 +83,7 @@ export const Combobox = Html.component({
 				Picked: ({ value }) =>
 					Message.Picked({ value: typeof value === "string" && value !== "" ? value : null }),
 				Highlighted: ({ reason }) =>
-					virtualize && reason === "keyboard" ? Message.Navigated() : undefined,
+					virtualized && reason === "keyboard" ? Message.Navigated() : undefined,
 				Settled: () => undefined,
 			},
 			view: (picker) => {
@@ -143,53 +139,18 @@ export const Combobox = Html.component({
 						);
 					}
 
-					const highlighted = choices.findIndex((item) => item.value === picker.highlighted);
-					const scrollTarget =
-						highlighted === -1
-							? resetScroll && VirtualListScrollTarget.Offset({ offset: 0 })
-							: VirtualListScrollTarget.Index({ index: highlighted });
-					return VirtualList(h, {
-						props: {
-							dataset: query,
-							initialCount: initialRows,
-							itemSize: rowHeight + rowGap,
-							keys: choices.map((item) => item.value),
-							layout: "absolute",
-							scrollContainer: "nearest",
-							scrollTo: scrollTarget
-								? { align: "nearest", id: scrollRevision, target: scrollTarget }
-								: undefined,
-							// Include the divider and gaps in the estimates until the kit measures the rows.
-							sizes: choices.map((_, index) => {
-								if (index === 0) return rowHeight + rowGap * 2 + separatorHeight;
-								return index === choices.length - 1 ? rowHeight : rowHeight + rowGap;
-							}),
-						},
-						view: (list) => {
-							// The input retains focus, so keep its active descendant mounted even offscreen.
-							const indexes =
-								highlighted !== -1 && !list.items.includes(highlighted)
-									? [...list.items, highlighted].sort((a, b) => a - b)
-									: list.items;
-							return picker.list(list.list(h.div)).children(
-								indexes.map((index) => {
-									const item = choices[index]!;
-									const first = index === 0;
-									const element = h.div
-										.class(
-											"group pointer-events-none",
-											first ? "pb-2" : index < choices.length - 1 && "pb-1",
-										)
-										.children(
-											optionRow(item),
-											first &&
-												h.div.class("border-border mx-2 mt-2 border-t").attr("aria-hidden", "true"),
-										);
-									return list.item({ element: picker.item({ element, value: item.value }), index });
-								}),
-							);
-						},
-					});
+					return picker.list(h.div).children(
+						VirtualPickerOptions(h, {
+							items: choices,
+							highlighted: picker.highlighted,
+							query,
+							scrollRevision,
+							resetScroll,
+							divider: true,
+							row: optionRow,
+							option: (element, value) => picker.item({ element, value }),
+						}),
+					);
 				}
 
 				const popup =
