@@ -199,12 +199,12 @@ export const Combobox = Html.component({
 							.popup(
 								h.div
 									.class(
-										"border-border bg-panel flex w-[calc(100vw-3rem)] flex-col gap-2 rounded-md border p-1 shadow-xl sm:w-70",
+										"border-border bg-panel flex max-h-[var(--available-height,100dvh)] w-[calc(100vw-3rem)] flex-col gap-2 rounded-md border p-1 shadow-xl sm:w-70",
 									)
 									.attr("aria-label", ariaLabel),
 							)
 							.children(
-								h.div.class("relative flex items-center gap-2 px-2 py-2").children(
+								h.div.class("relative flex shrink-0 items-center gap-2 px-2 py-2").children(
 									Icon(h, "MagnifyingGlass", 15, "text-muted shrink-0"),
 									picker.input(
 										h.input
@@ -217,7 +217,7 @@ export const Combobox = Html.component({
 											),
 									),
 								),
-								h.div.class("max-h-80 overflow-y-auto px-1 pb-1").children(renderOptions()),
+								h.div.class("max-h-80 min-h-0 overflow-y-auto px-1 pb-1").children(renderOptions()),
 							),
 					);
 

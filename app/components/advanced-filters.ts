@@ -212,7 +212,7 @@ export const AdvancedFilters = Html.component({
 									popover
 										.popup(
 											h.div.class(
-												"border-border bg-panel flex max-h-[min(20rem,calc(100dvh-2rem))] w-[min(20rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-md border p-1 shadow-xl",
+												"border-border bg-panel flex max-h-[min(20rem,calc(100dvh-2rem),var(--available-height,100dvh))] w-[min(20rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-md border p-1 shadow-xl",
 											),
 										)
 										.children(tabsView()),
