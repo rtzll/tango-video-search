@@ -1,9 +1,9 @@
 import { Schema } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 
-import { SearchFacets } from "./search-page-data";
+import { SearchFacets, SearchFacetsSnapshot } from "./search-page-data";
 
-const codec = Schema.toCodecJson(SearchFacets);
+const codec = Schema.toCodecJson(SearchFacetsSnapshot);
 const encode = Schema.encodeSync(codec);
 const decode = Schema.decodeUnknownSync(codec);
 const alice = { count: 3, label: "Alice", value: "Alice" };
@@ -26,8 +26,17 @@ describe("search facet hydration", () => {
 	it("stores matching dancer lists once and restores both picker lists", () => {
 		const encoded = encode(shared);
 		expect(encoded).not.toHaveProperty("options.dancer2");
+		expect(encoded).toHaveProperty("options.dancer1", [["Alice", 3]]);
 		expect(decode(encoded)).toEqual(shared);
-		expect(decode(shared)).toEqual(shared);
+	});
+
+	it("preserves distinct channel IDs and keeps the HTTP response shape", () => {
+		const channel = { count: 20, label: "Tango Channel", value: "channel-id" };
+		const facets = { ...shared, options: { ...shared.options, channel: [channel] } };
+		const encoded = encode(facets);
+		expect(encoded).toHaveProperty("options.channel", [["Tango Channel", 20, "channel-id"]]);
+		expect(decode(encoded)).toEqual(facets);
+		expect(Schema.decodeUnknownSync(SearchFacets)(facets)).toEqual(facets);
 	});
 
 	it("keeps separate lists when the same dancer has different counts", () => {
@@ -36,7 +45,7 @@ describe("search facet hydration", () => {
 			options: { ...shared.options, dancer2: [{ ...alice, count: 1 }] },
 		};
 		const encoded = encode(distinct);
-		expect(encoded).toHaveProperty("options.dancer2", distinct.options.dancer2);
+		expect(encoded).toHaveProperty("options.dancer2", [["Alice", 1]]);
 		expect(decode(encoded)).toEqual(distinct);
 	});
 
