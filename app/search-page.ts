@@ -18,8 +18,11 @@ import {
 import {
 	FilterKey,
 	ResultFilter,
+	type SearchFilters,
 	type SearchOptions,
+	type SearchParamKey,
 	type SearchVideo,
+	filterKeys,
 	toggleResultFilter,
 } from "./search";
 import { PAGE_SIZE, SearchFacetsQuery, SearchResultsQuery } from "./search-page-data";
@@ -69,6 +72,50 @@ const renderFooter = (h: Html.H<PageMessage>, formattedLastUpdate: string) =>
 		),
 	);
 
+const defaultTitle = "Tango Video Search";
+const defaultDescription = "A different way to find tango videos.";
+
+function summarizeFilters(
+	filters: SearchFilters,
+	options: SearchOptions | undefined,
+	firstVideo: SearchVideo | undefined,
+) {
+	const dancers = [filters.dancer1, filters.dancer2].filter(
+		(value): value is string => value !== null,
+	);
+	const channelLabel =
+		filters.channel === null
+			? null
+			: (options?.channel.find((option) => option.value === filters.channel)?.label ??
+				(firstVideo?.channelId === filters.channel ? firstVideo.channelTitle : filters.channel));
+
+	return [
+		dancers.length > 0 ? dancers.join(" & ") : null,
+		filters.song,
+		filters.orchestra,
+		filters.singer,
+		filters.event,
+		filters.year,
+		channelLabel,
+	]
+		.filter((value): value is string => value !== null)
+		.join(" · ");
+}
+
+function canonicalSearchHref(route: typeof SearchRoute.Type, filters: SearchFilters, page: number) {
+	const search: Partial<Record<SearchParamKey, readonly string[]>> = {};
+	for (const key of filterKeys) {
+		const value = filters[key];
+		if (value !== null) {
+			search[key] = [value];
+		}
+	}
+	if (page > 1) {
+		search.page = [String(page)];
+	}
+	return SearchRoute.print({ ...route, search });
+}
+
 const emptyOptions: SearchOptions = {
 	channel: [],
 	dancer1: [],
@@ -113,10 +160,46 @@ export const SearchPage = Html.component({
 			),
 		);
 	},
-	head: () => [
-		Head.title("Tango Video Search"),
-		HtmlHead.meta({ name: "description", content: "A different way to find tango videos." }),
-	],
+	head: ({ props, queries }) => {
+		const { route } = props;
+		const { filters, page } = parseSearchRoute(route);
+		const facets = AsyncResult.isSuccess(queries.facets) ? queries.facets.value : undefined;
+		const results = AsyncResult.isSuccess(queries.results) ? queries.results.value : undefined;
+		const firstVideo = results?.initialVideos[0];
+		const summary = summarizeFilters(filters, facets?.options, firstVideo);
+		const title = summary
+			? page > 1
+				? `${summary} (Page ${page}) — ${defaultTitle}`
+				: `${summary} — ${defaultTitle}`
+			: page > 1
+				? `Page ${page} — ${defaultTitle}`
+				: defaultTitle;
+		const description = summary
+			? results === undefined
+				? `Browse tango performances for ${summary}.`
+				: results.totalVideos === 0
+					? `No tango performances matching ${summary}.`
+					: `Browse ${results.totalVideos.toLocaleString("en-US")} tango ${results.totalVideos === 1 ? "performance" : "performances"} for ${summary}.`
+			: defaultDescription;
+		const entries = [
+			Head.title(title),
+			HtmlHead.meta({ name: "description", content: description }),
+			HtmlHead.meta({ property: "og:type", content: "website" }),
+			HtmlHead.meta({ property: "og:title", content: title }),
+			HtmlHead.meta({ property: "og:description", content: description }),
+			HtmlHead.link({ rel: "canonical", href: canonicalSearchHref(route, filters, page) }),
+		];
+		if (firstVideo) {
+			entries.push(
+				HtmlHead.meta({
+					property: "og:image",
+					content: `https://i.ytimg.com/vi/${firstVideo.id}/hqdefault.jpg`,
+				}),
+				HtmlHead.meta({ name: "twitter:card", content: "summary_large_image" }),
+			);
+		}
+		return entries;
+	},
 	view: (h) => {
 		const { route, additionalSearch } = h.props;
 		const { filters } = parseSearchRoute(route);

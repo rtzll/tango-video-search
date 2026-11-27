@@ -1,5 +1,5 @@
 import { Router } from "@effect/ui";
-import { Html } from "@effect/ui/html";
+import { Html, HtmlServer } from "@effect/ui/html";
 import { HtmlLocator, HtmlPlay } from "@effect/ui/html/testing";
 import { Locator, TestHost } from "@effect/ui/testing";
 import { Effect, Layer } from "effect";
@@ -205,5 +205,40 @@ describe("SearchPage and App interactions", () => {
 				});
 			}).pipe(Effect.scoped, Effect.provide(layers)),
 		);
+	});
+
+	it("renders dynamic title, description, OpenGraph, and canonical link from active filters", async () => {
+		const renderHead = (url: string) =>
+			Effect.runPromise(
+				HtmlServer.renderToHtml(App, appProps).pipe(
+					Effect.provide([
+						Router.static({ routes: AppRoute, url }),
+						SearchResultsQuery.toLayer(({ page }) => Effect.succeed(makePageResults(page))),
+						SearchFacetsQuery.toLayer(() => Effect.succeed(sampleFacets)),
+					]),
+				),
+			);
+
+		const home = await renderHead("/");
+		expect(home.head).toContain("<title data-eui>Tango Video Search</title>");
+		expect(home.head).toContain(
+			'property="og:image" content="https://i.ytimg.com/vi/video-1/hqdefault.jpg"',
+		);
+		expect(home.head).toContain('rel="canonical" href="/"');
+
+		const filtered = await renderHead(
+			"/?dancer1=Agustina+Piaggio&orchestra=Juan+D%27Arienzo&channel=ch-1&page=2&utm_source=x",
+		);
+		expect(filtered.head).toContain(
+			"<title data-eui>Agustina Piaggio · Juan D'Arienzo · Tango Channel (Page 2) — Tango Video Search</title>",
+		);
+		expect(filtered.head).toContain(
+			'name="description" content="Browse 20 tango performances for Agustina Piaggio · Juan D\'Arienzo · Tango Channel."',
+		);
+		expect(filtered.head).toContain(
+			'property="og:image" content="https://i.ytimg.com/vi/video-2/hqdefault.jpg"',
+		);
+		expect(filtered.head).toContain('rel="canonical"');
+		expect(filtered.head).not.toContain("utm_source");
 	});
 });
