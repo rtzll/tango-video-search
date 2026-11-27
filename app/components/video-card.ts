@@ -1,4 +1,5 @@
 import type { View } from "@effect/ui";
+import { Toggle } from "@effect/ui-kit";
 import type { Html } from "@effect/ui/html";
 
 import {
@@ -165,9 +166,7 @@ function FilterButton<Message>(
 	active: boolean,
 	children: View.Input<Message>,
 ) {
-	return h.button
-		.attr("type", "button")
-		.on("click", onClick)
+	return Toggle(h, { props: { pressed: active }, onToggle: () => onClick })
 		.class(
 			"group relative cursor-pointer leading-tight font-normal pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1 pointer-coarse:after:-inset-y-1.5 pointer-coarse:after:content-['']",
 			active ? "text-accent-text" : "text-text",
