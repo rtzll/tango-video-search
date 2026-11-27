@@ -23,19 +23,12 @@ export function createDatabase(database: D1Database) {
 
 type AppDatabase = ReturnType<typeof createDatabase>;
 
-async function getLastDatabaseUpdateTime(db: AppDatabase) {
-	try {
-		const results = await db
-			.select({ value: appMetadata.value })
-			.from(appMetadata)
-			.where(eq(appMetadata.key, "database_updated_at"))
-			.limit(1);
-		const value = results[0]?.value;
-		return value ? new Date(value) : null;
-	} catch (error) {
-		console.error("Error getting database update metadata:", error);
-		return null;
-	}
+function selectLastDatabaseUpdateTime(db: AppDatabase) {
+	return db
+		.select({ value: appMetadata.value })
+		.from(appMetadata)
+		.where(eq(appMetadata.key, "database_updated_at"))
+		.limit(1);
 }
 
 type DancerFilterKey = "dancer1" | "dancer2";
@@ -358,19 +351,19 @@ export async function loadSearchFacets(db: AppDatabase, filters: SearchFilters) 
 		selectSongOptions(db, filters),
 		selectSingerOptions(db, filters),
 		selectYearOptions(db, filters),
+		selectLastDatabaseUpdateTime(db),
 	] as const;
 	const sharedDancers = filters.dancer1 === null && filters.dancer2 === null;
-	const [rows, lastUpdateTime] = await Promise.all([
-		sharedDancers
-			? db.batch(statements)
-			: db.batch([...statements, selectDancerOptions(db, filters, "dancer2")]),
-		getLastDatabaseUpdateTime(db),
-	]);
-	const [channel, firstDancers, event, orchestra, song, singer, year, secondDancers] = rows;
+	const rows = sharedDancers
+		? await db.batch(statements)
+		: await db.batch([...statements, selectDancerOptions(db, filters, "dancer2")]);
+	const [channel, firstDancers, event, orchestra, song, singer, year, metadata, secondDancers] =
+		rows;
 	const dancer1 = namedOptions(firstDancers);
+	const updatedAt = metadata[0]?.value;
 
 	return {
-		lastUpdateTime,
+		lastUpdateTime: updatedAt ? new Date(updatedAt) : null,
 		options: {
 			channel,
 			dancer1,
@@ -388,16 +381,19 @@ export async function loadSearchResults(
 	db: AppDatabase,
 	{ filters, page, pageSize }: { filters: SearchFilters; page: number; pageSize: number },
 ) {
-	const countQuery = selectFilteredVideosCount(db, filters);
-	// The first page can be read with its count in one D1 call.
-	const [counts, firstPage] =
-		page === 1
-			? await db.batch([countQuery, selectFilteredVideos(db, filters, 1, pageSize)])
-			: ([await countQuery, undefined] as const);
+	const requestedPage = Math.max(1, page);
+	// Optimistically read the requested page alongside the count in one D1 call.
+	const [counts, requestedRows] = await db.batch([
+		selectFilteredVideosCount(db, filters),
+		selectFilteredVideos(db, filters, requestedPage, pageSize),
+	]);
 	const totalVideos = counts[0]?.count ?? 0;
 	const totalPages = Math.max(1, Math.ceil(totalVideos / pageSize));
-	const safePage = Math.max(1, Math.min(page, totalPages));
-	const rows = firstPage ?? (await selectFilteredVideos(db, filters, safePage, pageSize));
+	const safePage = Math.min(requestedPage, totalPages);
+	const rows =
+		safePage === requestedPage
+			? requestedRows
+			: await selectFilteredVideos(db, filters, safePage, pageSize);
 
 	return { initialVideos: searchVideos(rows), page: safePage, totalPages, totalVideos };
 }

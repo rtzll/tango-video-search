@@ -267,6 +267,27 @@ describe("loadSearchPage", () => {
 		]);
 	});
 
+	it("loads subsequent pages in a single D1 batch when the page is in range", async () => {
+		const db = createDatabase(database);
+		let batches = 0;
+		const originalBatch = db.batch.bind(db);
+		db.batch = ((queries) => {
+			batches += 1;
+			return originalBatch(queries);
+		}) as typeof db.batch;
+
+		const result = await loadSearchResults(db, {
+			filters: emptyFilters,
+			page: 2,
+			pageSize: 2,
+		});
+
+		expect(batches).toBe(1);
+		expect(result.page).toBe(2);
+		expect(result.totalPages).toBe(2);
+		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-3"]);
+	});
+
 	it("clamps a page past the end to the final page", async () => {
 		const result = await loadSearchPage(createDatabase(database), {
 			filters: emptyFilters,
