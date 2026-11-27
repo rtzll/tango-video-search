@@ -58,6 +58,8 @@ const APP_METADATA_SCHEMA = `CREATE TABLE IF NOT EXISTS app_metadata (
   key text PRIMARY KEY,
   value text NOT NULL
 );`;
+const SEARCH_INDEXES_SQL = `CREATE INDEX IF NOT EXISTS idx_videos_channel_id ON videos (channel_id);
+CREATE INDEX IF NOT EXISTS idx_performances_event_trimmed ON performances (trim(event));`;
 
 interface BaseOptions {
 	dataDir: string;
@@ -391,6 +393,7 @@ const writeSqlDump = Effect.fnUntraced(function* (
 	appendFileSync(
 		outputPath,
 		`
+${SEARCH_INDEXES_SQL}
 ${APP_METADATA_SCHEMA}
 INSERT OR REPLACE INTO app_metadata (key, value) VALUES
   ('database_file', ${quoteSqlString(metadata.fileName)}),

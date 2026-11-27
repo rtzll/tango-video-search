@@ -1,4 +1,4 @@
-import { and, count, countDistinct, desc, eq, exists, gt, ne, sql } from "drizzle-orm";
+import { and, count, countDistinct, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
 import * as schema from "../schema";
@@ -18,7 +18,12 @@ import type { SearchFilters, SearchVideo } from "./search";
 import { normalizeName } from "./utils/normalize";
 
 export function createDatabase(database: D1Database) {
-	return drizzle(database, { schema });
+	// Route read-only queries through the nearest D1 read replica when replication is enabled.
+	const client =
+		typeof database.withSession === "function"
+			? (database.withSession("first-unconstrained") as unknown as D1Database)
+			: database;
+	return drizzle(client, { schema });
 }
 
 type AppDatabase = ReturnType<typeof createDatabase>;
@@ -38,16 +43,13 @@ function withoutFilter(filters: SearchFilters, key: keyof SearchFilters): Search
 }
 
 function curationHasDancer(db: AppDatabase, normalizedDancer: string) {
-	const sameCuration = eq(dancersToCurations.curationId, curations.id);
-	const sameDancer = eq(dancers.normalized, normalizedDancer);
-	const dancerFilter = and(sameCuration, sameDancer);
 	const curationQuery = db
 		.select({ curationId: dancersToCurations.curationId })
 		.from(dancersToCurations)
 		.innerJoin(dancers, eq(dancersToCurations.dancerId, dancers.id))
-		.where(dancerFilter);
+		.where(eq(dancers.normalized, normalizedDancer));
 
-	return exists(curationQuery);
+	return inArray(curations.id, curationQuery);
 }
 
 function buildDancerFilterClause(db: AppDatabase, dancer1: string | null, dancer2: string | null) {
@@ -67,57 +69,46 @@ function curationHasSinger(db: AppDatabase, normalizedSinger: string) {
 		.select({ curationId: singersToCurations.curationId })
 		.from(singersToCurations)
 		.innerJoin(singers, eq(singersToCurations.singerId, singers.id))
-		.where(
-			and(
-				eq(singersToCurations.curationId, curations.id),
-				eq(singers.normalized, normalizedSinger),
-			),
-		);
+		.where(eq(singers.normalized, normalizedSinger));
 
-	return exists(curationQuery);
+	return inArray(curations.id, curationQuery);
 }
 
 function curationHasOrchestra(db: AppDatabase, normalizedOrchestra: string) {
-	const sameCuration = eq(orchestras.id, curations.orchestraId);
-	const sameOrchestra = eq(orchestras.normalized, normalizedOrchestra);
-	const curationQuery = db
+	const orchestraQuery = db
 		.select({ id: orchestras.id })
 		.from(orchestras)
-		.where(and(sameCuration, sameOrchestra));
+		.where(eq(orchestras.normalized, normalizedOrchestra));
 
-	return exists(curationQuery);
+	return inArray(curations.orchestraId, orchestraQuery);
 }
 
 function curationHasSong(db: AppDatabase, normalizedSong: string) {
-	const sameCuration = eq(songs.id, curations.songId);
-	const sameSong = eq(songs.normalized, normalizedSong);
-	const curationQuery = db.select({ id: songs.id }).from(songs).where(and(sameCuration, sameSong));
+	const songQuery = db
+		.select({ id: songs.id })
+		.from(songs)
+		.where(eq(songs.normalized, normalizedSong));
 
-	return exists(curationQuery);
+	return inArray(curations.songId, songQuery);
 }
 
 function curationHasEvent(db: AppDatabase, event: string) {
-	const curationQuery = db
+	const performanceQuery = db
 		.select({ id: performances.id })
 		.from(performances)
-		.where(
-			and(
-				eq(performances.id, curations.performanceId),
-				eq(sql`trim(${performances.event})`, event),
-			),
-		);
+		.where(eq(sql`trim(${performances.event})`, event));
 
-	return exists(curationQuery);
+	return inArray(curations.performanceId, performanceQuery);
 }
 
 function curationHasChannel(db: AppDatabase, channelId: string) {
-	const curationQuery = db
-		.select({ id: videos.id })
+	const performanceQuery = db
+		.select({ id: performances.id })
 		.from(performances)
 		.innerJoin(videos, eq(performances.videoId, videos.id))
-		.where(and(eq(performances.id, curations.performanceId), eq(videos.channelId, channelId)));
+		.where(eq(videos.channelId, channelId));
 
-	return exists(curationQuery);
+	return inArray(curations.performanceId, performanceQuery);
 }
 
 function curationHasYear(db: AppDatabase, year: string) {
@@ -126,17 +117,12 @@ function curationHasYear(db: AppDatabase, year: string) {
 		return sql`0`;
 	}
 
-	const curationQuery = db
+	const performanceQuery = db
 		.select({ id: performances.id })
 		.from(performances)
-		.where(
-			and(
-				eq(performances.id, curations.performanceId),
-				eq(performances.performanceYear, parsedYear),
-			),
-		);
+		.where(eq(performances.performanceYear, parsedYear));
 
-	return exists(curationQuery);
+	return inArray(curations.performanceId, performanceQuery);
 }
 
 function buildWhereClause(db: AppDatabase, filters: SearchFilters) {
