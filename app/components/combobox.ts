@@ -25,7 +25,7 @@ const Message = UiSchema.TaggedEnum({
 });
 
 const triggerClass =
-	"decoration-accent/60 hover:decoration-accent focus-visible:decoration-accent relative inline-flex cursor-pointer items-center gap-1 px-0 py-0 text-accent-text underline decoration-dotted underline-offset-4 after:absolute after:-inset-y-2 after:inset-x-0 after:content-[''] hover:decoration-solid focus-visible:outline-none focus-visible:decoration-solid";
+	"decoration-accent/60 hover:decoration-accent focus-visible:decoration-accent relative inline-flex max-w-full cursor-pointer items-baseline gap-1 text-left text-accent-text underline decoration-dotted underline-offset-4 after:absolute after:-inset-y-2 after:inset-x-0 after:content-[''] hover:decoration-solid focus-visible:outline-none focus-visible:decoration-solid";
 
 export const Combobox = Html.component({
 	name: "FilterPicker",
@@ -55,8 +55,7 @@ export const Combobox = Html.component({
 			value === null ? placeholder : (getPickerIndex(options).labels.get(value) ?? value);
 
 		const staticTrigger = () =>
-			h.div.class("static inline-block sm:relative").children(
-				h.span.attr("aria-hidden", "true").class("pointer-events-none absolute inset-0"),
+			h.div.class("min-w-0").children(
 				h.button
 					.attrs({
 						type: "button",
@@ -77,8 +76,8 @@ export const Combobox = Html.component({
 						{ preventDefault: true },
 					)
 					.children(
-						h.span.class("truncate text-base").children(selectedLabel),
-						value === null && Icon(h, "ChevronDown", 12, "opacity-50"),
+						h.span.class("min-w-0 wrap-anywhere text-base").children(selectedLabel),
+						value === null && Icon(h, "ChevronDown", 12, "shrink-0 self-center opacity-50"),
 					),
 			);
 

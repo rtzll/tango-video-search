@@ -93,12 +93,12 @@ export const ComboboxPopup = Html.component({
 						h.button
 							.attr("aria-label", ariaLabel)
 							.class(
-								"decoration-accent/60 hover:decoration-accent focus-visible:decoration-accent relative inline-flex cursor-pointer items-center gap-1 px-0 py-0 text-accent-text underline decoration-dotted underline-offset-4 after:absolute after:-inset-y-2 after:inset-x-0 after:content-[''] hover:decoration-solid focus-visible:outline-none focus-visible:decoration-solid",
+								"decoration-accent/60 hover:decoration-accent focus-visible:decoration-accent relative inline-flex max-w-full cursor-pointer items-baseline gap-1 text-left text-accent-text underline decoration-dotted underline-offset-4 after:absolute after:-inset-y-2 after:inset-x-0 after:content-[''] hover:decoration-solid focus-visible:outline-none focus-visible:decoration-solid",
 							),
 					)
 					.children(
-						h.span.class("truncate text-base").children(selectedLabel),
-						value === null && Icon(h, "ChevronDown", 12, "opacity-50"),
+						h.span.class("min-w-0 wrap-anywhere text-base").children(selectedLabel),
+						value === null && Icon(h, "ChevronDown", 12, "shrink-0 self-center opacity-50"),
 					);
 
 				function renderOptions() {
@@ -190,7 +190,7 @@ export const ComboboxPopup = Html.component({
 					.id(anchorId)
 					.attr("aria-hidden", "true")
 					.class("pointer-events-none absolute inset-0");
-				return h.div.class("static inline-block sm:relative").children(anchor, trigger, popup);
+				return h.div.class("static min-w-0 sm:relative").children(anchor, trigger, popup);
 			},
 		});
 	},

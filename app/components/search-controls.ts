@@ -36,12 +36,24 @@ export function SearchControls<Message>(
 	}
 	return [
 		h.div.class("relative flex flex-wrap items-baseline gap-2").children(
-			h.span("I want to see"),
-			combobox("dancer1", "dancer", "Select first dancer"),
-			h.span("and"),
-			combobox("dancer2", "dancer", "Select second dancer"),
-			h.span("dance to"),
-			combobox("orchestra", "orchestra", "Select orchestra"),
+			h.div
+				.class("flex min-w-0 items-baseline gap-2")
+				.children(
+					h.span.class("shrink-0").children("I want to see"),
+					combobox("dancer1", "dancer", "Select first dancer"),
+				),
+			h.div
+				.class("flex min-w-0 items-baseline gap-2")
+				.children(
+					h.span.class("shrink-0").children("and"),
+					combobox("dancer2", "dancer", "Select second dancer"),
+				),
+			h.div
+				.class("flex min-w-0 items-baseline gap-2")
+				.children(
+					h.span.class("shrink-0").children("dance to"),
+					combobox("orchestra", "orchestra", "Select orchestra"),
+				),
 			hasAnyFilters &&
 				h.button
 					.attrs({ type: "button", "aria-label": "Reset filters" })
