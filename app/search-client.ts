@@ -1,4 +1,4 @@
-import { Data, Effect, Schedule, Schema } from "effect";
+import { Data, Effect, Schema } from "effect";
 
 import { SearchQueryError } from "./search-page-data";
 
@@ -7,7 +7,7 @@ class SearchHttpError extends Data.TaggedError("SearchHttpError")<{ status: numb
 class InvalidSearchResponse extends Data.TaggedError("InvalidSearchResponse")<{ cause: unknown }> {}
 
 export function fetchSearch<A>(url: URL, schema: Schema.Codec<A, unknown>) {
-	return Effect.tryPromise({
+	const request = Effect.tryPromise({
 		try: async (signal): Promise<unknown> => {
 			const response = await fetch(url, { signal });
 			if (!response.ok) {
@@ -30,13 +30,16 @@ export function fetchSearch<A>(url: URL, schema: Schema.Codec<A, unknown>) {
 				Effect.mapError((cause) => new InvalidSearchResponse({ cause })),
 			),
 		),
-		Effect.retry({
-			times: 1,
-			schedule: Schedule.spaced("150 millis"),
-			while: (error) =>
+	);
+
+	// One delayed retry keeps the general scheduling machinery out of the browser bundle.
+	return request.pipe(
+		Effect.catchIf(
+			(error) =>
 				error._tag === "SearchNetworkError" ||
 				(error._tag === "SearchHttpError" && [408, 502, 503, 504].includes(error.status)),
-		}),
+			() => Effect.andThen(Effect.sleep("150 millis"), request),
+		),
 		Effect.tapErrorTag("InvalidSearchResponse", ({ cause }) =>
 			Effect.logError("Invalid search response", { path: url.pathname, cause }),
 		),

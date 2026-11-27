@@ -10,14 +10,23 @@ const search = fetchSearch(url, Schema.Struct({ total: Schema.Number }));
 
 afterEach(() => vi.unstubAllGlobals());
 
-it("retries a transient response once", async () => {
+it("retries a transient response once after 150 milliseconds", async () => {
 	const fetch = vi
 		.fn()
 		.mockResolvedValueOnce(new Response(null, { status: 503 }))
 		.mockResolvedValueOnce(Response.json(payload));
 	vi.stubGlobal("fetch", fetch);
 
-	await expect(Effect.runPromise(search)).resolves.toEqual(payload);
+	const result = await Effect.runPromise(
+		Effect.gen(function* () {
+			const request = yield* Effect.forkChild(search, { startImmediately: true });
+			yield* TestClock.adjust(149);
+			expect(fetch).toHaveBeenCalledTimes(1);
+			yield* TestClock.adjust(1);
+			return yield* Fiber.join(request);
+		}).pipe(Effect.provide(TestClock.layer())),
+	);
+	expect(result).toEqual(payload);
 	expect(fetch).toHaveBeenCalledTimes(2);
 });
 
