@@ -150,4 +150,37 @@ describe("Filter picker components", () => {
 			}).pipe(Effect.scoped, Effect.provide(layers)),
 		);
 	});
+
+	it("virtualizes large option lists with an explicit viewport and switches to native list when filtered", async () => {
+		const manyDancers = Array.from({ length: 120 }, (_, index) => ({
+			count: 120 - index,
+			label: `Dancer ${index + 1}`,
+			value: `Dancer ${index + 1}`,
+		}));
+		const focused: string[] = [];
+		const layers = Layer.mergeAll(TestHost.layer(), makeSpyHtmlHost(focused));
+
+		await Effect.runPromise(
+			Effect.gen(function* () {
+				const play = yield* HtmlPlay.make(Combobox, {
+					ariaLabel: "Select first dancer",
+					options: manyDancers,
+					placeholder: "any dancer",
+					searchLabel: "dancer",
+					value: null,
+				});
+
+				yield* play.click(HtmlLocator.role("combobox", { name: "Select first dancer" }));
+				const virtualOptions = play.root.all(HtmlLocator.role("option"));
+				expect(virtualOptions.length).toBeLessThan(manyDancers.length);
+				expect(virtualOptions[0].attrs?.["aria-setsize"]).toBe("121");
+
+				const searchInput = HtmlLocator.role("combobox", { name: "Search dancer" });
+				yield* play.type(searchInput, "Dancer 120");
+				yield* play.expect(HtmlLocator.role("option", { name: /Dancer 120/ })).toExist();
+				yield* play.click(HtmlLocator.role("option", { name: /Dancer 120/ }));
+				expect(play.root.emitted).toEqual([{ _tag: "Picked", value: "Dancer 120" }]);
+			}).pipe(Effect.scoped, Effect.provide(layers)),
+		);
+	});
 });

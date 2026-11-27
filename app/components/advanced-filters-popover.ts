@@ -7,7 +7,7 @@ import { Schema } from "effect";
 import { SearchFilters, SearchOptions } from "../search";
 import { Icon } from "./icons";
 import { filterPickerOptions, getPickerIndex } from "./picker-options";
-import { initialPickerRows, VirtualPickerOptions } from "./virtual-picker-options";
+import { virtualizationThreshold, VirtualPickerOptions } from "./virtual-picker-options";
 
 const advancedFilters = [
 	{ key: "song", label: "Song" },
@@ -131,7 +131,7 @@ export const AdvancedFiltersPopover = Html.component({
 					const { counts } = getPickerIndex(tabOptions);
 					const { items: matching } = filterPickerOptions(tabOptions, query);
 					const label = `Search ${tab.label.toLowerCase()}`;
-					const virtualized = matching.length > initialPickerRows;
+					const virtualized = matching.length > virtualizationThreshold;
 
 					return Combobox(h, {
 						key: tab.key,
@@ -181,29 +181,30 @@ export const AdvancedFiltersPopover = Html.component({
 											.class("text-muted shrink-0 text-xs tabular-nums")
 											.children(String(counts.get(value))),
 									);
-							const rows = virtualized
+							const list = virtualized
 								? VirtualPickerOptions(h, {
 										items: picker.items,
 										highlighted: picker.highlighted,
-										query,
 										scrollRevision,
 										resetScroll,
+										viewport: picker.list(
+											h.div.class("flex min-h-0 flex-col gap-1 overflow-y-auto px-1 pb-1"),
+										),
 										row: optionRow,
 										option: (element, value) => picker.item({ element, value }),
 									})
-								: picker.items.map((item) =>
-										picker.item({ element: optionRow(item), value: item.value }),
-									);
-							const list = picker
-								.list(h.div.class("flex min-h-0 flex-col gap-1 overflow-y-auto px-1 pb-1"))
-								.children(
-									rows,
-									picker
-										.empty(h.div)
+								: picker
+										.list(h.div.class("flex min-h-0 flex-col gap-1 overflow-y-auto px-1 pb-1"))
 										.children(
-											h.p.class("text-muted py-3 text-center text-sm").children("No matches"),
-										),
-								);
+											picker.items.map((item) =>
+												picker.item({ element: optionRow(item), value: item.value }),
+											),
+											picker
+												.empty(h.div)
+												.children(
+													h.p.class("text-muted py-3 text-center text-sm").children("No matches"),
+												),
+										);
 
 							return h.div
 								.class("flex min-h-0 flex-col")

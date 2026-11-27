@@ -6,7 +6,7 @@ import { Schema } from "effect";
 import { FilterOptions } from "../search";
 import { Icon } from "./icons";
 import { filterPickerOptions, getPickerIndex, getPickerItemsWithEmpty } from "./picker-options";
-import { initialPickerRows, VirtualPickerOptions } from "./virtual-picker-options";
+import { virtualizationThreshold, VirtualPickerOptions } from "./virtual-picker-options";
 
 const Selection = Schema.NullOr(Schema.String);
 const Event = UiSchema.TaggedEnum({ Picked: { value: Selection } });
@@ -55,7 +55,7 @@ export const ComboboxPopup = Html.component({
 		const selectedLabel = value === null ? placeholder : (index.labels.get(value) ?? value);
 		const items = getPickerItemsWithEmpty(options, placeholder);
 		const { items: filteredItems, matchCount } = filterPickerOptions(options, query, placeholder);
-		const virtualized = filteredItems.length > initialPickerRows;
+		const virtualized = filteredItems.length > virtualizationThreshold;
 
 		return KitCombobox(h, {
 			props: {
@@ -127,31 +127,32 @@ export const ComboboxPopup = Html.component({
 					}
 
 					if (!virtualized) {
-						return picker.list(h.div.class("flex flex-col gap-1")).children(
-							choices.flatMap((item) => [
-								picker.item({ element: optionRow(item), value: item.value }),
-								item.value === "" && matchCount > 0 && separator,
-							]),
-							matchCount === 0 &&
-								h.p
-									.attr("role", "status")
-									.class("text-muted py-3 text-center text-sm")
-									.children("No matches"),
+						return h.div.class("max-h-80 min-h-0 overflow-y-auto px-1 pb-1").children(
+							picker.list(h.div.class("flex flex-col gap-1")).children(
+								choices.flatMap((item) => [
+									picker.item({ element: optionRow(item), value: item.value }),
+									item.value === "" && matchCount > 0 && separator,
+								]),
+								matchCount === 0 &&
+									h.p
+										.attr("role", "status")
+										.class("text-muted py-3 text-center text-sm")
+										.children("No matches"),
+							),
 						);
 					}
 
-					return picker.list(h.div).children(
-						VirtualPickerOptions(h, {
-							items: choices,
-							highlighted: picker.highlighted,
-							query,
-							scrollRevision,
-							resetScroll,
-							divider: true,
-							row: optionRow,
-							option: (element, optionValue) => picker.item({ element, value: optionValue }),
-						}),
-					);
+					return VirtualPickerOptions(h, {
+						items: choices,
+						highlighted: picker.highlighted,
+						scrollRevision,
+						resetScroll,
+						divider: true,
+						viewport: h.div.class("max-h-80 min-h-0 overflow-y-auto px-1 pb-1"),
+						wrapList: (rows) => picker.list(h.div).children(rows),
+						row: optionRow,
+						option: (element, optionValue) => picker.item({ element, value: optionValue }),
+					});
 				}
 
 				const popup =
@@ -179,7 +180,7 @@ export const ComboboxPopup = Html.component({
 											),
 									),
 								),
-								h.div.class("max-h-80 min-h-0 overflow-y-auto px-1 pb-1").children(renderOptions()),
+								renderOptions(),
 							),
 					);
 
