@@ -1,6 +1,6 @@
-import { Component, UiSchema } from "@effect/ui";
+import { Command, Component, UiSchema } from "@effect/ui";
 import { Html, HtmlCommand } from "@effect/ui/html";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 
 import { SearchFilters, SearchOptions } from "../search";
 import { Icon } from "./icons";
@@ -8,6 +8,12 @@ import { getPickerIndex } from "./picker-options";
 
 const LazyAdvancedFiltersPopover = Component.lazy("AdvancedFiltersPopover", () =>
 	import("./advanced-filters-popover").then((module) => module.AdvancedFiltersPopover),
+);
+
+const PreloadAdvancedFiltersPopover = Command.make("PreloadAdvancedFiltersPopover", {}, () =>
+	Effect.sync(() => {
+		void LazyAdvancedFiltersPopover.preload();
+	}).pipe(Effect.as(Component.noop)),
 );
 
 const advancedFilters = [
@@ -31,6 +37,7 @@ const Event = UiSchema.TaggedEnum({ Changed: { key: AdvancedKey, value: Filter }
 const Message = UiSchema.TaggedEnum({
 	Opened: {},
 	Closed: { restoreFocus: Schema.Boolean },
+	PreloadRequested: {},
 	SelectedTab: { key: AdvancedKey },
 	Changed: { key: AdvancedKey, value: Filter },
 	Removed: { key: AdvancedKey, restoreFocus: Schema.Boolean },
@@ -51,6 +58,7 @@ export const AdvancedFilters = Html.component({
 	init: () => ({ open: false, selectedKey: "song" }),
 	update: {
 		Opened: ($) => $.evolve({ open: true }),
+		PreloadRequested: ($) => ($.model.open ? $.model : $.run(PreloadAdvancedFiltersPopover.make())),
 		Closed: ($, { restoreFocus }) => {
 			const closed = $.evolve({ open: false });
 			return restoreFocus
@@ -101,6 +109,8 @@ export const AdvancedFilters = Html.component({
 							: "Choose performance details",
 					})
 					.class(addConditionClass)
+					.on("mouseenter", Message.PreloadRequested())
+					.on("focus", Message.PreloadRequested())
 					.on("click", Message.Opened())
 					.children(hasFilters ? "and…" : "where…"),
 			);

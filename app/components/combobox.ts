@@ -1,6 +1,6 @@
-import { Component, UiSchema } from "@effect/ui";
+import { Command, Component, UiSchema } from "@effect/ui";
 import { Html } from "@effect/ui/html";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 
 import { FilterOptions } from "../search";
 import { Icon } from "./icons";
@@ -10,11 +10,18 @@ const LazyComboboxPopup = Component.lazy("FilterPickerPopup", () =>
 	import("./combobox-popup").then((module) => module.ComboboxPopup),
 );
 
+const PreloadComboboxPopup = Command.make("PreloadFilterPickerPopup", {}, () =>
+	Effect.sync(() => {
+		void LazyComboboxPopup.preload();
+	}).pipe(Effect.as(Component.noop)),
+);
+
 const Selection = Schema.NullOr(Schema.String);
 const Event = UiSchema.TaggedEnum({ Picked: { value: Selection } });
 const Message = UiSchema.TaggedEnum({
 	Activated: {},
 	Picked: { value: Selection },
+	PreloadRequested: {},
 });
 
 const triggerClass =
@@ -40,6 +47,7 @@ export const Combobox = Html.component({
 	update: {
 		Activated: ($) => ($.model.activated ? $.model : $.evolve({ activated: true })),
 		Picked: ($, { value }) => $.emit(Event.Picked({ value })),
+		PreloadRequested: ($) => ($.model.activated ? $.model : $.run(PreloadComboboxPopup.make())),
 	},
 	view: (h, { activated }) => {
 		const { value, options, placeholder, searchLabel, ariaLabel } = h.props;
@@ -59,6 +67,8 @@ export const Combobox = Html.component({
 						"aria-label": ariaLabel,
 					})
 					.class(triggerClass)
+					.on("mouseenter", Message.PreloadRequested())
+					.on("focus", Message.PreloadRequested())
 					.on("click", Message.Activated())
 					.on(
 						"keydown",

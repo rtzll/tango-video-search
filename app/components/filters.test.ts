@@ -74,6 +74,9 @@ describe("Filter picker components", () => {
 				const trigger = HtmlLocator.role("combobox", { name: "Select orchestra" });
 				yield* play.expect(trigger).toHaveAttribute("aria-expanded", "false");
 
+				Locator.fire(play.root.get(trigger), "mouseenter", {});
+				yield* TestHost.settle;
+
 				yield* play.click(trigger);
 				const searchInput = HtmlLocator.role("combobox", { name: "Search orchestra" });
 				yield* play.expect(searchInput).toExist();
