@@ -19,7 +19,7 @@ const PreloadComboboxPopup = Command.make("PreloadFilterPickerPopup", {}, () =>
 const Selection = Schema.NullOr(Schema.String);
 const Event = UiSchema.TaggedEnum({ Picked: { value: Selection } });
 const Message = UiSchema.TaggedEnum({
-	Activated: {},
+	Activated: { focusSearch: Schema.Boolean },
 	Picked: { value: Selection },
 	PreloadRequested: {},
 });
@@ -38,18 +38,20 @@ export const Combobox = Html.component({
 	}),
 	model: Schema.Struct({
 		activated: Schema.Boolean,
+		focusSearch: Schema.Boolean,
 	}),
 	message: Message,
 	events: Event,
 	restore: false,
 }).make({
-	init: () => ({ activated: false }),
+	init: () => ({ activated: false, focusSearch: false }),
 	update: {
-		Activated: ($) => ($.model.activated ? $.model : $.evolve({ activated: true })),
+		Activated: ($, { focusSearch }) =>
+			$.model.activated ? $.model : $.evolve({ activated: true, focusSearch }),
 		Picked: ($, { value }) => $.emit(Event.Picked({ value })),
 		PreloadRequested: ($) => ($.model.activated ? $.model : $.run(PreloadComboboxPopup.make())),
 	},
-	view: (h, { activated }) => {
+	view: (h, { activated, focusSearch }) => {
 		const { value, options, placeholder, searchLabel, ariaLabel } = h.props;
 		const selectedLabel =
 			value === null ? placeholder : (getPickerIndex(options).labels.get(value) ?? value);
@@ -68,11 +70,13 @@ export const Combobox = Html.component({
 					.class(triggerClass)
 					.on("mouseenter", Message.PreloadRequested())
 					.on("focus", Message.PreloadRequested())
-					.on("click", Message.Activated())
+					.on("click", ({ pointerType }) => Message.Activated({ focusSearch: pointerType === "" }))
 					.on(
 						"keydown",
 						({ key }) =>
-							key === "ArrowDown" || key === "ArrowUp" ? Message.Activated() : undefined,
+							key === "ArrowDown" || key === "ArrowUp"
+								? Message.Activated({ focusSearch: true })
+								: undefined,
 						{ preventDefault: true },
 					)
 					.children(
@@ -86,7 +90,7 @@ export const Combobox = Html.component({
 		}
 
 		return LazyComboboxPopup(h, {
-			props: { value, options, placeholder, searchLabel, ariaLabel },
+			props: { value, options, placeholder, searchLabel, ariaLabel, focusSearch },
 			onEmit: { Picked: ({ value: pickedValue }) => Message.Picked({ value: pickedValue }) },
 			fallback: () => staticTrigger(),
 		});

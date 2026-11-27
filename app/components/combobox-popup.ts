@@ -18,7 +18,7 @@ const Message = UiSchema.TaggedEnum({
 	Picked: { value: Selection },
 });
 
-const closed = { open: false, query: "", scrollRevision: 0, resetScroll: true };
+const closed = { open: false, query: "", scrollRevision: 0, resetScroll: true, focusSearch: false };
 
 export const ComboboxPopup = Html.component({
 	name: "FilterPickerPopup",
@@ -28,18 +28,20 @@ export const ComboboxPopup = Html.component({
 		placeholder: Schema.String,
 		searchLabel: Schema.String,
 		ariaLabel: Schema.String,
+		focusSearch: Schema.Boolean,
 	}),
 	model: Schema.Struct({
 		open: Schema.Boolean,
 		query: Schema.String,
 		scrollRevision: Schema.Number,
 		resetScroll: Schema.Boolean,
+		focusSearch: Schema.Boolean,
 	}),
 	message: Message,
 	events: Event,
 	restore: false,
 }).make({
-	init: () => ({ ...closed, open: true }),
+	init: ({ props }) => ({ ...closed, open: true, focusSearch: props.focusSearch }),
 	update: {
 		Opened: ($) => $.evolve({ ...closed, open: true }),
 		Closed: () => closed,
@@ -48,7 +50,7 @@ export const ComboboxPopup = Html.component({
 		Navigated: ($) => $.evolve({ resetScroll: false, scrollRevision: $.model.scrollRevision + 1 }),
 		Picked: ($, { value }) => $.evolve(closed).emit(Event.Picked({ value })),
 	},
-	view: (h, { open, query, scrollRevision, resetScroll }) => {
+	view: (h, { open, query, scrollRevision, resetScroll, focusSearch }) => {
 		const { value, options, placeholder, searchLabel, ariaLabel } = h.props;
 		const anchorId = h.id("anchor");
 		const index = getPickerIndex(options);
@@ -174,6 +176,7 @@ export const ComboboxPopup = Html.component({
 											.attrs({
 												"aria-label": `Search ${searchLabel}`,
 												placeholder: `Search ${searchLabel}`,
+												autofocus: focusSearch ? "" : undefined,
 											})
 											.class(
 												"placeholder:text-muted min-w-0 flex-1 bg-transparent py-1 text-base outline-none",
