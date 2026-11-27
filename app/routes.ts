@@ -1,27 +1,61 @@
 import { Route } from "@effect/ui";
 import { Schema } from "effect";
 
+import { filterKeys, type FilterChanges, type SearchParamKey, readSearch } from "./search";
+
+// Repeated values are valid in bookmarked URLs. Search uses the first one.
 const SearchParam = Schema.optional(Schema.Array(Schema.String));
+const filterFields = Object.fromEntries(filterKeys.map((key) => [key, SearchParam])) as Record<
+	(typeof filterKeys)[number],
+	typeof SearchParam
+>;
 
 export const AppRoute = Route.union({
-	Search: Route.make("/", {
-		search: {
-			channel: SearchParam,
-			dancer1: SearchParam,
-			dancer2: SearchParam,
-			event: SearchParam,
-			orchestra: SearchParam,
-			singer: SearchParam,
-			song: SearchParam,
-			year: SearchParam,
-			page: SearchParam,
-		},
-	}),
+	Search: Route.make("/", { search: { ...filterFields, page: SearchParam } }),
 	NotFound: Route.make("/*"),
 });
 
 export const SearchRoute = AppRoute.subset(["Search"]);
 
-export function routeSearchParams(route: typeof SearchRoute.Type) {
-	return new URLSearchParams(SearchRoute.print(route).split("?")[1]);
+type SearchRoute = typeof SearchRoute.Type;
+type SearchPatch = Partial<Record<SearchParamKey, readonly string[] | undefined>>;
+const knownParams = new Set<string>([...filterKeys, "page"]);
+
+export function parseSearchRoute(route: SearchRoute) {
+	return readSearch((key) => route.search[key]?.[0]);
+}
+
+export function searchPatch(changes: FilterChanges): SearchPatch {
+	const patch: SearchPatch = { page: undefined };
+	for (const key of filterKeys) {
+		const value = changes[key];
+		if (value !== undefined) {
+			patch[key] = value === null ? undefined : [value];
+		}
+	}
+	return patch;
+}
+
+export const resetSearchPatch: SearchPatch = {
+	...Object.fromEntries(filterKeys.map((key) => [key, undefined])),
+	page: undefined,
+};
+
+// The router preserves undeclared parameters in patchSearch. Carry them into
+// pagination hrefs as well so opening one in a new tab gives the same URL.
+export function additionalSearch(url: string) {
+	const params = new URL(url, "https://search.invalid").searchParams;
+	return new URLSearchParams([...params].filter(([key]) => !knownParams.has(key))).toString();
+}
+
+export function paginationHref(route: SearchRoute, page: number, extras: string) {
+	const search = { ...route.search };
+	if (page <= 1) {
+		delete search.page;
+	} else {
+		search.page = [String(page)];
+	}
+
+	const href = SearchRoute.print({ ...route, search });
+	return extras ? `${href}${href.includes("?") ? "&" : "?"}${extras}` : href;
 }

@@ -352,60 +352,34 @@ async function getFilteredVideosCount(db: AppDatabase, filters: SearchFilters) {
 	return results[0]?.count ?? 0;
 }
 
-export async function loadSearchPage(
-	db: AppDatabase,
-	{
-		filters,
-		page,
-		pageSize,
-	}: {
-		filters: SearchFilters;
-		page: number;
-		pageSize: number;
-	},
-) {
-	const [
-		channelOptions,
-		dancerOneOptions,
-		dancerTwoOptions,
-		eventOptions,
-		orchestraOptions,
-		songOptions,
-		singerOptions,
-		yearOptions,
-		totalVideos,
+export async function loadSearchFacets(db: AppDatabase, filters: SearchFilters) {
+	const [channel, dancer1, dancer2, event, orchestra, song, singer, year, lastUpdateTime] =
+		await Promise.all([
+			getChannelOptions(db, filters),
+			getDancerOptions(db, filters, "dancer1"),
+			getDancerOptions(db, filters, "dancer2"),
+			getEventOptions(db, filters),
+			getOrchestraOptions(db, filters),
+			getSongOptions(db, filters),
+			getSingerOptions(db, filters),
+			getYearOptions(db, filters),
+			getLastDatabaseUpdateTime(db),
+		]);
+
+	return {
 		lastUpdateTime,
-	] = await Promise.all([
-		getChannelOptions(db, filters),
-		getDancerOptions(db, filters, "dancer1"),
-		getDancerOptions(db, filters, "dancer2"),
-		getEventOptions(db, filters),
-		getOrchestraOptions(db, filters),
-		getSongOptions(db, filters),
-		getSingerOptions(db, filters),
-		getYearOptions(db, filters),
-		getFilteredVideosCount(db, filters),
-		getLastDatabaseUpdateTime(db),
-	]);
+		options: { channel, dancer1, dancer2, event, orchestra, song, singer, year },
+	};
+}
+
+export async function loadSearchResults(
+	db: AppDatabase,
+	{ filters, page, pageSize }: { filters: SearchFilters; page: number; pageSize: number },
+) {
+	const totalVideos = await getFilteredVideosCount(db, filters);
 	const totalPages = Math.max(1, Math.ceil(totalVideos / pageSize));
 	const safePage = Math.max(1, Math.min(page, totalPages));
 	const initialVideos = await getFilteredVideos(db, filters, safePage, pageSize);
 
-	return {
-		initialVideos,
-		lastUpdateTime,
-		options: {
-			channel: channelOptions,
-			dancer1: dancerOneOptions,
-			dancer2: dancerTwoOptions,
-			event: eventOptions,
-			orchestra: orchestraOptions,
-			singer: singerOptions,
-			song: songOptions,
-			year: yearOptions,
-		},
-		page: safePage,
-		totalPages,
-		totalVideos,
-	};
+	return { initialVideos, page: safePage, totalPages, totalVideos };
 }

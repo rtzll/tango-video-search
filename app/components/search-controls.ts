@@ -30,7 +30,6 @@ export function SearchControls<Message>(
 				placeholder: `any ${searchLabel}`,
 				searchLabel,
 				ariaLabel,
-				listId: `search-${key}-options`,
 			},
 			onEmit: { Picked: ({ value }) => onFilterChange(key, value) },
 		});

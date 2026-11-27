@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import {
-	getPageHref,
-	parseSearchParams,
-	toggleResultFilterSearchParams,
-	updateFilterSearchParams,
-} from "./search";
+import { parseSearchParams, toggleResultFilter } from "./search";
 
 describe("parseSearchParams", () => {
 	it("uses empty filters and the first page when the query is empty", () => {
@@ -53,96 +48,36 @@ describe("parseSearchParams", () => {
 	});
 });
 
-describe("updateFilterSearchParams", () => {
-	it("sets the filter, preserves other filters, and resets pagination", () => {
-		const current = new URLSearchParams({ orchestra: "Carlos Di Sarli", page: "4" });
+describe("toggleResultFilter", () => {
+	const emptyFilters = parseSearchParams(new URLSearchParams()).filters;
 
-		expect(updateFilterSearchParams(current, "event", "Tango Cazino Festival").toString()).toBe(
-			"orchestra=Carlos+Di+Sarli&event=Tango+Cazino+Festival",
-		);
-		expect(current.toString()).toBe("orchestra=Carlos+Di+Sarli&page=4");
-	});
-
-	it("removes a cleared filter", () => {
-		const current = new URLSearchParams({
-			event: "Tango Cazino Festival",
-			singer: "Roberto Rufino",
-		});
-
-		expect(updateFilterSearchParams(current, "event", null).toString()).toBe(
-			"singer=Roberto+Rufino",
-		);
-	});
-});
-
-describe("getPageHref", () => {
-	it("preserves filters while adding or removing the page", () => {
-		const current = new URLSearchParams({ orchestra: "Carlos Di Sarli", page: "2" });
-
-		expect(getPageHref(current, 4)).toBe("?orchestra=Carlos+Di+Sarli&page=4");
-		expect(getPageHref(current, 1)).toBe("?orchestra=Carlos+Di+Sarli");
-	});
-});
-
-describe("toggleResultFilterSearchParams", () => {
 	it("fills, toggles, and limits the two dancer filters", () => {
-		const firstDancer = toggleResultFilterSearchParams(
-			new URLSearchParams({ page: "3" }),
-			"dancer",
-			"Alice",
-		);
-		expect(firstDancer.toString()).toBe("dancer1=Alice");
+		expect(toggleResultFilter(emptyFilters, "dancer", "Alice")).toEqual({ dancer1: "Alice" });
 
-		const secondDancer = toggleResultFilterSearchParams(firstDancer, "dancer", "Bob");
-		expect(secondDancer.toString()).toBe("dancer1=Alice&dancer2=Bob");
+		const one = { ...emptyFilters, dancer1: "Alice" };
+		expect(toggleResultFilter(one, "dancer", "Bob")).toEqual({ dancer2: "Bob" });
 
-		const unchanged = toggleResultFilterSearchParams(secondDancer, "dancer", "Carol");
-		expect(unchanged.toString()).toBe("dancer1=Alice&dancer2=Bob");
-
-		const toggledOff = toggleResultFilterSearchParams(secondDancer, "dancer", "Alice");
-		expect(toggledOff.toString()).toBe("dancer2=Bob");
+		const two = { ...one, dancer2: "Bob" };
+		expect(toggleResultFilter(two, "dancer", "Carol")).toEqual({});
+		expect(toggleResultFilter(two, "dancer", "alice")).toEqual({ dancer1: null });
+		expect(toggleResultFilter(two, "dancer", "BOB")).toEqual({ dancer2: null });
+		expect(toggleResultFilter({ ...emptyFilters, dancer2: "Bob" }, "dancer", "Alice")).toEqual({
+			dancer1: "Alice",
+		});
 	});
 
-	it("toggles single-value card filters and resets pagination", () => {
-		const channelSelected = toggleResultFilterSearchParams(
-			new URLSearchParams({ page: "3" }),
-			"channel",
-			"channel-1",
-		);
-		expect(channelSelected.toString()).toBe("channel=channel-1");
-
-		const channelToggledOff = toggleResultFilterSearchParams(
-			channelSelected,
-			"channel",
-			"channel-1",
-		);
-		expect(channelToggledOff.toString()).toBe("");
-
-		const differentlyCasedChannel = toggleResultFilterSearchParams(
-			channelSelected,
-			"channel",
-			"CHANNEL-1",
-		);
-		expect(differentlyCasedChannel.toString()).toBe("channel=CHANNEL-1");
-
-		const selected = toggleResultFilterSearchParams(
-			new URLSearchParams({ page: "3" }),
-			"orchestra",
-			"Orchestra One",
-		);
-		expect(selected.toString()).toBe("orchestra=Orchestra+One");
-
-		const toggledOff = toggleResultFilterSearchParams(selected, "orchestra", "orchestra one");
-		expect(toggledOff.toString()).toBe("");
-
-		const eventAndYear = toggleResultFilterSearchParams(
-			toggleResultFilterSearchParams(new URLSearchParams(), "event", "Festival One"),
-			"year",
-			"2024",
-		);
-		expect(eventAndYear.toString()).toBe("event=Festival+One&year=2024");
-
-		const yearToggledOff = toggleResultFilterSearchParams(eventAndYear, "year", "2024");
-		expect(yearToggledOff.toString()).toBe("event=Festival+One");
+	it("toggles card filters with accent-insensitive names and exact channel IDs", () => {
+		const current = {
+			...emptyFilters,
+			orchestra: "Juan D’Arienzo",
+			event: "Festival One",
+			channel: "channel-1",
+			year: "2024",
+		};
+		expect(toggleResultFilter(current, "channel", "channel-1")).toEqual({ channel: null });
+		expect(toggleResultFilter(current, "channel", "CHANNEL-1")).toEqual({ channel: "CHANNEL-1" });
+		expect(toggleResultFilter(current, "orchestra", "juan d'arienzo")).toEqual({ orchestra: null });
+		expect(toggleResultFilter(current, "year", "2024")).toEqual({ year: null });
+		expect(toggleResultFilter(current, "song", "Paciencia")).toEqual({ song: "Paciencia" });
 	});
 });

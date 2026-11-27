@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
-import { createDatabase, loadSearchPage } from "./db.server";
+import { createDatabase, loadSearchFacets, loadSearchResults } from "./db.server";
 
 const database = (env as unknown as { DB: D1Database }).DB;
 const emptyFilters = {
@@ -14,6 +14,17 @@ const emptyFilters = {
 	song: null,
 	year: null,
 };
+
+async function loadSearchPage(
+	db: Parameters<typeof loadSearchResults>[0],
+	input: Parameters<typeof loadSearchResults>[1],
+) {
+	const [results, facets] = await Promise.all([
+		loadSearchResults(db, input),
+		loadSearchFacets(db, input.filters),
+	]);
+	return { ...results, ...facets };
+}
 
 async function executeStatements(sql: string) {
 	const statements = sql

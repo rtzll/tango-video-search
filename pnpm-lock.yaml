@@ -185,6 +185,9 @@ importers:
       '@effect/ui':
         specifier: https://pkg.pr.new/Effect-TS/ui/@effect/ui@7bff56b
         version: https://pkg.pr.new/Effect-TS/ui/@effect/ui@7bff56b(effect@4.1.6)
+      '@effect/ui-kit':
+        specifier: https://pkg.pr.new/Effect-TS/ui/@effect/ui-kit@7bff56b
+        version: https://pkg.pr.new/Effect-TS/ui/@effect/ui-kit@7bff56b(@effect/ui@https://pkg.pr.new/Effect-TS/ui/@effect/ui@7bff56b(effect@4.1.6))(effect@4.1.6)
       '@tailwindcss/vite':
         specifier: ^4.3.5
         version: 4.3.5(@voidzero-dev/vite-plus-core@8.3.8000(@types/node@24.19.4)(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1))
@@ -314,6 +317,13 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
+
+  '@effect/ui-kit@https://pkg.pr.new/Effect-TS/ui/@effect/ui-kit@7bff56b':
+    resolution: {integrity: sha512-wLh/vd7hsWs4IELZ/NSrp+TmtEMkw8dKCnJbmYVV/aOv7t3L0ianvE8uTSVaVQV1JCVOhLVxEFw9krQ52Qg/6Q==, tarball: https://pkg.pr.new/Effect-TS/ui/@effect/ui-kit@7bff56b}
+    version: 0.0.0
+    peerDependencies:
+      '@effect/ui': ^0.0.0
+      effect: ^4.1.6
 
   '@effect/ui@https://pkg.pr.new/Effect-TS/ui/@effect/ui@7bff56b':
     resolution: {integrity: sha512-uYecYnIGC/Q15cl914C6Zbr1FOT1ahCjy625xwQyDODgNdq/yPEdxr6UuhkaYp83zWsiL4rVJsz8nFHziOCBDw==, tarball: https://pkg.pr.new/Effect-TS/ui/@effect/ui@7bff56b}
@@ -2468,10 +2478,12 @@ packages:
   yuku-core@0.19.0:
     resolution: {integrity: sha512-kYK9e1XdfirNhkipzW0wmMcSWcVF/CWnuugodfVYRCUwvoBefweL9HzB96OiKEhsx78V5WbUxbJqlizMX869Qg==}
     engines: {node: '>=14.18.0'}
+    deprecated: 'Yuku is now one package with one core. Use "yuku" instead: https://yuku.fyi/javascript/. Existing installs keep working but get no more fixes.'
 
   yuku-parser@0.19.0:
     resolution: {integrity: sha512-XrBh9ZiQK5mJVRxZBAvD6LwRyAYrK3MFtH3+onyuxFL5hFD44EC3QOmIC1FjTj6H2MMwq46/NAI+NZxLZPZgxg==}
     engines: {node: '>=14.18.0'}
+    deprecated: 'Yuku is now one package with one core. Use "yuku" instead: https://yuku.fyi/javascript/. Existing installs keep working but get no more fixes.'
 
   zod@4.6.6:
     resolution: {integrity: sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==}
@@ -2555,6 +2567,11 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
+
+  '@effect/ui-kit@https://pkg.pr.new/Effect-TS/ui/@effect/ui-kit@7bff56b(@effect/ui@https://pkg.pr.new/Effect-TS/ui/@effect/ui@7bff56b(effect@4.1.6))(effect@4.1.6)':
+    dependencies:
+      '@effect/ui': https://pkg.pr.new/Effect-TS/ui/@effect/ui@7bff56b(effect@4.1.6)
+      effect: 4.1.6
 
   '@effect/ui@https://pkg.pr.new/Effect-TS/ui/@effect/ui@7bff56b(effect@4.1.6)':
     dependencies:

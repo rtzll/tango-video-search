@@ -1,60 +1,56 @@
+import { Schema } from "effect";
+
 import { normalizeName } from "./utils/normalize";
 
-export type ResultFilter =
-	| "channel"
-	| "dancer"
-	| "event"
-	| "orchestra"
-	| "singer"
-	| "song"
-	| "year";
+export const filterKeys = [
+	"channel",
+	"dancer1",
+	"dancer2",
+	"event",
+	"orchestra",
+	"singer",
+	"song",
+	"year",
+] as const;
+export const FilterKey = Schema.Literals(filterKeys);
+export const ResultFilter = Schema.Literals([
+	"channel",
+	"dancer",
+	"event",
+	"orchestra",
+	"singer",
+	"song",
+	"year",
+]);
+export type ResultFilter = typeof ResultFilter.Type;
 
-interface FilterOption<Value extends string = string> {
-	readonly count: number;
-	readonly label: string;
-	readonly value: Value;
-}
+const NullableText = Schema.NullOr(Schema.String);
 
-interface FilterValues {
-	channel: string;
-	dancer1: string;
-	dancer2: string;
-	event: string;
-	orchestra: string;
-	singer: string;
-	song: string;
-	year: string;
-}
+export const SearchFilters = Schema.Record(FilterKey, NullableText);
+export type SearchFilters = typeof SearchFilters.Type;
 
-export type SearchFilters = {
-	readonly [Key in keyof FilterValues]: FilterValues[Key] | null;
-};
+export const FilterOptions = Schema.Array(
+	Schema.Struct({ count: Schema.Number, label: Schema.String, value: Schema.String }),
+);
+export const SearchOptions = Schema.Record(FilterKey, FilterOptions);
+export type SearchOptions = typeof SearchOptions.Type;
 
-export type SearchOptions = {
-	readonly [Key in keyof FilterValues]: readonly FilterOption<FilterValues[Key]>[];
-};
+export const SearchVideo = Schema.Struct({
+	channelId: Schema.String,
+	channelTitle: Schema.String,
+	dancers: Schema.Array(Schema.String),
+	event: NullableText,
+	id: Schema.String,
+	orchestra: Schema.String,
+	singers: Schema.Array(Schema.String),
+	songTitle: Schema.String,
+	title: Schema.String,
+	year: Schema.NullOr(Schema.Number),
+});
+export type SearchVideo = typeof SearchVideo.Type;
 
-export interface SearchVideo {
-	channelId: string;
-	channelTitle: string;
-	dancers: readonly string[];
-	event: string | null;
-	id: string;
-	orchestra: string;
-	singers: readonly string[];
-	songTitle: string;
-	title: string;
-	year: number | null;
-}
-
-interface SearchState {
-	filters: SearchFilters;
-	page: number;
-}
-
-function getFilter(searchParams: URLSearchParams, key: keyof SearchFilters) {
-	return searchParams.get(key) || null;
-}
+export type SearchParamKey = keyof SearchFilters | "page";
+export type FilterChanges = Partial<SearchFilters>;
 
 export function isSameResultFilterValue(
 	type: ResultFilter,
@@ -69,80 +65,56 @@ export function isSameResultFilterValue(
 		: normalizeName(current) === normalizeName(candidate);
 }
 
-export function updateFilterSearchParams<Key extends keyof SearchFilters>(
-	searchParams: URLSearchParams,
-	key: Key,
-	value: SearchFilters[Key],
-) {
-	const nextSearchParams = new URLSearchParams(searchParams);
-	if (value === null) {
-		nextSearchParams.delete(key);
-	} else {
-		nextSearchParams.set(key, value);
-	}
-	nextSearchParams.delete("page");
-	return nextSearchParams;
-}
-
-export function getPageHref(searchParams: URLSearchParams, page: number) {
-	const nextSearchParams = new URLSearchParams(searchParams);
-	if (page <= 1) {
-		nextSearchParams.delete("page");
-	} else {
-		nextSearchParams.set("page", String(page));
-	}
-	const query = nextSearchParams.toString();
-	return query ? `?${query}` : ".";
-}
-
-export function toggleResultFilterSearchParams(
-	searchParams: URLSearchParams,
+export function toggleResultFilter(
+	filters: SearchFilters,
 	type: ResultFilter,
 	value: string,
-) {
-	const nextSearchParams = new URLSearchParams(searchParams);
-	const { filters } = parseSearchParams(searchParams);
-	const { dancer1, dancer2 } = filters;
-
-	if (type === "dancer") {
-		if (isSameResultFilterValue(type, dancer1, value)) {
-			nextSearchParams.delete("dancer1");
-		} else if (isSameResultFilterValue(type, dancer2, value)) {
-			nextSearchParams.delete("dancer2");
-		} else if (dancer1 === null && dancer2 === null) {
-			nextSearchParams.set("dancer1", value);
-		} else if (dancer1 !== null && dancer2 === null) {
-			nextSearchParams.set("dancer2", value);
-		} else if (dancer1 === null && dancer2 !== null) {
-			nextSearchParams.set("dancer1", value);
-		}
-	} else {
-		const currentValue = filters[type];
-		if (isSameResultFilterValue(type, currentValue, value)) {
-			nextSearchParams.delete(type);
-		} else {
-			nextSearchParams.set(type, value);
-		}
+): FilterChanges {
+	if (type !== "dancer") {
+		return { [type]: isSameResultFilterValue(type, filters[type], value) ? null : value };
+	}
+	if (isSameResultFilterValue(type, filters.dancer1, value)) {
+		return { dancer1: null };
+	}
+	if (isSameResultFilterValue(type, filters.dancer2, value)) {
+		return { dancer2: null };
+	}
+	if (filters.dancer1 === null) {
+		return { dancer1: value };
+	}
+	if (filters.dancer2 === null) {
+		return { dancer2: value };
 	}
 
-	nextSearchParams.delete("page");
-	return nextSearchParams;
+	return {};
 }
 
-export function parseSearchParams(searchParams: URLSearchParams): SearchState {
-	const requestedPage = Number.parseInt(searchParams.get("page") || "1", 10) || 1;
+export function readSearch(read: (key: SearchParamKey) => string | null | undefined) {
+	const requestedPage = Number.parseInt(read("page") || "1", 10) || 1;
 
 	return {
 		filters: {
-			channel: getFilter(searchParams, "channel"),
-			dancer1: getFilter(searchParams, "dancer1"),
-			dancer2: getFilter(searchParams, "dancer2"),
-			event: getFilter(searchParams, "event"),
-			orchestra: getFilter(searchParams, "orchestra"),
-			singer: getFilter(searchParams, "singer"),
-			song: getFilter(searchParams, "song"),
-			year: getFilter(searchParams, "year"),
+			channel: read("channel") || null,
+			dancer1: read("dancer1") || null,
+			dancer2: read("dancer2") || null,
+			event: read("event") || null,
+			orchestra: read("orchestra") || null,
+			singer: read("singer") || null,
+			song: read("song") || null,
+			year: read("year") || null,
 		},
 		page: Math.max(1, requestedPage),
 	};
+}
+
+export function parseSearchParams(params: URLSearchParams) {
+	return readSearch((key) => params.get(key));
+}
+
+// Keep the same accent- and punctuation-insensitive matching in both pickers.
+export function matchFilterOptions(options: typeof FilterOptions.Type, query: string) {
+	const normalized = normalizeName(query.trim());
+	return normalized
+		? options.filter(({ label }) => normalizeName(label).includes(normalized))
+		: options;
 }

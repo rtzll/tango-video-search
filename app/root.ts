@@ -9,7 +9,7 @@ const ChangedRoute = UiSchema.TaggedEnum({ ChangedRoute: { route: AppRoute } });
 
 export const App = Html.component({
 	name: "App",
-	props: Schema.Struct({ route: AppRoute }),
+	props: Schema.Struct({ route: AppRoute, additionalSearch: Schema.String }),
 	model: Schema.Struct({ route: AppRoute }),
 	message: ChangedRoute,
 }).make({
@@ -24,7 +24,8 @@ export const App = Html.component({
 	],
 	view: (h, { route }) =>
 		AppRoute.match(route, {
-			Search: (route) => SearchPage(h, { props: { route } }),
+			Search: (route) =>
+				SearchPage(h, { props: { route, additionalSearch: h.props.additionalSearch } }),
 			NotFound: () =>
 				h.div
 					.class("p-6")

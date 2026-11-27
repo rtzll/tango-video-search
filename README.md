@@ -22,8 +22,8 @@ looking for.
 ## Tech Stack
 
 - **Framework**: [Effect UI](https://ui.effect.website/) with Effect v4
-- **UI**: [Tailwind CSS](https://tailwindcss.com/) +
-  [Radix Icons](https://www.radix-ui.com/icons)
+- **UI**: [Effect UI Kit](https://github.com/Effect-TS/ui/tree/main/packages/ui-kit),
+  [Tailwind CSS](https://tailwindcss.com/), and [Radix Icons](https://www.radix-ui.com/icons)
 - **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) with
   [Drizzle ORM](https://orm.drizzle.team/)
 - **Runtime**: [Cloudflare Workers](https://developers.cloudflare.com/workers/)

@@ -1,145 +1,161 @@
 import { Command, Head, Router, UiSchema } from "@effect/ui";
 import { Html, HtmlHead } from "@effect/ui/html";
-import { Option, Schema } from "effect";
+import { Schema } from "effect";
 import { AsyncResult } from "effect/reactivity";
 
 import { Icon } from "./components/icons";
 import { ResultsNavigation } from "./components/results-navigation";
 import { SearchControls } from "./components/search-controls";
 import { VideoCard } from "./components/video-card";
-import { AppRoute, routeSearchParams, SearchRoute } from "./routes";
 import {
-	getPageHref,
-	parseSearchParams,
-	toggleResultFilterSearchParams,
-	updateFilterSearchParams,
-} from "./search";
-import { PAGE_SIZE, SearchPageQuery } from "./search-page-data";
+	AppRoute,
+	SearchRoute,
+	paginationHref,
+	parseSearchRoute,
+	resetSearchPatch,
+	searchPatch,
+} from "./routes";
+import { FilterKey, ResultFilter, type SearchOptions, toggleResultFilter } from "./search";
+import { PAGE_SIZE, SearchFacetsQuery, SearchResultsQuery } from "./search-page-data";
 
 const Message = UiSchema.TaggedEnum({
-	ChangedFilter: {
-		key: Schema.Literals([
-			"channel",
-			"dancer1",
-			"dancer2",
-			"event",
-			"orchestra",
-			"singer",
-			"song",
-			"year",
-		]),
-		value: Schema.NullOr(Schema.String),
-	},
-	ToggledCardFilter: {
-		key: Schema.Literals(["channel", "dancer", "event", "orchestra", "singer", "song", "year"]),
-		value: Schema.String,
-	},
+	ChangedFilter: { key: FilterKey, value: Schema.NullOr(Schema.String) },
+	ToggledCardFilter: { key: ResultFilter, value: Schema.String },
 	ResetFilters: {},
 });
 
+const emptyOptions: SearchOptions = {
+	channel: [],
+	dancer1: [],
+	dancer2: [],
+	event: [],
+	orchestra: [],
+	singer: [],
+	song: [],
+	year: [],
+};
+
 export const SearchPage = Html.component({
 	name: "SearchPage",
-	props: Schema.Struct({ route: SearchRoute }),
+	props: Schema.Struct({ route: SearchRoute, additionalSearch: Schema.String }),
 	model: Schema.Struct({}),
 	message: Message,
 	queries: {
+		facets: {
+			query: SearchFacetsQuery,
+			args: ({ props }) => ({ filters: parseSearchRoute(props.route).filters }),
+		},
 		results: {
-			query: SearchPageQuery,
-			args: ({ props }) => parseSearchParams(routeSearchParams(props.route)),
+			query: SearchResultsQuery,
+			args: ({ props }) => parseSearchRoute(props.route),
 		},
 	},
 }).make({
 	init: () => ({}),
 	update: ($, message) => {
-		const current = routeSearchParams($.props.route);
-		const search = Message.match(message, {
-			ChangedFilter: ({ key, value }) => updateFilterSearchParams(current, key, value),
-			ToggledCardFilter: ({ key, value }) => toggleResultFilterSearchParams(current, key, value),
-			ResetFilters: () => new URLSearchParams(),
+		const { route } = $.props;
+		const { filters } = parseSearchRoute(route);
+		const patch = Message.match(message, {
+			ChangedFilter: ({ key, value }) => searchPatch({ [key]: value }),
+			ToggledCardFilter: ({ key, value }) => searchPatch(toggleResultFilter(filters, key, value)),
+			ResetFilters: () => resetSearchPatch,
 		});
-		const route = Option.getOrThrow(AppRoute.parse(`/?${search}`));
-		return $.run(Router.push(AppRoute, route).pipe(Command.asNoop));
+		return $.run(
+			Router.patchSearch(AppRoute, route, patch, { history: "push", scroll: true }).pipe(
+				Command.asNoop,
+			),
+		);
 	},
 	head: () => [
 		Head.title("Tango Video Search"),
 		HtmlHead.meta({ name: "description", content: "A different way to find tango videos." }),
 	],
 	view: (h) => {
-		const search = routeSearchParams(h.props.route);
-		const { filters } = parseSearchParams(search);
-		return AsyncResult.match(h.queries.results, {
-			onInitial: () =>
-				h.p.class("text-muted p-6").attr("role", "status").children("Loading performances…"),
-			onFailure: () =>
-				h.p.class("text-muted p-6").attr("role", "alert").children("The search failed."),
-			onSuccess: ({ value, waiting }) => {
-				const { initialVideos, formattedLastUpdate, options, page, totalPages, totalVideos } =
-					value;
-				const startIndex = totalVideos === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-				const endIndex = Math.min(page * PAGE_SIZE, totalVideos);
-				const resultText =
-					totalVideos === 0
-						? "No performances match these filters."
-						: `Showing ${startIndex}–${endIndex} of ${totalVideos.toLocaleString("en-US")} performances`;
-				const navigation = {
-					getPageHref: (nextPage: number) => getPageHref(search, nextPage),
-					page,
-					resultText,
-					totalPages,
-				};
+		const { route, additionalSearch } = h.props;
+		const { filters } = parseSearchRoute(route);
+		const facets = AsyncResult.isSuccess(h.queries.facets) ? h.queries.facets.value : undefined;
+		const results = AsyncResult.isSuccess(h.queries.results) ? h.queries.results.value : undefined;
+		const waiting = h.queries.results.waiting;
 
-				return h.div.class("mx-auto flex min-h-screen max-w-350 flex-col gap-6 p-6").children(
-					h.div.class("flex flex-col gap-3").children(
-						h.div(
-							SearchControls(h, {
-								filters,
-								onFilterChange: (key, value) => Message.ChangedFilter({ key, value }),
-								onReset: Message.ResetFilters(),
-								options,
-							}),
-							h.div.class("mt-4 sm:mt-2").children(
-								ResultsNavigation(h, {
-									...navigation,
-									announce: true,
-									ariaLabel: "Results pages, top",
-								}),
-							),
-						),
-						h.div
-							.attr("aria-busy", String(waiting))
-							.class(
-								"flex flex-col gap-3 transition-opacity duration-200",
-								waiting && "opacity-40 delay-150",
-							)
-							.children(
-								h.div.class("grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3").children(
-									initialVideos.map((video) =>
-										VideoCard(h, {
-											video,
-											filters,
-											onFilterClick: (key, value) => Message.ToggledCardFilter({ key, value }),
-										}),
-									),
-								),
-								totalVideos > 0 &&
-									ResultsNavigation(h, { ...navigation, ariaLabel: "Results pages, bottom" }),
-							),
-					),
-					h.div.class("mt-auto pt-4").children(
-						h.div.class("flex items-baseline justify-between flex-wrap").children(
-							h.span.class("text-muted text-xs").children(`Data refreshed: ${formattedLastUpdate}`),
-							h.a
-								.attrs({
-									href: "https://github.com/rtzll/tango-video-search",
-									target: "_blank",
-									rel: "noopener noreferrer",
-								})
-								.class("text-muted inline-flex items-center gap-1 text-xs hover:underline")
-								.children("Source code", Icon(h, "GitHubLogo", 12)),
-						),
-					),
-				);
-			},
+		const navigation = results && {
+			getPageHref: (page: number) => paginationHref(route, page, additionalSearch),
+			page: results.page,
+			resultText:
+				results.totalVideos === 0
+					? "No performances match these filters."
+					: `Showing ${(results.page - 1) * PAGE_SIZE + 1}–${Math.min(results.page * PAGE_SIZE, results.totalVideos)} of ${results.totalVideos.toLocaleString("en-US")} performances`,
+			totalPages: results.totalPages,
+		};
+
+		const controls = SearchControls(h, {
+			filters,
+			onFilterChange: (key, value) => Message.ChangedFilter({ key, value }),
+			onReset: Message.ResetFilters(),
+			options: facets?.options ?? emptyOptions,
 		});
+		const resultsView = AsyncResult.match(h.queries.results, {
+			onInitial: () =>
+				h.p.class("text-muted text-sm").attr("role", "status").children("Loading performances…"),
+			onFailure: () =>
+				h.p.class("text-muted text-sm").attr("role", "alert").children("The search failed."),
+			onSuccess: ({ value }) =>
+				h.div.class("grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3").children(
+					value.initialVideos.map((video) =>
+						VideoCard(h, {
+							video,
+							filters,
+							onFilterClick: (key, value) => Message.ToggledCardFilter({ key, value }),
+						}),
+					),
+				),
+		});
+
+		return h.div.class("mx-auto flex min-h-screen max-w-350 flex-col gap-6 p-6").children(
+			h.div.class("flex flex-col gap-3").children(
+				h.div(
+					controls,
+					AsyncResult.isFailure(h.queries.facets) &&
+						h.p
+							.class("text-muted mt-2 text-sm")
+							.attr("role", "alert")
+							.children("Filter options could not be loaded."),
+					navigation &&
+						h.div.class("mt-4 sm:mt-2").children(
+							ResultsNavigation(h, {
+								...navigation,
+								announce: true,
+								ariaLabel: "Results pages, top",
+							}),
+						),
+				),
+				h.div
+					.attr("aria-busy", String(waiting))
+					.class(
+						"flex flex-col gap-3 transition-opacity duration-200",
+						waiting && "opacity-40 delay-150",
+					)
+					.children(
+						resultsView,
+						navigation &&
+							results.totalVideos > 0 &&
+							ResultsNavigation(h, { ...navigation, ariaLabel: "Results pages, bottom" }),
+					),
+			),
+			h.div.class("mt-auto pt-4").children(
+				h.div.class("flex items-baseline justify-between flex-wrap").children(
+					h.span
+						.class("text-muted text-xs")
+						.children(`Data refreshed: ${facets?.formattedLastUpdate ?? "Unknown"}`),
+					h.a
+						.attrs({
+							href: "https://github.com/rtzll/tango-video-search",
+							target: "_blank",
+							rel: "noopener noreferrer",
+						})
+						.class("text-muted inline-flex items-center gap-1 text-xs hover:underline")
+						.children("Source code", Icon(h, "GitHubLogo", 12)),
+				),
+			),
+		);
 	},
 });
