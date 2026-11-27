@@ -1,10 +1,11 @@
 import { Router } from "@effect/ui";
 import { BrowserRouter, HtmlHydrate } from "@effect/ui/html";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 
 import { App } from "./root";
 import { AppRoute, additionalSearch } from "./routes";
 import { type SearchFilters } from "./search";
+import { fetchSearch } from "./search-client";
 import {
 	SearchFacets,
 	SearchFacetsQuery,
@@ -14,39 +15,24 @@ import {
 	resultsPath,
 } from "./search-page-data";
 
-function fetchSearch<A>(
-	path: string,
-	schema: Schema.Codec<A, unknown>,
-	filters: SearchFilters,
-	page = 1,
-) {
-	return Effect.tryPromise({
-		try: async (signal) => {
-			const url = new URL(path, location.origin);
-			for (const [key, value] of Object.entries(filters)) {
-				if (value !== null) {
-					url.searchParams.set(key, value);
-				}
-			}
-			if (page > 1) {
-				url.searchParams.set("page", String(page));
-			}
-
-			const response = await fetch(url, { signal });
-			if (!response.ok) {
-				throw new Error(`Search HTTP status ${response.status}`);
-			}
-			return Schema.decodeUnknownSync(schema)(await response.json());
-		},
-		catch: () => "The search failed.",
-	});
+function searchUrl(path: string, filters: SearchFilters, page = 1) {
+	const url = new URL(path, location.origin);
+	for (const [key, value] of Object.entries(filters)) {
+		if (value !== null) {
+			url.searchParams.set(key, value);
+		}
+	}
+	if (page > 1) {
+		url.searchParams.set("page", String(page));
+	}
+	return url;
 }
 
 const resultsLayer = SearchResultsQuery.toLayer(({ filters, page }) =>
-	fetchSearch(resultsPath, SearchResults, filters, page),
+	fetchSearch(searchUrl(resultsPath, filters, page), SearchResults),
 );
 const facetsLayer = SearchFacetsQuery.toLayer(({ filters }) =>
-	fetchSearch(facetsPath, SearchFacets, filters),
+	fetchSearch(searchUrl(facetsPath, filters), SearchFacets),
 );
 
 const hydrate = Effect.gen(function* () {

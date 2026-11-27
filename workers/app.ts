@@ -1,6 +1,6 @@
 import { Router } from "@effect/ui";
 import { HtmlServer } from "@effect/ui/html";
-import { Effect, Option } from "effect";
+import { Data, Effect, Option } from "effect";
 
 import { createDatabase, loadSearchFacets, loadSearchResults } from "../app/db.server";
 import { App } from "../app/root";
@@ -9,6 +9,7 @@ import { parseSearchParams, type SearchFilters } from "../app/search";
 import {
 	PAGE_SIZE,
 	SearchFacetsQuery,
+	SearchQueryError,
 	SearchResultsQuery,
 	facetsPath,
 	resultsPath,
@@ -18,6 +19,18 @@ import developmentTemplate from "../index.html?raw";
 interface AppEnv {
 	DB: D1Database;
 	ASSETS: Fetcher;
+}
+
+class SearchReadError extends Data.TaggedError("SearchReadError")<{
+	operation: "results" | "facets";
+	cause: unknown;
+}> {}
+
+function readSearch<A>(operation: SearchReadError["operation"], read: () => Promise<A>) {
+	return Effect.tryPromise({
+		try: read,
+		catch: (cause) => new SearchReadError({ operation, cause }),
+	});
 }
 
 const dateFormat = new Intl.DateTimeFormat("en-US", {
@@ -51,7 +64,7 @@ async function getDocument(url: URL, assets: Fetcher) {
 }
 
 export default {
-	async fetch(request, env) {
+	async fetch(request: Request, env: AppEnv) {
 		const url = new URL(request.url);
 		const isDataRequest = url.pathname === resultsPath || url.pathname === facetsPath;
 		if (request.method !== "GET" && request.method !== "HEAD") {
@@ -61,10 +74,15 @@ export default {
 		try {
 			const search = parseSearchParams(url.searchParams);
 			const db = createDatabase(env.DB);
-			const loadResults = () => loadSearchResults(db, { ...search, pageSize: PAGE_SIZE });
-			const loadFacets = () => getFacets(db, search.filters);
+			const loadResults = readSearch("results", () =>
+				loadSearchResults(db, { ...search, pageSize: PAGE_SIZE }),
+			);
+			const loadFacets = readSearch("facets", () => getFacets(db, search.filters));
 			if (isDataRequest) {
-				const data = await (url.pathname === resultsPath ? loadResults() : loadFacets());
+				const data =
+					url.pathname === resultsPath
+						? await Effect.runPromise(loadResults)
+						: await Effect.runPromise(loadFacets);
 				const response = Response.json(data);
 				return request.method === "HEAD" ? new Response(null, response) : response;
 			}
@@ -76,19 +94,40 @@ export default {
 			// Supply completed queries to SSR so initial HTML contains the results and
 			// options even if the D1 request is slower than the renderer's budget.
 			const [data, template] = await Promise.all([
-				status === 200 ? Promise.all([loadResults(), loadFacets()]) : null,
+				status === 200
+					? Effect.runPromise(
+							Effect.all(
+								[
+									loadResults,
+									loadFacets.pipe(
+										Effect.tapError((error) =>
+											Effect.logError("Search filter options failed", {
+												path: url.pathname,
+												error,
+											}),
+										),
+										Effect.result,
+									),
+								],
+								{ concurrency: "unbounded" },
+							),
+						)
+					: null,
 				getDocument(url, env.ASSETS),
 			]);
+			const unavailable = () => new SearchQueryError({ reason: "unavailable" });
 			const render = HtmlServer.renderToHtml(App, {
 				route,
 				additionalSearch: route._tag === "Search" ? additionalSearch(url.href) : "",
 			}).pipe(
 				Effect.provide([
 					SearchResultsQuery.toLayer(() =>
-						data ? Effect.succeed(data[0]) : Effect.fail("The search failed."),
+						data ? Effect.succeed(data[0]) : Effect.fail(unavailable()),
 					),
 					SearchFacetsQuery.toLayer(() =>
-						data ? Effect.succeed(data[1]) : Effect.fail("The search failed."),
+						data
+							? Effect.mapError(Effect.fromResult(data[1]), unavailable)
+							: Effect.fail(unavailable()),
 					),
 					Router.static({ routes: AppRoute, url: AppRoute.print(route) }),
 				]),

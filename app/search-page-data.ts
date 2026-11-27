@@ -39,16 +39,20 @@ export const SearchFacets = Schema.Struct({
 	options: FacetOptions,
 });
 
+export class SearchQueryError extends Schema.TaggedError<SearchQueryError>()("SearchQueryError", {
+	reason: Schema.Literals(["unavailable", "http-error", "invalid-response", "timeout"]),
+}) {}
+
 export class SearchResultsQuery extends Query.Service<SearchResultsQuery>()("SearchResults", {
 	args: { filters: SearchFilters, page: Schema.Number },
 	success: SearchResults,
-	error: Schema.String,
+	error: SearchQueryError,
 	staleTime: "0 millis",
 }) {}
 
 export class SearchFacetsQuery extends Query.Service<SearchFacetsQuery>()("SearchFacets", {
 	args: { filters: SearchFilters },
 	success: SearchFacets,
-	error: Schema.String,
+	error: SearchQueryError,
 	staleTime: "1 minute",
 }) {}

@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
+import worker from "../workers/app";
 import { createDatabase, loadSearchFacets, loadSearchResults } from "./db.server";
 
 const database = (env as unknown as { DB: D1Database }).DB;
@@ -115,6 +116,22 @@ beforeEach(async () => {
 		INSERT INTO dancers_to_curations VALUES (1, 1), (1, 2), (2, 1), (2, 3), (3, 2), (3, 3);
 		INSERT INTO singers_to_curations VALUES (1, 1), (3, 2);
 	`);
+});
+
+it("renders search results and hydrates a filter-options failure", async () => {
+	await executeStatements(
+		"UPDATE app_metadata SET value = 'invalid-date' WHERE key = 'database_updated_at';",
+	);
+	const response = await worker.fetch(
+		new Request("https://example.com/"),
+		env as unknown as Parameters<typeof worker.fetch>[1],
+	);
+	const html = await response.text();
+
+	expect(response.status).toBe(200);
+	expect(html).toContain("Video One");
+	expect(html).toContain("Filter options could not be loaded.");
+	expect(html).toContain('"_tag":"SearchQueryError","reason":"unavailable"');
 });
 
 describe("loadSearchPage", () => {
