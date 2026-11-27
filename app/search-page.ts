@@ -40,6 +40,8 @@ export const SearchPage = Html.component({
 	props: Schema.Struct({ route: SearchRoute, additionalSearch: Schema.String }),
 	model: Schema.Struct({}),
 	message: Message,
+	// Filter navigation keeps this page mounted. Its URL and query cache already hold the state.
+	restore: false,
 	queries: {
 		facets: {
 			query: SearchFacetsQuery,

@@ -155,7 +155,8 @@ export const AdvancedFilters = Html.component({
 							onEmit: {
 								Picked: ({ value }) =>
 									typeof value === "string" ? Message.Changed({ key: tab.key, value }) : undefined,
-								RequestedInputValue: ({ inputValue }) => Message.Typed({ query: inputValue }),
+								RequestedInputValue: ({ inputValue, reason }) =>
+									reason === "item-press" ? undefined : Message.Typed({ query: inputValue }),
 								RequestedOpen: () => undefined,
 								RequestedClose: () => undefined,
 								Highlighted: ({ reason }) =>
