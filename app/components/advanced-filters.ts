@@ -1,13 +1,14 @@
 import { Component, UiSchema } from "@effect/ui";
-import { Combobox, type ComboboxItem, Popover } from "@effect/ui-kit";
-import { makeTabs } from "@effect/ui-kit/Tabs";
 import { Html, HtmlCommand } from "@effect/ui/html";
 import { Schema } from "effect";
 
 import { SearchFilters, SearchOptions } from "../search";
 import { Icon } from "./icons";
-import { filterPickerOptions, getPickerIndex } from "./picker-options";
-import { initialPickerRows, VirtualPickerOptions } from "./virtual-picker-options";
+import { getPickerIndex } from "./picker-options";
+
+const LazyAdvancedFiltersPopover = Component.lazy("AdvancedFiltersPopover", () =>
+	import("./advanced-filters-popover").then((module) => module.AdvancedFiltersPopover),
+);
 
 const advancedFilters = [
 	{ key: "song", label: "Song" },
@@ -19,71 +20,47 @@ const advancedFilters = [
 
 const AdvancedKey = Schema.Literals(advancedFilters.map(({ key }) => key));
 const Filter = Schema.NullOr(Schema.String);
-const FilterTabs = makeTabs({ value: AdvancedKey });
 const ConditionGroup = Html.ref("ConditionGroup", "div");
 const AddCondition = Html.ref("AddCondition", "button");
 const RemoveCondition = Html.ref("RemoveCondition", "button");
 
+const addConditionClass =
+	"border-border hover:bg-accent-soft text-accent-text inline-flex h-6 cursor-pointer items-center gap-1 rounded-sm border border-dashed px-2 text-xs relative pointer-coarse:after:absolute pointer-coarse:after:-inset-1.5 pointer-coarse:after:content-['']";
+
 const Event = UiSchema.TaggedEnum({ Changed: { key: AdvancedKey, value: Filter } });
 const Message = UiSchema.TaggedEnum({
 	Opened: {},
-	Closed: {},
+	Closed: { restoreFocus: Schema.Boolean },
 	SelectedTab: { key: AdvancedKey },
-	Typed: { query: Schema.String },
-	Navigated: {},
 	Changed: { key: AdvancedKey, value: Filter },
 	Removed: { key: AdvancedKey, restoreFocus: Schema.Boolean },
 	FocusConditionGroup: {},
 });
-
-const closed = { open: false, query: "", scrollRevision: 0, resetScroll: true };
-
-const tabsCache = new Map<
-	string,
-	readonly { readonly value: (typeof advancedFilters)[number]["key"] }[]
->();
-
-function getFilterTabs(available: readonly (typeof advancedFilters)[number][]) {
-	const cacheKey = available.map((tab) => tab.key).join(",");
-	let cached = tabsCache.get(cacheKey);
-	if (cached === undefined) {
-		cached = available.map(({ key: value }) => ({ value }));
-		tabsCache.set(cacheKey, cached);
-	}
-	return cached;
-}
 
 export const AdvancedFilters = Html.component({
 	name: "AdvancedFilters",
 	props: Schema.Struct({ filters: SearchFilters, options: SearchOptions }),
 	model: Schema.Struct({
 		selectedKey: AdvancedKey,
-		query: Schema.String,
 		open: Schema.Boolean,
-		scrollRevision: Schema.Number,
-		resetScroll: Schema.Boolean,
 	}),
 	message: Message,
 	events: Event,
 	restore: false,
 }).make({
-	init: () => ({ ...closed, selectedKey: "song" }),
+	init: () => ({ open: false, selectedKey: "song" }),
 	update: {
 		Opened: ($) => $.evolve({ open: true }),
-		Closed: ($) => $.evolve(closed),
-		SelectedTab: ($, { key }) =>
-			$.evolve({
-				selectedKey: key,
-				query: "",
-				resetScroll: true,
-				scrollRevision: $.model.scrollRevision + 1,
-			}),
-		Typed: ($, { query }) =>
-			$.evolve({ query, resetScroll: true, scrollRevision: $.model.scrollRevision + 1 }),
-		Navigated: ($) => $.evolve({ resetScroll: false, scrollRevision: $.model.scrollRevision + 1 }),
-		Changed: ($, { key, value }) => $.evolve(closed).emit(Event.Changed({ key, value })),
+		Closed: ($, { restoreFocus }) => {
+			const closed = $.evolve({ open: false });
+			return restoreFocus
+				? closed.run(HtmlCommand.focus(AddCondition, () => Component.noop, { preventScroll: true }))
+				: closed;
+		},
+		SelectedTab: ($, { key }) => $.evolve({ selectedKey: key }),
+		Changed: ($, { key, value }) => $.evolve({ open: false }).emit(Event.Changed({ key, value })),
 		Removed: ($, { key, restoreFocus }) => {
-			const removed = $.evolve(closed).emit(Event.Changed({ key, value: null }));
+			const removed = $.evolve({ open: false }).emit(Event.Changed({ key, value: null }));
 			if (!restoreFocus) return removed;
 			const active = advancedFilters.filter((filter) => $.props.filters[filter.key] !== null);
 			const index = active.findIndex((filter) => filter.key === key);
@@ -99,7 +76,7 @@ export const AdvancedFilters = Html.component({
 		FocusConditionGroup: ($) =>
 			$.run(HtmlCommand.focus(ConditionGroup, () => Component.noop, { preventScroll: true })),
 	},
-	view: (h, { selectedKey, query, open, scrollRevision, resetScroll }) => {
+	view: (h, { selectedKey, open }) => {
 		const { filters, options } = h.props;
 		const activeFilters = advancedFilters.filter(({ key }) => filters[key] !== null);
 		const available = advancedFilters.filter(
@@ -110,190 +87,37 @@ export const AdvancedFilters = Html.component({
 			return group;
 		}
 
-		const activeTab = available.find(({ key }) => key === selectedKey) ?? available[0];
 		const hasFilters = activeFilters.length > 0;
-		const addConditionId = h.id("add-condition");
+		const staticTrigger = () =>
+			h.div.class("inline-flex").children(
+				h.button
+					.ref(AddCondition)
+					.attrs({
+						type: "button",
+						"aria-expanded": "false",
+						"aria-haspopup": "dialog",
+						"aria-label": hasFilters
+							? "Add another performance detail"
+							: "Choose performance details",
+					})
+					.class(addConditionClass)
+					.on("click", Message.Opened())
+					.children(hasFilters ? "and…" : "where…"),
+			);
+
 		const picker =
-			activeTab &&
-			Popover(h, {
-				props: {
-					align: "start",
-					anchor: addConditionId,
-					collisionAvoidance: { align: "shift", fallbackAxisSide: "none" },
-					collisionPadding: 16,
-					open,
-					positionMethod: "fixed",
-					sideOffset: 6,
-				},
-				onEmit: {
-					RequestedOpen: () => Message.Opened(),
-					RequestedClose: () => Message.Closed(),
-					Settled: () => undefined,
-				},
-				view: (popover) => {
-					const trigger = popover
-						.trigger({
-							element: h.button
-								.id(addConditionId)
-								.ref(AddCondition)
-								.attr(
-									"aria-label",
-									hasFilters ? "Add another performance detail" : "Choose performance details",
-								)
-								.class(
-									"border-border hover:bg-accent-soft text-accent-text inline-flex h-6 cursor-pointer items-center gap-1 rounded-sm border border-dashed px-2 text-xs relative pointer-coarse:after:absolute pointer-coarse:after:-inset-1.5 pointer-coarse:after:content-['']",
-								),
-						})
-						.children(hasFilters ? "and…" : "where…");
-
-					function renderChoices(tab: (typeof advancedFilters)[number]) {
-						const tabOptions = options[tab.key];
-						const { counts } = getPickerIndex(tabOptions);
-						const { items: matching } = filterPickerOptions(tabOptions, query);
-						const label = `Search ${tab.label.toLowerCase()}`;
-						const virtualized = matching.length > initialPickerRows;
-
-						return Combobox(h, {
-							key: tab.key,
-							props: {
-								autoHighlight: true,
-								filter: "none",
-								highlightItemOnHover: false,
-								inline: true,
-								inputValue: query,
-								items: matching,
-								open: false,
-								virtualized,
-							},
-							onEmit: {
-								Picked: ({ value }) =>
-									typeof value === "string" ? Message.Changed({ key: tab.key, value }) : undefined,
-								RequestedInputValue: ({ inputValue, reason }) =>
-									reason === "item-press" ? undefined : Message.Typed({ query: inputValue }),
-								RequestedOpen: () => undefined,
-								RequestedClose: () => undefined,
-								Highlighted: ({ reason }) =>
-									virtualized && reason === "keyboard" ? Message.Navigated() : undefined,
-								Settled: () => undefined,
-							},
-							view: (picker) => {
-								const input = picker.input(
-									h.input
-										.attrs({
-											"aria-label": label,
-											placeholder: label,
-										})
-										.class(
-											"placeholder:text-muted min-w-0 flex-1 bg-transparent py-1 text-base outline-none",
-										),
-								);
-								const optionRow = ({ label, value }: ComboboxItem) =>
-									h.div
-										.class(
-											"hover:bg-panel-hover text-text flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-3 py-2 text-left text-sm",
-											virtualized
-												? "group-data-highlighted:bg-panel-hover pointer-events-auto"
-												: "data-highlighted:bg-panel-hover",
-										)
-										.children(
-											h.span.class("max-w-60 truncate").children(label),
-											h.span
-												.class("text-muted shrink-0 text-xs tabular-nums")
-												.children(String(counts.get(value))),
-										);
-								const rows = virtualized
-									? VirtualPickerOptions(h, {
-											items: picker.items,
-											highlighted: picker.highlighted,
-											query,
-											scrollRevision,
-											resetScroll,
-											row: optionRow,
-											option: (element, value) => picker.item({ element, value }),
-										})
-									: picker.items.map((item) =>
-											picker.item({ element: optionRow(item), value: item.value }),
-										);
-								const list = picker
-									.list(h.div.class("flex min-h-0 flex-col gap-1 overflow-y-auto px-1 pb-1"))
-									.children(
-										rows,
-										picker
-											.empty(h.div)
-											.children(
-												h.p.class("text-muted py-3 text-center text-sm").children("No matches"),
-											),
-									);
-
-								return h.div
-									.class("flex min-h-0 flex-col")
-									.children(
-										h.div
-											.class("relative flex shrink-0 items-center gap-2 px-2 py-2")
-											.children(
-												Icon(h, "MagnifyingGlass", 15, "text-muted shrink-0"),
-												popover.initialFocus(input),
-											),
-										list,
-									);
-							},
-						});
-					}
-
-					const tabsView = () =>
-						FilterTabs(h, {
-							props: {
-								value: activeTab.key,
-								tabs: getFilterTabs(available),
-							},
-							onEmit: { Selected: ({ value }) => Message.SelectedTab({ key: value }) },
-							view: (tabs) =>
-								tabs.root(h.div.class("flex min-h-0 flex-col")).children(
-									tabs
-										.list(
-											h.div
-												.attr("aria-label", "Performance detail")
-												.class("flex shrink-0 gap-1 overflow-x-auto px-1 pt-1"),
-										)
-										.children(
-											available.map(({ key, label }) =>
-												tabs
-													.tab({
-														element: h.button.class(
-															"shrink-0 cursor-pointer rounded-sm px-2 py-1.5 text-xs",
-															key === activeTab.key
-																? "bg-accent-soft text-accent-text font-medium"
-																: "text-muted hover:bg-panel-hover hover:text-text",
-														),
-														value: key,
-													})
-													.children(label),
-											),
-										),
-									tabs
-										.panel({ element: h.div.class("flex min-h-0 flex-col"), value: activeTab.key })
-										?.children(renderChoices(activeTab)),
-								),
-						});
-
-					const popup = popover
-						.portal(h.dialog.attr("aria-label", "Add a filter condition"))
-						?.children(
-							popover
-								.positioner(h.div)
-								.children(
-									popover
-										.popup(
-											h.div.class(
-												"border-border bg-panel flex max-h-[min(20rem,calc(100dvh-2rem),var(--available-height,100dvh))] w-[min(20rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-md border p-1 shadow-xl",
-											),
-										)
-										.children(tabsView()),
-								),
-						);
-					return h.div.class("inline-flex").children(trigger, popup);
-				},
-			});
+			available.length > 0 &&
+			(open
+				? LazyAdvancedFiltersPopover(h, {
+						props: { filters, options, selectedKey, hasFilters },
+						onEmit: {
+							Changed: ({ key, value }) => Message.Changed({ key, value }),
+							Closed: ({ restoreFocus }) => Message.Closed({ restoreFocus }),
+							SelectedTab: ({ key }) => Message.SelectedTab({ key }),
+						},
+						fallback: () => staticTrigger(),
+					})
+				: staticTrigger());
 
 		return group
 			.class("text-muted relative flex flex-wrap items-center gap-2 text-sm leading-7 mt-3 sm:mt-2")
