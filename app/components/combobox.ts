@@ -3,8 +3,9 @@ import { Combobox as KitCombobox } from "@effect/ui-kit";
 import { Html } from "@effect/ui/html";
 import { Schema } from "effect";
 
-import { FilterOptions, matchFilterOptions } from "../search";
+import { FilterOptions } from "../search";
 import { Icon } from "./icons";
+import { filterPickerOptions, getPickerIndex, getPickerItemsWithEmpty } from "./picker-options";
 import { initialPickerRows, VirtualPickerOptions } from "./virtual-picker-options";
 
 const Selection = Schema.NullOr(Schema.String);
@@ -50,12 +51,10 @@ export const Combobox = Html.component({
 	view: (h, { open, query, scrollRevision, resetScroll }) => {
 		const { value, options, placeholder, searchLabel, ariaLabel } = h.props;
 		const anchorId = h.id("anchor");
-		const selectedLabel =
-			value === null ? placeholder : (options.find((item) => item.value === value)?.label ?? value);
-		const emptyChoice = { label: placeholder, value: "" };
-		const matchingOptions = matchFilterOptions(options, query);
-		const items = [emptyChoice, ...options];
-		const filteredItems = matchingOptions === options ? items : [emptyChoice, ...matchingOptions];
+		const index = getPickerIndex(options);
+		const selectedLabel = value === null ? placeholder : (index.labels.get(value) ?? value);
+		const items = getPickerItemsWithEmpty(options, placeholder);
+		const { items: filteredItems, matchCount } = filterPickerOptions(options, query, placeholder);
 		const virtualized = filteredItems.length > initialPickerRows;
 
 		return KitCombobox(h, {
@@ -102,7 +101,7 @@ export const Combobox = Html.component({
 
 				function renderOptions() {
 					const choices = picker.items;
-					const counts = new Map(matchingOptions.map(({ value, count }) => [value, count]));
+					const { counts } = index;
 					const separator = h.div.class("border-border mx-2 my-1 border-t").key("any-separator");
 
 					function optionRow(item: (typeof choices)[number]) {
@@ -129,9 +128,9 @@ export const Combobox = Html.component({
 						return picker.list(h.div.class("flex flex-col gap-1")).children(
 							choices.flatMap((item) => [
 								picker.item({ element: optionRow(item), value: item.value }),
-								item.value === "" && matchingOptions.length > 0 && separator,
+								item.value === "" && matchCount > 0 && separator,
 							]),
-							matchingOptions.length === 0 &&
+							matchCount === 0 &&
 								h.p
 									.attr("role", "status")
 									.class("text-muted py-3 text-center text-sm")

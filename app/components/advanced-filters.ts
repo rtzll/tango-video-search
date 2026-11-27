@@ -1,11 +1,12 @@
-import { Command, Component, UiSchema } from "@effect/ui";
+import { Component, UiSchema } from "@effect/ui";
 import { Combobox, type ComboboxItem, Popover } from "@effect/ui-kit";
 import { makeTabs } from "@effect/ui-kit/Tabs";
 import { Html, HtmlCommand } from "@effect/ui/html";
 import { Schema } from "effect";
 
-import { SearchFilters, SearchOptions, matchFilterOptions } from "../search";
+import { SearchFilters, SearchOptions } from "../search";
 import { Icon } from "./icons";
+import { filterPickerOptions, getPickerIndex } from "./picker-options";
 import { initialPickerRows, VirtualPickerOptions } from "./virtual-picker-options";
 
 const advancedFilters = [
@@ -36,6 +37,21 @@ const Message = UiSchema.TaggedEnum({
 });
 
 const closed = { open: false, query: "", scrollRevision: 0, resetScroll: true };
+
+const tabsCache = new Map<
+	string,
+	readonly { readonly value: (typeof advancedFilters)[number]["key"] }[]
+>();
+
+function getFilterTabs(available: readonly (typeof advancedFilters)[number][]) {
+	const cacheKey = available.map((tab) => tab.key).join(",");
+	let cached = tabsCache.get(cacheKey);
+	if (cached === undefined) {
+		cached = available.map(({ key: value }) => ({ value }));
+		tabsCache.set(cacheKey, cached);
+	}
+	return cached;
+}
 
 export const AdvancedFilters = Html.component({
 	name: "AdvancedFilters",
@@ -81,11 +97,7 @@ export const AdvancedFilters = Html.component({
 			);
 		},
 		FocusConditionGroup: ($) =>
-			$.run(
-				HtmlCommand.Focus.make({ ref: ConditionGroup, options: { preventScroll: true } }).pipe(
-					Command.asNoop,
-				),
-			),
+			$.run(HtmlCommand.focus(ConditionGroup, () => Component.noop, { preventScroll: true })),
 	},
 	view: (h, { selectedKey, query, open, scrollRevision, resetScroll }) => {
 		const { filters, options } = h.props;
@@ -135,8 +147,9 @@ export const AdvancedFilters = Html.component({
 						.children(hasFilters ? "and…" : "where…");
 
 					function renderChoices(tab: (typeof advancedFilters)[number]) {
-						const matching = matchFilterOptions(options[tab.key], query);
-						const counts = new Map(matching.map(({ value, count }) => [value, count]));
+						const tabOptions = options[tab.key];
+						const { counts } = getPickerIndex(tabOptions);
+						const { items: matching } = filterPickerOptions(tabOptions, query);
 						const label = `Search ${tab.label.toLowerCase()}`;
 						const virtualized = matching.length > initialPickerRows;
 
@@ -231,7 +244,7 @@ export const AdvancedFilters = Html.component({
 						FilterTabs(h, {
 							props: {
 								value: activeTab.key,
-								tabs: available.map(({ key }) => ({ value: key })),
+								tabs: getFilterTabs(available),
 							},
 							onEmit: { Selected: ({ value }) => Message.SelectedTab({ key: value }) },
 							view: (tabs) =>
@@ -292,8 +305,7 @@ export const AdvancedFilters = Html.component({
 					if (value === null) {
 						return [];
 					}
-					const selectedLabel =
-						options[key].find((option) => option.value === value)?.label ?? value;
+					const selectedLabel = getPickerIndex(options[key]).labels.get(value) ?? value;
 					return [
 						index > 0 && h.span.key(`${key}-and`).children("and"),
 						h.button

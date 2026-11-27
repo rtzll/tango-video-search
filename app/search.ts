@@ -110,11 +110,3 @@ export function readSearch(read: (key: SearchParamKey) => string | null | undefi
 export function parseSearchParams(params: URLSearchParams) {
 	return readSearch((key) => params.get(key));
 }
-
-// Keep the same accent- and punctuation-insensitive matching in both pickers.
-export function matchFilterOptions(options: typeof FilterOptions.Type, query: string) {
-	const normalized = normalizeName(query.trim());
-	return normalized
-		? options.filter(({ label }) => normalizeName(label).includes(normalized))
-		: options;
-}

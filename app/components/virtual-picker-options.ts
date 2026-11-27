@@ -1,6 +1,8 @@
 import { type ComboboxItem, VirtualList, VirtualListScrollTarget } from "@effect/ui-kit";
 import type { Html } from "@effect/ui/html";
 
+import { getVirtualListMeta } from "./picker-options";
+
 const rowHeight = 40;
 const rowGap = 4;
 const dividerHeight = 9;
@@ -9,7 +11,7 @@ export const initialPickerRows = 12;
 type Div<Message> = Html.Element<Message, never, Html.EventsOf<"div">, HTMLDivElement, "div">;
 
 interface VirtualPickerOptionsProps<Message> {
-	items: ReadonlyArray<ComboboxItem>;
+	items: readonly ComboboxItem[];
 	highlighted: string | null;
 	query: string;
 	scrollRevision: number;
@@ -32,7 +34,8 @@ export function VirtualPickerOptions<Message>(
 		option,
 	}: VirtualPickerOptionsProps<Message>,
 ) {
-	const activeIndex = items.findIndex((item) => item.value === highlighted);
+	const meta = getVirtualListMeta(items);
+	const activeIndex = highlighted === null ? -1 : (meta.indexByValue.get(highlighted) ?? -1);
 	const scrollTarget =
 		activeIndex === -1
 			? resetScroll && VirtualListScrollTarget.Offset({ offset: 0 })
@@ -42,33 +45,27 @@ export function VirtualPickerOptions<Message>(
 			dataset: query,
 			initialCount: initialPickerRows,
 			itemSize: rowHeight + rowGap,
-			keys: items.map((item) => item.value),
+			keys: meta.keys,
 			layout: "absolute",
+			measure: false,
 			scrollContainer: "nearest",
 			scrollTo: scrollTarget
 				? { align: "nearest", id: scrollRevision, target: scrollTarget }
 				: undefined,
-			// Count the divider and gaps until the kit measures the rows.
-			sizes: items.map((_, index) => {
-				if (divider && index === 0) return rowHeight + rowGap * 2 + dividerHeight;
-				return index === items.length - 1 ? rowHeight : rowHeight + rowGap;
-			}),
+			...(divider ? { sizes: meta.dividerSizes(rowHeight, rowGap, dividerHeight) } : {}),
 		},
 		view: (list) => {
 			// Focus stays on the input, so keep its active descendant mounted offscreen.
 			const indexes =
 				activeIndex !== -1 && !list.items.includes(activeIndex)
-					? [...list.items, activeIndex].sort((a, b) => a - b)
+					? [...list.items, activeIndex].toSorted((a, b) => a - b)
 					: list.items;
 			return list.list(h.div.attr("role", "presentation").class("shrink-0")).children(
 				indexes.map((index) => {
 					const item = items[index]!;
 					const hasDivider = divider && index === 0;
 					const element = h.div
-						.class(
-							"group pointer-events-none",
-							hasDivider ? "pb-2" : index < items.length - 1 && "pb-1",
-						)
+						.class("group pointer-events-none", hasDivider ? "pb-2" : "pb-1")
 						.children(
 							row(item),
 							hasDivider &&
