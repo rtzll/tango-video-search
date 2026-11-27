@@ -389,10 +389,13 @@ function makeSchemaIdempotent(schema: string) {
 		.replace(/^CREATE INDEX(?! IF NOT EXISTS)/gm, "CREATE INDEX IF NOT EXISTS");
 }
 
-function buildRefreshSql() {
-	const deletes = RESET_TABLES.map((table) => `DELETE FROM ${quoteSqlIdentifier(table)};`).join(
-		"\n",
-	);
+function buildRefreshSql(tables: readonly string[]) {
+	const exported = new Set(tables);
+	const ordered = [
+		...RESET_TABLES.filter((table) => table === "app_metadata" || exported.has(table)),
+		...tables.filter((table) => !RESET_TABLES.includes(table)),
+	];
+	const deletes = ordered.map((table) => `DELETE FROM ${quoteSqlIdentifier(table)};`).join("\n");
 	return `${APP_METADATA_SCHEMA}\n${deletes}`;
 }
 
@@ -459,6 +462,7 @@ const writeSqlDump = Effect.fnUntraced(function* (
 		return;
 	}
 
+	const tables = yield* getExportTables(databasePath);
 	const schema = yield* sqlite(databasePath, [".schema --nosys"]);
 	// Keep destructive drops in the same import file as replacement data.
 	// D1 can then roll back the whole refresh if the import fails.
@@ -466,10 +470,9 @@ const writeSqlDump = Effect.fnUntraced(function* (
 		? RESET_TABLES.map((table) => `DROP TABLE IF EXISTS ${table};`).join("\n")
 		: "";
 	const schemaSql = reset ? schema : makeSchemaIdempotent(schema);
-	const refreshSql = reset ? "" : buildRefreshSql();
+	const refreshSql = reset ? "" : buildRefreshSql(tables);
 	writeFileSync(outputPath, `PRAGMA foreign_keys=OFF;\n${drops}\n${schemaSql}\n${refreshSql}\n`);
 
-	const tables = yield* getExportTables(databasePath);
 	for (const table of tables) {
 		const columns = yield* getTableColumns(databasePath, table);
 		if (columns.length > 0) {
