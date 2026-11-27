@@ -14,20 +14,16 @@
 		"types": ["@cloudflare/vitest-plugin/types", "@cloudflare/workers-types", "vite/client"],
 		"isolatedModules": true,
 		"esModuleInterop": true,
-		"jsx": "react-jsx",
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"resolveJsonModule": true,
 		"target": "ES2022",
 		"strict": true,
+		"exactOptionalPropertyTypes": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"paths": {
-			"~/*": ["./app/*"]
-		},
 
 		// Vite takes care of building everything, not tsc.
-		"noEmit": true,
-		"rootDirs": [".", "./.react-router/types"]
+		"noEmit": true
 	}
 }

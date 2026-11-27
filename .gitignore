@@ -6,6 +6,5 @@ node_modules
 .env
 /data
 .pnpm-store/
-.react-router/
 .wrangler/
 .vitest/

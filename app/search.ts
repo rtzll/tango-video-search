@@ -9,7 +9,7 @@ export type ResultFilter =
 	| "song"
 	| "year";
 
-export interface FilterOption<Value extends string = string> {
+interface FilterOption<Value extends string = string> {
 	readonly count: number;
 	readonly label: string;
 	readonly value: Value;
@@ -37,11 +37,11 @@ export type SearchOptions = {
 export interface SearchVideo {
 	channelId: string;
 	channelTitle: string;
-	dancers: string[];
+	dancers: readonly string[];
 	event: string | null;
 	id: string;
 	orchestra: string;
-	singers: string[];
+	singers: readonly string[];
 	songTitle: string;
 	title: string;
 	year: number | null;

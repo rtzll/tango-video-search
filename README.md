@@ -21,8 +21,7 @@ looking for.
 
 ## Tech Stack
 
-- **Framework**: [React Router](https://reactrouter.com/) v8 (started as a Remix
-  project)
+- **Framework**: [Effect UI](https://ui.effect.website/) with Effect v4
 - **UI**: [Tailwind CSS](https://tailwindcss.com/) +
   [Radix Icons](https://www.radix-ui.com/icons)
 - **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) with
@@ -47,7 +46,7 @@ Load the latest local SQLite snapshot into local D1:
 vp run db:update --local --reset
 ```
 
-Run the React Router development server:
+Run the Vite development server:
 
 ```sh
 vp run dev
