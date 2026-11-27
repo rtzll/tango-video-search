@@ -157,9 +157,12 @@ export const ComboboxPopup = Html.component({
 					});
 				}
 
+				const positioner = h.div.class(
+					"overflow-visible border-0 bg-transparent p-0 data-starting-style:opacity-0",
+				);
 				const popup =
 					picker.mounted &&
-					picker.positioner(h.div.class("overflow-visible border-0 bg-transparent p-0")).children(
+					picker.positioner(positioner).children(
 						picker
 							.popup(
 								h.div
