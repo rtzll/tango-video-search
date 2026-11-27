@@ -82,3 +82,46 @@ it("returns an HTTP error when the search results read fails", async () => {
 	expect(response.status).toBe(500);
 	expect(await response.json()).toEqual({ error: "The search failed." });
 });
+
+it("records and closes each request span even when the filter-options read fails", async () => {
+	const events: string[] = [];
+	const tracing = {
+		startSpan(name: string) {
+			events.push(`start:${name}`);
+			return {
+				setStatus({ code }: TracingSpanStatus) {
+					events.push(`${code}:${name}`);
+				},
+				end() {
+					events.push(`end:${name}`);
+				},
+			};
+		},
+	};
+	const layer = Layer.succeed(Search, {
+		results: () => Effect.succeed(emptyResults),
+		facets: () => new SearchReadError({ operation: "facets", cause: new Error("Test failure") }),
+	});
+	const request = new Request("https://example.com/");
+	const response = await Effect.runPromise(
+		handleRequest(request, assets, tracing).pipe(Effect.provide(layer)),
+	);
+
+	expect(response.status).toBe(200);
+	expect(events).toHaveLength(9);
+	expect(events).toEqual(
+		expect.arrayContaining([
+			"start:search.results",
+			"ok:search.results",
+			"end:search.results",
+			"start:search.facets",
+			"error:search.facets",
+			"end:search.facets",
+		]),
+	);
+	expect(events.slice(-3)).toEqual([
+		"start:search.render",
+		"ok:search.render",
+		"end:search.render",
+	]);
+});

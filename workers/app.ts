@@ -1,6 +1,6 @@
 import { Router } from "@effect/ui";
 import { HtmlServer } from "@effect/ui/html";
-import { Effect, Option } from "effect";
+import { Cause, Effect, Exit, Option } from "effect";
 
 import { App } from "../app/root";
 import { AppRoute, additionalSearch } from "../app/routes";
@@ -20,6 +20,36 @@ interface AppEnv {
 	ASSETS: Fetcher;
 }
 
+interface WorkerTracing {
+	startSpan(name: string): {
+		end(): void;
+		setStatus(status: TracingSpanStatus): void;
+	};
+}
+
+function withWorkerSpan<A, E, R>(
+	tracing: WorkerTracing | undefined,
+	name: string,
+	effect: Effect.Effect<A, E, R>,
+) {
+	if (!tracing) {
+		return effect;
+	}
+	return Effect.acquireUseRelease(
+		Effect.sync(() => tracing.startSpan(name)),
+		() => effect,
+		(span, exit) =>
+			Effect.sync(() => {
+				if (Exit.isSuccess(exit)) {
+					span.setStatus({ code: "ok" });
+				} else if (!Cause.hasInterruptsOnly(exit.cause)) {
+					span.setStatus({ code: "error" });
+				}
+				span.end();
+			}),
+	);
+}
+
 async function getDocument(url: URL, assets: Fetcher) {
 	if (import.meta.env.DEV) {
 		return developmentTemplate.replace(
@@ -37,7 +67,7 @@ async function getDocument(url: URL, assets: Fetcher) {
 
 const unavailable = () => new SearchQueryError({ reason: "unavailable" });
 
-export function handleRequest(request: Request, assets: Fetcher) {
+export function handleRequest(request: Request, assets: Fetcher, tracing?: WorkerTracing) {
 	const url = new URL(request.url);
 	const isDataRequest = url.pathname === resultsPath || url.pathname === facetsPath;
 	return Effect.gen(function* () {
@@ -47,11 +77,10 @@ export function handleRequest(request: Request, assets: Fetcher) {
 
 		const query = parseSearchParams(url.searchParams);
 		const search = yield* Search;
+		const loadResults = () => withWorkerSpan(tracing, "search.results", search.results(query));
+		const loadFacets = () => withWorkerSpan(tracing, "search.facets", search.facets(query.filters));
 		if (isDataRequest) {
-			const data =
-				url.pathname === resultsPath
-					? yield* search.results(query)
-					: yield* search.facets(query.filters);
+			const data = url.pathname === resultsPath ? yield* loadResults() : yield* loadFacets();
 			const response = Response.json(data);
 			return request.method === "HEAD" ? new Response(null, response) : response;
 		}
@@ -66,8 +95,8 @@ export function handleRequest(request: Request, assets: Fetcher) {
 			status === 200
 				? Effect.all(
 						{
-							results: search.results(query),
-							facets: search.facets(query.filters).pipe(
+							results: loadResults(),
+							facets: loadFacets().pipe(
 								Effect.tapError((error) => Effect.logError("Search filter options failed", error)),
 								Effect.result,
 							),
@@ -79,7 +108,7 @@ export function handleRequest(request: Request, assets: Fetcher) {
 			[reads, Effect.tryPromise(() => getDocument(url, assets))],
 			{ concurrency: "unbounded" },
 		);
-		const page = yield* HtmlServer.renderToHtml(App, {
+		const render = HtmlServer.renderToHtml(App, {
 			route,
 			additionalSearch: route._tag === "Search" ? additionalSearch(url.href) : "",
 		}).pipe(
@@ -94,11 +123,15 @@ export function handleRequest(request: Request, assets: Fetcher) {
 				),
 				Router.static({ routes: AppRoute, url: AppRoute.print(route) }),
 			]),
+			Effect.map(
+				(page) =>
+					new Response(request.method === "HEAD" ? null : HtmlServer.document(template, page), {
+						status,
+						headers: { "Content-Type": "text/html; charset=utf-8" },
+					}),
+			),
 		);
-		return new Response(request.method === "HEAD" ? null : HtmlServer.document(template, page), {
-			status,
-			headers: { "Content-Type": "text/html; charset=utf-8" },
-		});
+		return yield* withWorkerSpan(tracing, "search.render", render);
 	}).pipe(
 		Effect.catchCause((cause) =>
 			Effect.logError("Tango Video Search request failed", cause).pipe(
@@ -114,9 +147,10 @@ export function handleRequest(request: Request, assets: Fetcher) {
 }
 
 export default {
-	fetch(request: Request, env: AppEnv) {
-		return Effect.runPromise(
-			Effect.provide(handleRequest(request, env.ASSETS), Search.layer(env.DB)),
-		);
+	fetch(request: Request, env: AppEnv, ctx: ExecutionContext) {
+		const tracing = ctx.tracing;
+		const requestTracing = tracing?.getActiveSpan()?.isTraced ? tracing : undefined;
+		const response = handleRequest(request, env.ASSETS, requestTracing);
+		return Effect.runPromise(Effect.provide(response, Search.layer(env.DB)));
 	},
 } satisfies ExportedHandler<AppEnv>;

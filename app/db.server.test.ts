@@ -1,10 +1,10 @@
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
-import worker from "../workers/app";
 import { createDatabase, loadSearchFacets, loadSearchResults } from "./db.server";
 
 const database = (env as unknown as { DB: D1Database }).DB;
+const worker = (exports as { default: Fetcher }).default;
 const emptyFilters = {
 	channel: null,
 	dancer1: null,
@@ -122,10 +122,7 @@ it("renders search results and hydrates a filter-options failure", async () => {
 	await executeStatements(
 		"UPDATE app_metadata SET value = 'invalid-date' WHERE key = 'database_updated_at';",
 	);
-	const response = await worker.fetch(
-		new Request("https://example.com/"),
-		env as unknown as Parameters<typeof worker.fetch>[1],
-	);
+	const response = await worker.fetch("https://example.com/");
 	const html = await response.text();
 
 	expect(response.status).toBe(200);
