@@ -58,6 +58,12 @@ Run the built Worker locally through Wrangler:
 vp run preview
 ```
 
+### Inspecting the browser bundle
+
+Run `vp run build:analyze` and open `build/analyze/client-bundle.html` in a browser.
+Click a package or folder to focus on it, and hover over a module to see its
+size. The report and source maps go to `build/analyze/`.
+
 ### Database
 
 > [!NOTE]
