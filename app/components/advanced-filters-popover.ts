@@ -241,7 +241,7 @@ export const AdvancedFiltersPopover = Html.component({
 											tabs
 												.tab({
 													element: h.button.class(
-														"shrink-0 cursor-pointer rounded-sm px-2 py-1.5 text-xs",
+														"shrink-0 cursor-pointer rounded-sm px-2 py-1.5 text-xs pointer-coarse:min-h-11 pointer-coarse:min-w-11",
 														key === activeTab.key
 															? "bg-accent-soft text-accent-text font-medium"
 															: "text-muted hover:bg-panel-hover hover:text-text",
