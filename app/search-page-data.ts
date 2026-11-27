@@ -1,7 +1,7 @@
 import { Query } from "@effect/ui";
-import { Schema } from "effect";
+import { Schema, SchemaGetter } from "effect";
 
-import { SearchFilters, SearchOptions, SearchVideo } from "./search";
+import { FilterOptions, SearchFilters, SearchOptions, SearchVideo, filterKeys } from "./search";
 
 export const PAGE_SIZE = 18;
 export const resultsPath = "/api/search";
@@ -14,9 +14,29 @@ export const SearchResults = Schema.Struct({
 	totalVideos: Schema.Number,
 });
 
+const FacetOptionsPayload = Schema.StructWithRest(
+	Schema.Struct({ dancer2: Schema.optionalKey(FilterOptions) }),
+	[Schema.Record(Schema.Literals(filterKeys.filter((key) => key !== "dancer2")), FilterOptions)],
+);
+const sameOptions = Schema.toEquivalence(FilterOptions);
+
+// The query cache uses this codec for hydration. Omission means the second
+// picker has exactly the same ordered options as the first.
+const FacetOptions = FacetOptionsPayload.pipe(
+	Schema.decodeTo(SearchOptions, {
+		decode: SchemaGetter.transform(({ dancer2, ...options }) => ({
+			...options,
+			dancer2: dancer2 ?? options.dancer1,
+		})),
+		encode: SchemaGetter.transform(({ dancer2, ...options }) =>
+			sameOptions(options.dancer1, dancer2) ? options : { ...options, dancer2 },
+		),
+	}),
+);
+
 export const SearchFacets = Schema.Struct({
 	formattedLastUpdate: Schema.String,
-	options: SearchOptions,
+	options: FacetOptions,
 });
 
 export class SearchResultsQuery extends Query.Service<SearchResultsQuery>()("SearchResults", {

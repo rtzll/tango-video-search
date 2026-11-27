@@ -160,7 +160,7 @@ function buildWhereClause(db: AppDatabase, filters: SearchFilters) {
 	);
 }
 
-async function getEventOptions(db: AppDatabase, filters: SearchFilters) {
+function selectEventOptions(db: AppDatabase, filters: SearchFilters) {
 	const eventName = sql<string>`trim(${performances.event})`;
 	const performanceCount = countDistinct(curations.id);
 	const scopedFilters = withoutFilter(filters, "event");
@@ -169,7 +169,6 @@ async function getEventOptions(db: AppDatabase, filters: SearchFilters) {
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			label: eventName,
 			value: eventName,
 		})
 		.from(performances)
@@ -180,7 +179,7 @@ async function getEventOptions(db: AppDatabase, filters: SearchFilters) {
 		.orderBy(desc(performanceCount));
 }
 
-async function getChannelOptions(db: AppDatabase, filters: SearchFilters) {
+function selectChannelOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
@@ -198,11 +197,7 @@ async function getChannelOptions(db: AppDatabase, filters: SearchFilters) {
 		.orderBy(desc(performanceCount));
 }
 
-async function getDancerOptions(
-	db: AppDatabase,
-	filters: SearchFilters,
-	filterKey: DancerFilterKey,
-) {
+function selectDancerOptions(db: AppDatabase, filters: SearchFilters, filterKey: DancerFilterKey) {
 	const otherDancer = filterKey === "dancer1" ? filters.dancer2 : filters.dancer1;
 	const performanceCount = countDistinct(curations.id);
 	const scopedWhereClause = buildWhereClause(db, withoutFilter(filters, filterKey));
@@ -213,7 +208,6 @@ async function getDancerOptions(
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			label: dancers.name,
 			value: dancers.name,
 		})
 		.from(dancers)
@@ -225,13 +219,12 @@ async function getDancerOptions(
 		.orderBy(desc(performanceCount));
 }
 
-async function getOrchestraOptions(db: AppDatabase, filters: SearchFilters) {
+function selectOrchestraOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			label: orchestras.name,
 			value: orchestras.name,
 		})
 		.from(orchestras)
@@ -242,13 +235,12 @@ async function getOrchestraOptions(db: AppDatabase, filters: SearchFilters) {
 		.orderBy(desc(performanceCount));
 }
 
-async function getSongOptions(db: AppDatabase, filters: SearchFilters) {
+function selectSongOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			label: songs.title,
 			value: songs.title,
 		})
 		.from(songs)
@@ -259,13 +251,12 @@ async function getSongOptions(db: AppDatabase, filters: SearchFilters) {
 		.orderBy(desc(performanceCount));
 }
 
-async function getSingerOptions(db: AppDatabase, filters: SearchFilters) {
+function selectSingerOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			label: singers.name,
 			value: singers.name,
 		})
 		.from(singers)
@@ -277,7 +268,7 @@ async function getSingerOptions(db: AppDatabase, filters: SearchFilters) {
 		.orderBy(desc(performanceCount));
 }
 
-async function getYearOptions(db: AppDatabase, filters: SearchFilters) {
+function selectYearOptions(db: AppDatabase, filters: SearchFilters) {
 	const performanceCount = countDistinct(curations.id);
 	const scopedFilters = withoutFilter(filters, "year");
 	const scopedWhereClause = buildWhereClause(db, scopedFilters);
@@ -285,7 +276,6 @@ async function getYearOptions(db: AppDatabase, filters: SearchFilters) {
 	return db
 		.select({
 			count: performanceCount.as("performanceCount"),
-			label: sql<string>`cast(${performances.performanceYear} as text)`,
 			value: sql<string>`cast(${performances.performanceYear} as text)`,
 		})
 		.from(performances)
@@ -296,7 +286,7 @@ async function getYearOptions(db: AppDatabase, filters: SearchFilters) {
 		.orderBy(desc(performances.performanceYear));
 }
 
-async function getFilteredVideos(
+function selectFilteredVideos(
 	db: AppDatabase,
 	filters: SearchFilters,
 	page: number,
@@ -305,15 +295,18 @@ async function getFilteredVideos(
 	const whereClause = buildWhereClause(db, filters);
 	const offset = (page - 1) * pageSize;
 
-	const results = await db
+	return db
 		.select({
 			channelId: videos.channelId,
 			channelTitle: videos.channelTitle,
+			dancers: performances.dancers,
+			event: performances.event,
 			id: videos.id,
 			orchestra: orchestras.name,
-			performance: performances,
-			songTitle: songs.title,
+			singers: performances.singers,
+			songTitle: sql<string>`${songs.title}`.as("song_title"),
 			title: videos.title,
+			year: performances.performanceYear,
 		})
 		.from(curations)
 		.innerJoin(performances, eq(curations.performanceId, performances.id))
@@ -324,51 +317,70 @@ async function getFilteredVideos(
 		.orderBy(desc(performances.performanceYear), desc(videos.publishedAt))
 		.limit(pageSize)
 		.offset(offset);
+}
 
-	return results.map((video) => ({
+function searchVideos(rows: Awaited<ReturnType<typeof selectFilteredVideos>>) {
+	return rows.map((video) => ({
 		channelId: video.channelId,
 		channelTitle: video.channelTitle,
-		dancers: video.performance?.dancers?.split(",").map((d) => d.trim()) || [],
-		event: video.performance?.event?.trim() || null,
+		dancers: video.dancers?.split(",").map((d) => d.trim()) || [],
+		event: video.event?.trim() || null,
 		id: video.id,
 		orchestra: video.orchestra,
-		singers: (video.performance?.singers?.split(",") || []).filter(Boolean),
+		singers: (video.singers?.split(",") || []).filter(Boolean),
 		songTitle: video.songTitle,
 		title: video.title,
-		year: video.performance?.performanceYear ?? null,
+		year: video.year ?? null,
 	})) satisfies SearchVideo[];
 }
 
-async function getFilteredVideosCount(db: AppDatabase, filters: SearchFilters) {
+function selectFilteredVideosCount(db: AppDatabase, filters: SearchFilters) {
 	const whereClause = buildWhereClause(db, filters);
 
-	const results = await db
+	return db
 		.select({
 			count: count().as("count"),
 		})
 		.from(curations)
 		.where(whereClause);
+}
 
-	return results[0]?.count ?? 0;
+function namedOptions(rows: readonly { count: number; value: string }[]) {
+	return rows.map(({ count, value }) => ({ count, label: value, value }));
 }
 
 export async function loadSearchFacets(db: AppDatabase, filters: SearchFilters) {
-	const [channel, dancer1, dancer2, event, orchestra, song, singer, year, lastUpdateTime] =
-		await Promise.all([
-			getChannelOptions(db, filters),
-			getDancerOptions(db, filters, "dancer1"),
-			getDancerOptions(db, filters, "dancer2"),
-			getEventOptions(db, filters),
-			getOrchestraOptions(db, filters),
-			getSongOptions(db, filters),
-			getSingerOptions(db, filters),
-			getYearOptions(db, filters),
-			getLastDatabaseUpdateTime(db),
-		]);
+	const statements = [
+		selectChannelOptions(db, filters),
+		selectDancerOptions(db, filters, "dancer1"),
+		selectEventOptions(db, filters),
+		selectOrchestraOptions(db, filters),
+		selectSongOptions(db, filters),
+		selectSingerOptions(db, filters),
+		selectYearOptions(db, filters),
+	] as const;
+	const sharedDancers = filters.dancer1 === null && filters.dancer2 === null;
+	const [rows, lastUpdateTime] = await Promise.all([
+		sharedDancers
+			? db.batch(statements)
+			: db.batch([...statements, selectDancerOptions(db, filters, "dancer2")]),
+		getLastDatabaseUpdateTime(db),
+	]);
+	const [channel, firstDancers, event, orchestra, song, singer, year, secondDancers] = rows;
+	const dancer1 = namedOptions(firstDancers);
 
 	return {
 		lastUpdateTime,
-		options: { channel, dancer1, dancer2, event, orchestra, song, singer, year },
+		options: {
+			channel,
+			dancer1,
+			dancer2: secondDancers === undefined ? dancer1 : namedOptions(secondDancers),
+			event: namedOptions(event),
+			orchestra: namedOptions(orchestra),
+			singer: namedOptions(singer),
+			song: namedOptions(song),
+			year: namedOptions(year),
+		},
 	};
 }
 
@@ -376,10 +388,16 @@ export async function loadSearchResults(
 	db: AppDatabase,
 	{ filters, page, pageSize }: { filters: SearchFilters; page: number; pageSize: number },
 ) {
-	const totalVideos = await getFilteredVideosCount(db, filters);
+	const countQuery = selectFilteredVideosCount(db, filters);
+	// The first page can be read with its count in one D1 call.
+	const [counts, firstPage] =
+		page === 1
+			? await db.batch([countQuery, selectFilteredVideos(db, filters, 1, pageSize)])
+			: ([await countQuery, undefined] as const);
+	const totalVideos = counts[0]?.count ?? 0;
 	const totalPages = Math.max(1, Math.ceil(totalVideos / pageSize));
 	const safePage = Math.max(1, Math.min(page, totalPages));
-	const initialVideos = await getFilteredVideos(db, filters, safePage, pageSize);
+	const rows = firstPage ?? (await selectFilteredVideos(db, filters, safePage, pageSize));
 
-	return { initialVideos, page: safePage, totalPages, totalVideos };
+	return { initialVideos: searchVideos(rows), page: safePage, totalPages, totalVideos };
 }

@@ -133,6 +133,7 @@ describe("loadSearchPage", () => {
 			{ count: 2, label: "Channel One Renamed", value: "channel-1" },
 			{ count: 1, label: "Channel Two", value: "channel-2" },
 		]);
+		expect(result.options.dancer2).toBe(result.options.dancer1);
 		expect(result.options.dancer1).toEqual([
 			{ count: 2, label: "Alice", value: "Alice" },
 			{ count: 2, label: "Bob", value: "Bob" },
@@ -192,6 +193,7 @@ describe("loadSearchPage", () => {
 
 		expect(result.totalVideos).toBe(2);
 		expect(result.initialVideos.map((video) => video.id)).toEqual(["video-1", "video-2"]);
+		expect(result.options.dancer2).not.toBe(result.options.dancer1);
 		expect(result.options.dancer2).toEqual([
 			{ count: 1, label: "Bob", value: "Bob" },
 			{ count: 1, label: "Carol", value: "Carol" },
