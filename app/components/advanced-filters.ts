@@ -1,7 +1,7 @@
-import { UiSchema } from "@effect/ui";
+import { Command, Component, UiSchema } from "@effect/ui";
 import { Combobox, type ComboboxItem, Popover } from "@effect/ui-kit";
 import { makeTabs } from "@effect/ui-kit/Tabs";
-import { Html } from "@effect/ui/html";
+import { Html, HtmlCommand } from "@effect/ui/html";
 import { Schema } from "effect";
 
 import { SearchFilters, SearchOptions, matchFilterOptions } from "../search";
@@ -19,6 +19,9 @@ const advancedFilters = [
 const AdvancedKey = Schema.Literals(advancedFilters.map(({ key }) => key));
 const Filter = Schema.NullOr(Schema.String);
 const FilterTabs = makeTabs({ value: AdvancedKey });
+const ConditionGroup = Html.ref("ConditionGroup", "div");
+const AddCondition = Html.ref("AddCondition", "button");
+const RemoveCondition = Html.ref("RemoveCondition", "button");
 
 const Event = UiSchema.TaggedEnum({ Changed: { key: AdvancedKey, value: Filter } });
 const Message = UiSchema.TaggedEnum({
@@ -28,6 +31,8 @@ const Message = UiSchema.TaggedEnum({
 	Typed: { query: Schema.String },
 	Navigated: {},
 	Changed: { key: AdvancedKey, value: Filter },
+	Removed: { key: AdvancedKey, restoreFocus: Schema.Boolean },
+	FocusConditionGroup: {},
 });
 
 const closed = { open: false, query: "", scrollRevision: 0, resetScroll: true };
@@ -61,6 +66,26 @@ export const AdvancedFilters = Html.component({
 			$.evolve({ query, resetScroll: true, scrollRevision: $.model.scrollRevision + 1 }),
 		Navigated: ($) => $.evolve({ resetScroll: false, scrollRevision: $.model.scrollRevision + 1 }),
 		Changed: ($, { key, value }) => $.evolve(closed).emit(Event.Changed({ key, value })),
+		Removed: ($, { key, restoreFocus }) => {
+			const removed = $.evolve(closed).emit(Event.Changed({ key, value: null }));
+			if (!restoreFocus) return removed;
+			const active = advancedFilters.filter((filter) => $.props.filters[filter.key] !== null);
+			const index = active.findIndex((filter) => filter.key === key);
+			const neighbor = active[index + 1] ?? active[index - 1];
+			return removed.run(
+				HtmlCommand.focus(
+					neighbor ? RemoveCondition.at(neighbor.key) : AddCondition,
+					({ found }) => (found ? Component.noop : Message.FocusConditionGroup()),
+					{ preventScroll: true },
+				),
+			);
+		},
+		FocusConditionGroup: ($) =>
+			$.run(
+				HtmlCommand.Focus.make({ ref: ConditionGroup, options: { preventScroll: true } }).pipe(
+					Command.asNoop,
+				),
+			),
 	},
 	view: (h, { selectedKey, query, open, scrollRevision, resetScroll }) => {
 		const { filters, options } = h.props;
@@ -68,17 +93,20 @@ export const AdvancedFilters = Html.component({
 		const available = advancedFilters.filter(
 			({ key }) => filters[key] === null && options[key].length > 0,
 		);
+		const group = h.div.ref(ConditionGroup).attr("tabindex", "-1");
 		if (activeFilters.length === 0 && available.length === 0) {
-			return h.text("");
+			return group;
 		}
 
 		const activeTab = available.find(({ key }) => key === selectedKey) ?? available[0];
 		const hasFilters = activeFilters.length > 0;
+		const addConditionId = h.id("add-condition");
 		const picker =
 			activeTab &&
 			Popover(h, {
 				props: {
 					align: "start",
+					anchor: addConditionId,
 					collisionAvoidance: { align: "shift", fallbackAxisSide: "none" },
 					collisionPadding: 16,
 					open,
@@ -94,6 +122,8 @@ export const AdvancedFilters = Html.component({
 					const trigger = popover
 						.trigger({
 							element: h.button
+								.id(addConditionId)
+								.ref(AddCondition)
 								.attr(
 									"aria-label",
 									hasFilters ? "Add another performance detail" : "Choose performance details",
@@ -251,7 +281,7 @@ export const AdvancedFilters = Html.component({
 				},
 			});
 
-		return h.div
+		return group
 			.class("text-muted relative flex flex-wrap items-center gap-2 text-sm leading-7 mt-3 sm:mt-2")
 			.children(
 				h.span("Only show performances"),
@@ -267,11 +297,14 @@ export const AdvancedFilters = Html.component({
 						index > 0 && h.span.key(`${key}-and`).children("and"),
 						h.button
 							.key(key)
+							.ref(RemoveCondition.at(key))
 							.attrs({
 								type: "button",
 								"aria-label": `Remove ${label.toLowerCase()} condition`,
 							})
-							.on("click", Message.Changed({ key, value: null }))
+							.on("click", ({ pointerType }) =>
+								Message.Removed({ key, restoreFocus: pointerType === "" }),
+							)
 							.class(
 								"bg-accent-soft hover:bg-accent-soft-hover text-accent-text inline-flex h-6 max-w-full cursor-pointer items-center gap-1 rounded-sm px-2 text-xs relative pointer-coarse:after:absolute pointer-coarse:after:-inset-1.5 pointer-coarse:after:content-['']",
 							)
