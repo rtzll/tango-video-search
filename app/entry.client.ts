@@ -1,9 +1,9 @@
-import { Router } from "@effect/ui";
+import type { Renderer } from "@effect/ui";
 import { BrowserRouter, HtmlHydrate } from "@effect/ui/html";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 
-import { App } from "./root";
-import { AppRoute, additionalSearch } from "./routes";
+import { App, appProps } from "./root";
+import { AppRoute } from "./routes";
 import { type SearchFilters } from "./search";
 import { fetchSearch } from "./search-client";
 import {
@@ -35,22 +35,30 @@ const facetsLayer = SearchFacetsQuery.toLayer(({ filters }) =>
 	fetchSearch(searchUrl(facetsPath, filters), SearchFacetsSnapshot),
 );
 
-const hydrate = Effect.gen(function* () {
-	const container = document.getElementById("app");
-	const state = document.getElementById("state")?.textContent;
-	if (!container || !state) {
-		return;
-	}
-
-	const props = Effect.map(Router.props(AppRoute), (props) => ({
-		...props,
-		additionalSearch: props.route._tag === "Search" ? additionalSearch(location.href) : "",
-	}));
-	yield* HtmlHydrate.hydrateEffect(App, props, container, JSON.parse(state));
-	return yield* Effect.never;
-}).pipe(
-	Effect.scoped,
-	Effect.provide([BrowserRouter.layer({ routes: AppRoute }), resultsLayer, facetsLayer]),
+const appServices = Layer.mergeAll(
+	BrowserRouter.layer({ routes: AppRoute }),
+	resultsLayer,
+	facetsLayer,
 );
 
-Effect.runFork(hydrate);
+function parseHydrationState(raw: string): Renderer.State | undefined {
+	try {
+		return JSON.parse(raw) as Renderer.State;
+	} catch {
+		return undefined;
+	}
+}
+
+const container = document.getElementById("app");
+const rawState = document.getElementById("state")?.textContent;
+const state = rawState ? parseHydrationState(rawState) : undefined;
+
+if (container && state) {
+	const program = Layer.launch(
+		HtmlHydrate.hydrate(App, appProps, container, state).pipe(Layer.provide(appServices)),
+	).pipe(
+		Effect.tapCause((cause) => Effect.logError("Failed to hydrate Tango Video Search", cause)),
+	);
+
+	Effect.runFork(program);
+}

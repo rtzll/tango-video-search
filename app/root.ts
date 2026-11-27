@@ -1,31 +1,69 @@
-import { Head, Router, UiSchema } from "@effect/ui";
+import { Head, Router, Subscription, UiSchema } from "@effect/ui";
 import { Html, HtmlHead } from "@effect/ui/html";
-import { Schema } from "effect";
+import { Effect, Schema, Stream } from "effect";
 
-import { AppRoute } from "./routes";
+import { AppRoute, additionalSearch } from "./routes";
 import { SearchPage } from "./search-page";
 
-const ChangedRoute = UiSchema.TaggedEnum({ ChangedRoute: { route: AppRoute } });
+const Message = UiSchema.TaggedEnum({
+	ChangedRoute: { route: AppRoute },
+	ChangedAdditionalSearch: { additionalSearch: Schema.String },
+});
+
+export const appProps = Effect.gen(function* () {
+	const router = yield* Router.Router;
+	const route = yield* Router.currentRoute(AppRoute);
+	return {
+		route,
+		additionalSearch: route._tag === "Search" ? additionalSearch(router.location().url) : "",
+	};
+});
+
+const watchAdditionalSearch = Subscription.make(
+	"additionalSearch",
+	Stream.unwrap(
+		Effect.map(Router.Router, (router) =>
+			router.changes.pipe(
+				Stream.map((location) =>
+					location.route._tag === "Search" ? additionalSearch(location.url) : "",
+				),
+				Stream.changes,
+				Stream.map((value) => Message.ChangedAdditionalSearch({ additionalSearch: value })),
+			),
+		),
+	),
+);
 
 export const App = Html.component({
 	name: "App",
-	props: Schema.Struct({ route: AppRoute, additionalSearch: Schema.String }),
-	model: Schema.Struct({ route: AppRoute }),
-	message: ChangedRoute,
+	props: Schema.Struct({
+		route: AppRoute,
+		additionalSearch: Schema.optional(Schema.String),
+	}),
+	model: Schema.Struct({ route: AppRoute, additionalSearch: Schema.String }),
+	message: Message,
 }).make({
-	init: ({ props }) => ({ route: props.route }),
-	update: (_, { route }) => ({ route }),
+	init: ({ props }) => ({
+		route: props.route,
+		additionalSearch: props.additionalSearch ?? "",
+	}),
+	update: {
+		ChangedRoute: ($, { route }) => $.evolve({ route }),
+		ChangedAdditionalSearch: ($, { additionalSearch: value }) =>
+			$.model.additionalSearch === value ? $.model : $.evolve({ additionalSearch: value }),
+	},
 	subscriptions: ({ model }) => [
-		Router.subscription(AppRoute, model.route, (route) => ChangedRoute.ChangedRoute({ route })),
+		Router.subscription(AppRoute, model.route, (route) => Message.ChangedRoute({ route })),
+		watchAdditionalSearch,
 	],
 	head: ({ model: { route } }) => [
 		HtmlHead.lang("en"),
 		...(route._tag === "NotFound" ? [Head.title("Tango Video Search")] : []),
 	],
-	view: (h, { route }) =>
+	view: (h, { route, additionalSearch: extras }) =>
 		AppRoute.match(route, {
-			Search: (route) =>
-				SearchPage(h, { props: { route, additionalSearch: h.props.additionalSearch } }),
+			Search: (searchRoute) =>
+				SearchPage(h, { props: { route: searchRoute, additionalSearch: extras } }),
 			NotFound: () =>
 				h.div
 					.class("p-6")

@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { Deferred, Effect, Fiber, Layer } from "effect";
 import { expect, it, vi } from "vite-plus/test";
 
-import { handleRequest } from "../workers/app";
+import { handleRequest, workerTracerLayer } from "../workers/app";
 import { parseSearchParams } from "./search";
 import type { SearchFacets } from "./search-page-data";
 import { Search, SearchReadError } from "./search.server";
@@ -126,11 +126,12 @@ it("records and closes each request span even when the filter-options read fails
 	});
 	const request = new Request("https://example.com/");
 	const response = await Effect.runPromise(
-		handleRequest(request, assets, tracing).pipe(Effect.provide(layer)),
+		handleRequest(request, assets).pipe(
+			Effect.provide(Layer.merge(layer, workerTracerLayer(tracing))),
+		),
 	);
 
 	expect(response.status).toBe(200);
-	expect(events).toHaveLength(9);
 	expect(events).toEqual(
 		expect.arrayContaining([
 			"start:search.results",
@@ -139,11 +140,29 @@ it("records and closes each request span even when the filter-options read fails
 			"start:search.facets",
 			"error:search.facets",
 			"end:search.facets",
+			"start:search.render",
+			"ok:search.render",
+			"end:search.render",
 		]),
 	);
-	expect(events.slice(-3)).toEqual([
-		"start:search.render",
-		"ok:search.render",
-		"end:search.render",
-	]);
+	const starts = events.filter((event) => event.startsWith("start:")).length;
+	const ends = events.filter((event) => event.startsWith("end:")).length;
+	expect(ends).toBe(starts);
+	expect(events.slice(-2)).toEqual(["ok:search.render", "end:search.render"]);
+});
+
+it("returns 404 without running search queries for unknown routes", async () => {
+	const search = {
+		results: vi.fn(() => Effect.succeed(emptyResults)),
+		facets: vi.fn(() => Effect.succeed(facets)),
+	};
+	const request = new Request("https://example.com/missing");
+	const response = await Effect.runPromise(
+		handleRequest(request, assets).pipe(Effect.provide(Layer.succeed(Search, search))),
+	);
+
+	expect(response.status).toBe(404);
+	expect(response.headers.get("Cache-Control")).toBeNull();
+	expect(search.results).not.toHaveBeenCalled();
+	expect(search.facets).not.toHaveBeenCalled();
 });
