@@ -91,6 +91,7 @@ const renderFooter = (h: Html.H<PageMessage>, formattedLastUpdate: string) =>
 
 const defaultTitle = "Tango Video Search";
 const defaultDescription = "A different way to find tango videos.";
+const canonicalOrigin = "https://tvs.christianrotzoll.com";
 
 function summarizeFilters(
 	filters: SearchFilters,
@@ -130,7 +131,7 @@ function canonicalSearchHref(route: typeof SearchRoute.Type, filters: SearchFilt
 	if (page > 1) {
 		search.page = [String(page)];
 	}
-	return SearchRoute.print({ ...route, search });
+	return new URL(SearchRoute.print({ ...route, search }), canonicalOrigin).href;
 }
 
 const emptyOptions: SearchOptions = {

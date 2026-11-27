@@ -225,7 +225,7 @@ describe("SearchPage and App interactions", () => {
 		expect(home.head).toContain(
 			'property="og:image" content="https://i.ytimg.com/vi/video-1/hqdefault.jpg"',
 		);
-		expect(home.head).toContain('rel="canonical" href="/"');
+		expect(home.head).toContain('rel="canonical" href="https://tvs.christianrotzoll.com/"');
 
 		const filtered = await renderSearchHead(
 			"/?dancer1=Agustina+Piaggio&orchestra=Juan+D%27Arienzo&channel=ch-1&page=2&utm_source=x",
@@ -239,7 +239,17 @@ describe("SearchPage and App interactions", () => {
 		expect(filtered.head).toContain(
 			'property="og:image" content="https://i.ytimg.com/vi/video-2/hqdefault.jpg"',
 		);
-		expect(filtered.head).toContain('rel="canonical"');
+		const canonicalHref = filtered.head.match(/rel="canonical" href="(?<href>[^"]+)"/)?.groups
+			?.href;
+		const canonical = new URL(canonicalHref?.replaceAll("&amp;", "&") ?? "");
+		expect(canonical.origin).toBe("https://tvs.christianrotzoll.com");
+		expect(canonical.pathname).toBe("/");
+		expect(Object.fromEntries(canonical.searchParams)).toEqual({
+			dancer1: "Agustina Piaggio",
+			orchestra: "Juan D'Arienzo",
+			channel: "ch-1",
+			page: "2",
+		});
 		expect(filtered.head).not.toContain("utm_source");
 	});
 
