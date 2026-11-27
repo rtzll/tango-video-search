@@ -30,6 +30,7 @@ export function SearchControls<Message>(
 				placeholder: `any ${searchLabel}`,
 				searchLabel,
 				ariaLabel,
+				virtualize: key !== "orchestra",
 			},
 			onEmit: { Picked: ({ value }) => onFilterChange(key, value) },
 		});
