@@ -6,7 +6,7 @@ import { AsyncResult } from "effect/reactivity";
 import { Icon } from "./components/icons";
 import { ResultsNavigation } from "./components/results-navigation";
 import { SearchControls } from "./components/search-controls";
-import { VideoCard } from "./components/video-card";
+import { type ThumbnailPriority, VideoCard } from "./components/video-card";
 import {
 	AppRoute,
 	SearchRoute,
@@ -37,6 +37,7 @@ const toggleCardFilter = (key: ResultFilter, value: string) =>
 const renderVideoCard = (
 	h: Html.H<PageMessage>,
 	video: SearchVideo,
+	imagePriority: ThumbnailPriority,
 	channel: string | null,
 	dancer1: string | null,
 	dancer2: string | null,
@@ -48,6 +49,7 @@ const renderVideoCard = (
 ) =>
 	VideoCard(h, {
 		video,
+		imagePriority,
 		filters: { channel, dancer1, dancer2, event, orchestra, singer, song, year },
 		onFilterClick: toggleCardFilter,
 	});
@@ -147,10 +149,11 @@ export const SearchPage = Html.component({
 				h.div
 					.class("grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3")
 					.children(
-						value.initialVideos.map((video) =>
+						value.initialVideos.map((video, index) =>
 							h.lazy(
 								renderVideoCard,
 								video,
+								index === 0 ? "high" : index < 3 ? "eager" : "lazy",
 								filters.channel,
 								filters.dancer1,
 								filters.dancer2,

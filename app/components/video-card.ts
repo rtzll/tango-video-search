@@ -10,15 +10,18 @@ import {
 } from "../search";
 import { Icon } from "./icons";
 
+export type ThumbnailPriority = "high" | "eager" | "lazy";
+
 interface VideoCardProps<Message> {
 	video: SearchVideo;
+	imagePriority?: ThumbnailPriority;
 	onFilterClick: (type: ResultFilter, value: string) => Message;
 	filters: SearchFilters;
 }
 
 export function VideoCard<Message>(
 	h: Html.H<Message>,
-	{ video, onFilterClick, filters }: VideoCardProps<Message>,
+	{ video, imagePriority = "lazy", onFilterClick, filters }: VideoCardProps<Message>,
 ) {
 	const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
 	const videoLinkLabel = `Watch ${video.dancers.join(" and ")} dance to ${video.songTitle} by ${video.orchestra} on YouTube`;
@@ -45,7 +48,15 @@ export function VideoCard<Message>(
 				.class("bg-panel-hover group relative aspect-video overflow-hidden")
 				.children(
 					h.img
-						.attrs({ src: thumbnailUrl, alt: "", loading: "lazy" })
+						.attrs({
+							src: thumbnailUrl,
+							alt: "",
+							width: "480",
+							height: "360",
+							loading: imagePriority === "lazy" ? "lazy" : undefined,
+							decoding: imagePriority === "lazy" ? "async" : undefined,
+							fetchpriority: imagePriority === "high" ? "high" : undefined,
+						})
 						.class("h-full w-full object-cover"),
 					h.span.class(
 						"bg-accent/45 pointer-events-none absolute inset-0 mix-blend-color transition-opacity duration-200 group-hover:opacity-0 group-focus-visible:opacity-0",

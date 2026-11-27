@@ -166,4 +166,44 @@ describe("SearchPage and App interactions", () => {
 			}).pipe(Effect.scoped, Effect.provide(layers)),
 		);
 	});
+
+	it("prioritizes above-the-fold thumbnails and lazy-loads offscreen cards", async () => {
+		const videos = Array.from({ length: 4 }, (_, index) => ({
+			...makePageResults(1).initialVideos[0],
+			id: `video-${index + 1}`,
+		}));
+		const layers = Layer.mergeAll(
+			TestHost.layer(),
+			noopHtmlHost,
+			Router.memory({ routes: AppRoute, url: "/" }),
+			SearchResultsQuery.toLayer(() =>
+				Effect.succeed({ initialVideos: videos, page: 1, totalPages: 1, totalVideos: 4 }),
+			),
+			SearchFacetsQuery.toLayer(() => Effect.succeed(sampleFacets)),
+		);
+
+		await Effect.runPromise(
+			Effect.gen(function* () {
+				const play = yield* HtmlPlay.make(App, appProps);
+				const images = play.root.all(Locator.tag("img"));
+				expect(images).toHaveLength(4);
+
+				expect(images[0].attrs).toMatchObject({
+					fetchpriority: "high",
+					height: "360",
+					width: "480",
+				});
+				expect(images[0].attrs?.loading).toBeUndefined();
+				expect(images[1].attrs?.loading).toBeUndefined();
+				expect(images[2].attrs?.loading).toBeUndefined();
+				expect(images[2].attrs?.fetchpriority).toBeUndefined();
+				expect(images[3].attrs).toMatchObject({
+					decoding: "async",
+					height: "360",
+					loading: "lazy",
+					width: "480",
+				});
+			}).pipe(Effect.scoped, Effect.provide(layers)),
+		);
+	});
 });
