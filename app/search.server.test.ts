@@ -105,12 +105,18 @@ it("returns an HTTP error when the search results read fails", async () => {
 	expect(await response.json()).toEqual({ error: "The search failed." });
 });
 
-it("records and closes each request span even when the filter-options read fails", async () => {
+it("records and closes each request span with filter count and page attributes even when facets fail", async () => {
 	const events: string[] = [];
+	const attributes = new Map<string, Record<string, boolean | number | string>>();
 	const tracing = {
 		startSpan(name: string) {
 			events.push(`start:${name}`);
+			const spanAttributes: Record<string, boolean | number | string> = {};
+			attributes.set(name, spanAttributes);
 			return {
+				setAttribute(key: string, value: boolean | number | string) {
+					spanAttributes[key] = value;
+				},
 				setStatus({ code }: TracingSpanStatus) {
 					events.push(`${code}:${name}`);
 				},
@@ -124,7 +130,7 @@ it("records and closes each request span even when the filter-options read fails
 		results: () => Effect.succeed(emptyResults),
 		facets: () => new SearchReadError({ operation: "facets", cause: new Error("Test failure") }),
 	});
-	const request = new Request("https://example.com/");
+	const request = new Request("https://example.com/?year=2024&orchestra=Di+Sarli&page=3");
 	const response = await Effect.runPromise(
 		handleRequest(request, assets).pipe(
 			Effect.provide(Layer.merge(layer, workerTracerLayer(tracing))),
@@ -145,6 +151,9 @@ it("records and closes each request span even when the filter-options read fails
 			"end:search.render",
 		]),
 	);
+	expect(attributes.get("search.results")).toEqual({ activeFilterCount: 2, page: 3 });
+	expect(attributes.get("search.facets")).toEqual({ activeFilterCount: 2 });
+	expect(attributes.get("search.render")).toEqual({ activeFilterCount: 2, page: 3 });
 	const starts = events.filter((event) => event.startsWith("start:")).length;
 	const ends = events.filter((event) => event.startsWith("end:")).length;
 	expect(ends).toBe(starts);

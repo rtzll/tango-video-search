@@ -22,9 +22,10 @@ interface AppEnv {
 }
 
 export interface WorkerTracing {
-	startSpan(name: string): {
-		end(): void;
-		setStatus(status: TracingSpanStatus): void;
+	readonly startSpan: (name: string) => {
+		readonly end: () => void;
+		readonly setAttribute?: (key: string, value: boolean | number | string) => unknown;
+		readonly setStatus: (status: TracingSpanStatus) => void;
 	};
 }
 
@@ -38,6 +39,15 @@ export function workerTracerLayer(tracing: WorkerTracing) {
 				const end = native.end.bind(native);
 				native.end = (endTime, exit) => {
 					end(endTime, exit);
+					for (const [key, value] of native.attributes) {
+						if (
+							typeof value === "boolean" ||
+							typeof value === "number" ||
+							typeof value === "string"
+						) {
+							workerSpan.setAttribute?.(key, value);
+						}
+					}
 					if (Exit.isSuccess(exit)) {
 						workerSpan.setStatus({ code: "ok" });
 					} else if (!Cause.hasInterruptsOnly(exit.cause)) {
@@ -83,6 +93,10 @@ function getDocument(url: URL, assets: Fetcher) {
 	return cachedDocument;
 }
 
+function countActiveFilters(filters: ReturnType<typeof parseSearchParams>["filters"]) {
+	return Object.values(filters).filter((value) => value !== null).length;
+}
+
 const unavailable = () => new SearchQueryError({ reason: "unavailable" });
 
 export function handleRequest(request: Request, assets: Fetcher) {
@@ -94,11 +108,25 @@ export function handleRequest(request: Request, assets: Fetcher) {
 		}
 
 		const query = parseSearchParams(url.searchParams);
+		const activeFilterCount = countActiveFilters(query.filters);
 		const search = yield* Search;
 		const loadResults = (input = query) =>
-			search.results(input).pipe(Effect.withSpan("search.results"));
+			search.results(input).pipe(
+				Effect.withSpan("search.results", {
+					attributes: {
+						activeFilterCount: countActiveFilters(input.filters),
+						page: input.page,
+					},
+				}),
+			);
 		const loadFacets = (filters = query.filters) =>
-			search.facets(filters).pipe(Effect.withSpan("search.facets"));
+			search.facets(filters).pipe(
+				Effect.withSpan("search.facets", {
+					attributes: {
+						activeFilterCount: countActiveFilters(filters),
+					},
+				}),
+			);
 		if (isDataRequest) {
 			const data =
 				url.pathname === resultsPath
@@ -163,7 +191,9 @@ export function handleRequest(request: Request, assets: Fetcher) {
 						},
 					}),
 			),
-			Effect.withSpan("search.render"),
+			Effect.withSpan("search.render", {
+				attributes: { activeFilterCount, page: query.page },
+			}),
 		);
 		return yield* render;
 	}).pipe(
