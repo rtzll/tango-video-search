@@ -402,13 +402,13 @@ function runProcess(command: string, args: string[], outputPath?: string) {
 			const child = spawn(command, args, {
 				stdio: outputPath ? ["ignore", "pipe", "inherit"] : "inherit",
 			});
-			const closed = new Promise<Error | undefined>((resolve) => {
+			const closed = new Promise<Error | undefined>((resolveClose) => {
 				let processError: Error | undefined;
 				child.on("error", (error) => {
 					processError = error;
 				});
 				child.once("close", (code, signal) => {
-					resolve(
+					resolveClose(
 						processError ??
 							(code === 0
 								? undefined
@@ -425,7 +425,7 @@ function runProcess(command: string, args: string[], outputPath?: string) {
 					return yield* Effect.fail(error);
 				}
 			});
-			const stdout = child.stdout;
+			const { stdout } = child;
 			if (!stdout || !outputPath) {
 				return checkExit;
 			}

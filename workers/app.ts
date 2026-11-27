@@ -212,7 +212,7 @@ export function handleRequest(request: Request, assets: Fetcher) {
 
 export default {
 	fetch(request: Request, env: AppEnv, ctx: ExecutionContext) {
-		const tracing = ctx.tracing;
+		const { tracing } = ctx;
 		const requestTracing = tracing?.getActiveSpan()?.isTraced ? tracing : undefined;
 		const services = requestTracing
 			? Layer.merge(Search.layer(env.DB), workerTracerLayer(requestTracing))

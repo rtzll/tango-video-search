@@ -41,12 +41,15 @@ export function fetchSearch<A>(url: URL, schema: Schema.Codec<A, any>) {
 		),
 		Effect.mapError((error) => {
 			switch (error._tag) {
-				case "SearchNetworkError":
+				case "SearchNetworkError": {
 					return new SearchQueryError({ reason: "unavailable" });
-				case "SearchHttpError":
+				}
+				case "SearchHttpError": {
 					return new SearchQueryError({ reason: "http-error" });
-				case "InvalidSearchResponse":
+				}
+				case "InvalidSearchResponse": {
 					return new SearchQueryError({ reason: "invalid-response" });
+				}
 			}
 		}),
 		Effect.timeoutOrElse({

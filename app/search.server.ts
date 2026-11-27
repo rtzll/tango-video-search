@@ -9,7 +9,10 @@ export class SearchReadError extends Data.TaggedError("SearchReadError")<{
 	cause: unknown;
 }> {}
 
-type SearchInput = { filters: SearchFilters; page: number };
+interface SearchInput {
+	filters: SearchFilters;
+	page: number;
+}
 
 const dateFormat = new Intl.DateTimeFormat("en-US", {
 	day: "numeric",

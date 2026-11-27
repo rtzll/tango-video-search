@@ -69,7 +69,9 @@ export const AdvancedFilters = Html.component({
 		Changed: ($, { key, value }) => $.evolve({ open: false }).emit(Event.Changed({ key, value })),
 		Removed: ($, { key, restoreFocus }) => {
 			const removed = $.evolve({ open: false }).emit(Event.Changed({ key, value: null }));
-			if (!restoreFocus) return removed;
+			if (!restoreFocus) {
+				return removed;
+			}
 			const active = advancedFilters.filter((filter) => $.props.filters[filter.key] !== null);
 			const index = active.findIndex((filter) => filter.key === key);
 			const neighbor = active[index + 1] ?? active[index - 1];

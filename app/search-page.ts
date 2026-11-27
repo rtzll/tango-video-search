@@ -226,7 +226,7 @@ export const SearchPage = Html.component({
 		const { filters } = parseSearchRoute(route);
 		const facets = AsyncResult.isSuccess(h.queries.facets) ? h.queries.facets.value : undefined;
 		const results = AsyncResult.isSuccess(h.queries.results) ? h.queries.results.value : undefined;
-		const waiting = h.queries.results.waiting;
+		const { waiting } = h.queries.results;
 
 		const navigation = results && {
 			getPageHref: (page: number) => paginationHref(route, page, additionalSearch),

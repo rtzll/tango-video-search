@@ -337,7 +337,7 @@ function selectFilteredVideosCount(db: AppDatabase, filters: SearchFilters) {
 }
 
 function namedOptions(rows: readonly { count: number; value: string }[]) {
-	return rows.map(({ count, value }) => ({ count, label: value, value }));
+	return rows.map(({ count: itemCount, value }) => ({ count: itemCount, label: value, value }));
 }
 
 export async function loadSearchFacets(db: AppDatabase, filters: SearchFilters) {
